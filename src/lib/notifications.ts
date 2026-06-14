@@ -31,9 +31,13 @@ export class NotificationEngine {
           applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
         });
         
-        // In a real app, send this subscription to the backend
+        // Send this subscription to the backend
         console.log('PWA Push Subscription created:', subscription);
-        // await fetch('/api/notifications/subscribe', { method: 'POST', body: JSON.stringify(subscription) });
+        await fetch('/api/notifications/subscribe', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription }) 
+        });
       }
     } catch (error) {
       console.error('Failed to initialize PWA notifications:', error);
