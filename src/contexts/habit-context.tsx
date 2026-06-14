@@ -52,11 +52,11 @@ export const useHabitContext = () => {
 
 // --- Initial Seed Data ---
 const MOCK_HABITS: HabitDef[] = [
-  { id: 1, name: "Gym", category: "Fitness", time: "18:00", frequency: [1, 3, 5] },
-  { id: 2, name: "Reading", category: "Mind", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 3, name: "Coding", category: "Work", time: "09:00", frequency: [1, 2, 3, 4, 5] },
-  { id: 4, name: "Meditation", category: "Mind", time: "07:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 5, name: "No Spend", category: "Finance", time: "", frequency: [0, 1, 2, 3, 4, 5, 6] }
+  { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [1, 3, 5] },
+  { id: 2, name: "Reading", category: "🧠 Growth", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 3, name: "Office", category: "💼 Career", time: "09:00", frequency: [1, 2, 3, 4, 5] },
+  { id: 4, name: "Meditation", category: "🕉️ Spiritual", time: "07:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 5, name: "Laundry", category: "🏠 Home", time: "10:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
 ]
 
 const SEED_GRID_DATA = MOCK_HABITS.map(habit => ({

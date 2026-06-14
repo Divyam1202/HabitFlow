@@ -16,10 +16,21 @@ export default function HabitsPage() {
 
   // Form State
   const [name, setName] = useState('')
-  const [category, setCategory] = useState('Fitness')
+  const [category, setCategory] = useState('🏋️ Health')
   const [time, setTime] = useState('')
   const [notification, setNotification] = useState('None')
   const [frequency, setFrequency] = useState<number[]>([])
+
+  const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
+    '🏋️ Health': ['Gym', 'Water', 'Breakfast', 'Dinner', 'Sleep'],
+    '💼 Career': ['Office', 'Building', 'Job Switch'],
+    '🧠 Growth': ['Reading', 'Learning', 'Courses', 'Certifications'],
+    '🕉️ Spiritual': ['Offer Water to Surya Dev', 'Meditation', 'Prayer'],
+    '🏠 Home': ['Laundry', 'Cleaning', 'Groceries', 'Room Reset'],
+    '📅 Planning': ['Weekly Review', 'Weekly Planning', 'Goal Review'],
+  }
+  
+  const CATEGORIES = Object.keys(CATEGORY_SUGGESTIONS)
 
   const DAYS_OF_WEEK = [
     { label: 'S', value: 0 },
@@ -40,7 +51,7 @@ export default function HabitsPage() {
 
   const resetForm = () => {
     setName('')
-    setCategory('Fitness')
+    setCategory('🏋️ Health')
     setTime('')
     setNotification('None')
     setFrequency([])
@@ -50,7 +61,7 @@ export default function HabitsPage() {
 
   const handleEdit = (habit: any) => {
     setName(habit.name || '')
-    setCategory(habit.category || 'Fitness')
+    setCategory(habit.category || '🏋️ Health')
     setTime(habit.time || '')
     setNotification(habit.notification || 'None')
     setFrequency(habit.frequency || [])
@@ -157,9 +168,15 @@ export default function HabitsPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
-                  placeholder="e.g., Deep Work"
+                  placeholder="e.g., Gym, Reading, Meditation"
+                  list="habit-suggestions"
                   required
                 />
+                <datalist id="habit-suggestions">
+                  {CATEGORY_SUGGESTIONS[category]?.map(suggestion => (
+                    <option key={suggestion} value={suggestion} />
+                  ))}
+                </datalist>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -170,10 +187,9 @@ export default function HabitsPage() {
                     onChange={e => setCategory(e.target.value)}
                     className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 appearance-none"
                   >
-                    <option>Fitness</option>
-                    <option>Mind</option>
-                    <option>Work</option>
-                    <option>Finance</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -209,11 +225,12 @@ export default function HabitsPage() {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Clock size={14} /> Timing & Notifications</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time (Optional)</label>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
                     <input
                       type="time"
                       value={time}
                       onChange={e => setTime(e.target.value)}
+                      required
                       className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
                     />
                   </div>
