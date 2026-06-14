@@ -40,6 +40,8 @@ export type HabitContextType = {
   editHabit: (id: number, habit: Partial<HabitDef>) => void;
   deleteHabit: (id: number) => void;
   isMounted: boolean;
+  isInitialized: boolean;
+  initializeJourney: () => void;
 }
 
 const HabitContext = createContext<HabitContextType | null>(null)
@@ -109,6 +111,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   
   const [gridData, setGridData] = useState<GridHabit[]>(SEED_GRID_DATA)
   const [heatmapData, setHeatmapData] = useState<{id: number, count: number}[]>(SEED_HEATMAP)
+  const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   const getStorageKey = () => user?.id ? `habitflow_state_${user.id}` : 'habitflow_state'
 
@@ -141,6 +144,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (parsed) {
+        setIsInitialized(true)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
         setTodayHabits(parsed.todayHabits || [])
         setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
@@ -148,20 +152,23 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         setGridData(parsed.gridData || SEED_GRID_DATA)
         setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
       } else {
-        setCurrentSystemDate(getLocalYYYYMMDD())
-        setTodayHabits([])
-        setTodayNutrition(INITIAL_NUTRITION)
-        setTodayActivity(INITIAL_ACTIVITY)
-        
-        if (isAuthenticated) {
-          // Brand new account -> start with a clean slate
+        const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
+        if (hasInitialized || isAuthenticated) {
+          setIsInitialized(true)
+          setCurrentSystemDate(getLocalYYYYMMDD())
+          setTodayHabits([])
+          setTodayNutrition(INITIAL_NUTRITION)
+          setTodayActivity(INITIAL_ACTIVITY)
           setGridData([])
           setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
         } else {
-          // Unauthenticated guest -> show preview data with some habits already ticked for demonstration
+          setIsInitialized(false)
+          setCurrentSystemDate(getLocalYYYYMMDD())
+          setTodayHabits([1, 3])
+          setTodayNutrition(INITIAL_NUTRITION)
+          setTodayActivity(INITIAL_ACTIVITY)
           setGridData(SEED_GRID_DATA)
           setHeatmapData(SEED_HEATMAP)
-          setTodayHabits([1, 3]) // Pre-tick some habits to show the green "Completed" state
         }
       }
       setMounted(true)
@@ -220,7 +227,17 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       
       return () => clearTimeout(timer);
     }
-  }, [mounted, isLoading, isAuthenticated, user?.id, currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData])
+  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted])
+
+  const initializeJourney = () => {
+    localStorage.setItem('habitflow_has_initialized', 'true')
+    setIsInitialized(true)
+    setGridData([])
+    setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+    setTodayHabits([])
+    setTodayNutrition(INITIAL_NUTRITION)
+    setTodayActivity(INITIAL_ACTIVITY)
+  }
 
   // Midnight Rollover Engine
   useEffect(() => {
@@ -393,7 +410,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       addHabit,
       editHabit,
       deleteHabit,
-      isMounted: mounted
+      isMounted: mounted,
+      isInitialized,
+      initializeJourney
     }}>
       {children}
     </HabitContext.Provider>
