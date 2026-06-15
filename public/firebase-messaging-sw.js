@@ -2,14 +2,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/10.0.0/firebase-messaging-compat.js');
 
 // Must match your exact web app configuration matrix
-// PLEASE REPLACE "YOUR_..." WITH YOUR ACTUAL FIREBASE KEYS
 firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA6QPlUzTgHW-aiCDkBMMiVsWDUDePSWmM",
+  authDomain: "habytflow-2026.firebaseapp.com",
+  projectId: "habytflow-2026",
+  storageBucket: "habytflow-2026.firebasestorage.app",
+  messagingSenderId: "384678892711",
+  appId: "1:384678892711:web:9eaf526c7e7d258c247782"
 });
 
 const messaging = firebase.messaging();
