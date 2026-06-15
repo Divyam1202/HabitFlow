@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'better-auth';
 import { auth } from '@/lib/auth';
 import UserState from '@/models/UserState';
-import connectMongo from '@/lib/db';
+import { connectToDatabase as connectMongo } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {

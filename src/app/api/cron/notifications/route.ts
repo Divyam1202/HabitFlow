@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import connectMongo from '@/lib/db';
+import { connectToDatabase as connectMongo } from '@/lib/db';
 import UserState from '@/models/UserState';
 import { adminMessaging } from '@/lib/firebase-admin';
 
