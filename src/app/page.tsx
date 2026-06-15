@@ -65,6 +65,12 @@ export default function BrutalistDashboard() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated && isMounted) {
+      NotificationEngine.initialize().catch(console.error);
+    }
+  }, [isAuthenticated, isMounted]);
+
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -176,12 +182,6 @@ export default function BrutalistDashboard() {
         {/* Section B: Today's Action Items */}
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
-          <button 
-            onClick={() => NotificationEngine.initialize()}
-            className="flex items-center gap-2 border border-zinc-800 bg-black text-white px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-zinc-900 transition-colors"
-          >
-            <Bell size={14} /> Enable Notifications
-          </button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {gridData.length === 0 && (
