@@ -18,6 +18,7 @@ import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
 import { NotificationEngine } from '@/lib/notifications'
+import { NotificationModal } from '@/components/dashboard/notification-modal'
 import { Bell } from 'lucide-react'
 
 
@@ -156,6 +157,8 @@ export default function BrutalistDashboard() {
   return (
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
+      
+      <NotificationModal />
 
       <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-8 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
       
