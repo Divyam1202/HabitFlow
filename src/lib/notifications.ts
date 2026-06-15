@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import OneSignal from 'react-onesignal';
 
 export class NotificationEngine {
   /**
@@ -15,33 +16,32 @@ export class NotificationEngine {
   }
 
   /**
-   * PWA Implementation using standard Web Push API
+   * PWA Implementation using OneSignal Web SDK
    */
   private static async initPWA() {
     if (typeof window === 'undefined') return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
     
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
-      const permission = await Notification.requestPermission();
+      if (!process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID) {
+        console.error('OneSignal App ID is missing.');
+        return;
+      }
       
-      if (permission === 'granted') {
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-        });
-        
-        // Send this subscription to the backend
-        console.log('PWA Push Subscription created:', subscription);
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        await fetch('/api/notifications/subscribe', { 
-          method: 'POST', 
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription, timezone }) 
+      // We only want to initialize OneSignal once per page load
+      if (!OneSignal.initialized) {
+        await OneSignal.init({
+          appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: false, // We use our own UI
+          },
         });
       }
+
+      await OneSignal.Slidedown.promptPush();
+      
     } catch (error) {
-      console.error('Failed to initialize PWA notifications:', error);
+      console.error('Failed to initialize OneSignal:', error);
     }
   }
 
@@ -64,7 +64,6 @@ export class NotificationEngine {
       PushNotifications.addListener('registration', (token) => {
         // In a real app, send this token to the backend
         console.log('Native Push Token:', token.value);
-        // await fetch('/api/notifications/subscribe', { method: 'POST', body: JSON.stringify({ token: token.value }) });
       });
 
       // Request local notification permissions for recurring offline alarms
@@ -79,7 +78,7 @@ export class NotificationEngine {
    */
   static async scheduleLocalAlarm(id: number, title: string, body: string, hour: number, minute: number) {
     if (!Capacitor.isNativePlatform()) return; // PWA handles this via Server Cron
-    
+
     try {
       await LocalNotifications.schedule({
         notifications: [{

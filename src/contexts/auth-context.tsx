@@ -41,11 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pendingAction])
 
-  // useEffect(() => {
-  //   if (!isPending && !isAuthenticated) {
-  //     setShowGatekeeper(true)
-  //   }
-  // }, [isPending, isAuthenticated])
+  useEffect(() => {
+    if (isAuthenticated && session?.user?.id) {
+      import('react-onesignal').then(mod => {
+        const OneSignal = mod.default;
+        if (OneSignal.initialized) {
+           OneSignal.login(session.user.id);
+        } else {
+           // If not initialized yet, we can wait or retry, but NotificationEngine handles init.
+           // Usually it's fine to call login after init, so we might want to ensure login is called
+           // in NotificationEngine as well.
+        }
+      }).catch(console.error);
+    }
+  }, [isAuthenticated, session?.user?.id])
 
   return (
     <AuthContext.Provider value={{

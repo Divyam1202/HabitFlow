@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import webpush from 'web-push';
 import { connectToDatabase } from '@/lib/db';
 import UserState from '@/models/UserState';
-import PushSubscription from '@/models/PushSubscription';
 
 function getOffsetMinutes(notificationStr: string | undefined): number {
   if (!notificationStr || notificationStr === 'None') return 0;
@@ -23,31 +21,27 @@ function getReminderTimeHHMM(timeStr: string, offsetMins: number): string | null
   return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
 }
 
-// Vercel Cron will hit this endpoint automatically
 export const dynamic = 'force-dynamic';
 
-if (process.env.VAPID_SUBJECT && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
-}
-
 export async function GET(req: Request) {
-  // Optional: Verify the request is coming from Vercel Cron
-  // const authHeader = req.headers.get('authorization');
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
   try {
     await connectToDatabase();
 
     const now = new Date();
-    const userStates = await UserState.find({});
-    const subscriptions = await PushSubscription.find({});
+    // In a real app we might fetch user's timezone from their state or rely on OneSignal's timezone delivery.
+    // For this cron, we assume the server time is aligned with the user, or we'll just use UTC.
+    // Actually, OneSignal allows delivering at the user's timezone if we schedule it!
+    // But since we are triggering instantly via cron, we need to know the user's time.
+    // Assuming server time matches the user's intended time for now (or use UTC).
     
+    // For exact match, let's just use the server's local time (or UTC depending on deployment)
+    // To properly support timezones, the user state should ideally store the timezone.
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeHHMM = `${hours}:${minutes}`;
+    const currentDayOfWeek = now.getDay();
+
+    const userStates = await UserState.find({});
     let notificationsSent = 0;
 
     for (const state of userStates) {
@@ -56,72 +50,58 @@ export async function GET(req: Request) {
       const parsed = JSON.parse(state.stateData);
       const gridData = parsed.gridData || [];
 
-      // Find subscriptions for this user
-      const userSubs = subscriptions.filter(sub => sub.userId === state.userId);
-      if (userSubs.length === 0) continue;
-
-      for (const subDoc of userSubs) {
-        // Calculate the current time in the user's timezone
-        const tz = subDoc.timezone || 'UTC';
-        let userNow;
-        try {
-          const tzDateStr = new Date().toLocaleString("en-US", {timeZone: tz});
-          userNow = new Date(tzDateStr);
-        } catch (e) {
-          userNow = now; // Fallback
+      // Find habits that should trigger right now
+      const triggeredHabits = gridData.filter((habit: any) => {
+        if (!habit.time) return false;
+        
+        let matchesTime = habit.time === currentTimeHHMM;
+        let isReminder = false;
+        
+        const offsetMins = getOffsetMinutes(habit.notification);
+        if (offsetMins > 0) {
+           const reminderTime = getReminderTimeHHMM(habit.time, offsetMins);
+           if (reminderTime === currentTimeHHMM) {
+             matchesTime = true;
+             isReminder = true;
+           }
+        }
+        
+        if (matchesTime) {
+           habit._isReminder = isReminder;
         }
 
-        const hours = String(userNow.getHours()).padStart(2, '0');
-        const minutes = String(userNow.getMinutes()).padStart(2, '0');
-        const currentTimeHHMM = `${hours}:${minutes}`;
-        const currentDayOfWeek = userNow.getDay(); // 0 = Sunday, 6 = Saturday
+        const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
+        return matchesTime && matchesFrequency;
+      });
 
-        // Find habits that should trigger right now
-        const triggeredHabits = gridData.filter((habit: any) => {
-          if (!habit.time) return false;
-          
-          let matchesTime = habit.time === currentTimeHHMM;
-          let isReminder = false;
-          
-          const offsetMins = getOffsetMinutes(habit.notification);
-          if (offsetMins > 0) {
-             const reminderTime = getReminderTimeHHMM(habit.time, offsetMins);
-             if (reminderTime === currentTimeHHMM) {
-               matchesTime = true;
-               isReminder = true;
-             }
-          }
-          
-          if (matchesTime) {
-             habit._isReminder = isReminder;
-          }
+      if (triggeredHabits.length > 0) {
+        for (const habit of triggeredHabits) {
+          const bodyText = habit._isReminder 
+            ? `Upcoming in ${habit.notification}: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`
+            : `It's time for: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`;
 
-          const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
-          return matchesTime && matchesFrequency;
-        });
+          // Send via OneSignal REST API targeting this specific user by external_id
+          const response = await fetch('https://onesignal.com/api/v1/notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
+            },
+            body: JSON.stringify({
+              app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
+              include_aliases: { external_id: [state.userId] },
+              target_channel: "push",
+              headings: { en: 'HabytFlow Reminder' },
+              contents: { en: bodyText },
+              url: 'https://habyt-flow.vercel.app/dashboard'
+            })
+          });
 
-        if (triggeredHabits.length > 0) {
-          for (const habit of triggeredHabits) {
-            const bodyText = habit._isReminder 
-              ? `Upcoming in ${habit.notification}: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`
-              : `It's time for: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`;
-
-            const payload = JSON.stringify({
-              title: 'HabytFlow Reminder',
-              body: bodyText,
-              url: '/dashboard'
-            });
-
-            try {
-              await webpush.sendNotification(subDoc.subscription, payload);
-              notificationsSent++;
-            } catch (error: any) {
-              console.error('Web push failed:', error);
-              // If subscription is invalid/gone (HTTP 410), delete it
-              if (error.statusCode === 410 || error.statusCode === 404) {
-                await PushSubscription.findByIdAndDelete(subDoc._id);
-              }
-            }
+          if (response.ok) {
+            notificationsSent++;
+          } else {
+            const err = await response.text();
+            console.error('OneSignal Error:', err);
           }
         }
       }
