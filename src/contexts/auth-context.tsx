@@ -42,18 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [pendingAction])
 
   useEffect(() => {
-    if (isAuthenticated && session?.user?.id) {
-      import('react-onesignal').then(mod => {
-        const OneSignal = mod.default;
-        // In react-onesignal v3+, initialized is not exposed in types.
-        // But we can check via type casting or simply login inside the promise.
-        // It's safe to call login directly if we know it's imported, 
-        // or we can cast it as any to bypass the TS error.
-        if ((OneSignal as any).initialized) {
-          OneSignal.login(session.user.id);
-        }
-      }).catch(console.error);
-    }
+    // If we wanted to initialize tracking or other side effects when logged in,
+    // it would go here.
   }, [isAuthenticated, session?.user?.id])
 
   return (

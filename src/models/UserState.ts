@@ -10,7 +10,8 @@ export interface IUserState extends Document {
 const UserStateSchema: Schema = new Schema(
   {
     userId: { type: String, required: true, index: true, unique: true },
-    stateData: { type: String, required: true }
+    stateData: { type: String, required: true },
+    fcmToken: { type: String }
   },
   { timestamps: true }
 )

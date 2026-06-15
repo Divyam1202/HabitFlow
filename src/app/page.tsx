@@ -9,7 +9,7 @@ const DynamicResponsiveContainer = dynamic(
   () => import('recharts').then((mod) => mod.ResponsiveContainer),
   { ssr: false }
 )
-import { Check, Flame, Rocket, ChevronLeft, ChevronRight, Minus } from 'lucide-react'
+import { Check, Flame, Rocket, ChevronLeft, ChevronRight, Minus, Bell } from 'lucide-react'
 import { NutritionTracker } from '@/components/dashboard/nutrition-tracker'
 import { ActivityMetricsTracker } from '@/components/dashboard/activity-metrics-tracker'
 import { UnifiedHabitCalendar } from '@/components/dashboard/unified-habit-calendar'
@@ -17,9 +17,9 @@ import { CanvasLoader } from '@/components/ui/canvas-loader'
 import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
-import { NotificationEngine } from '@/lib/notifications'
-import { NotificationModal } from '@/components/dashboard/notification-modal'
-import { Bell } from 'lucide-react'
+import { getFirebaseMessaging, requestAndStoreNotificationToken } from '@/lib/firebase'
+import { onMessage } from 'firebase/messaging'
+import { toast } from 'sonner'
 
 
 
@@ -68,7 +68,17 @@ export default function BrutalistDashboard() {
 
   useEffect(() => {
     if (isAuthenticated && isMounted) {
-      NotificationEngine.initialize().catch(console.error);
+      let unsubscribe: () => void;
+      getFirebaseMessaging().then(messaging => {
+        if (!messaging) return;
+        unsubscribe = onMessage(messaging, (payload) => {
+          console.log("Foreground push notification received:", payload);
+          toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
+        });
+      });
+      return () => {
+        if (unsubscribe) unsubscribe();
+      }
     }
   }, [isAuthenticated, isMounted]);
 
@@ -158,8 +168,6 @@ export default function BrutalistDashboard() {
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
       
-      <NotificationModal />
-
       <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-8 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
       
         {/* Initialization Banner */}
@@ -187,7 +195,7 @@ export default function BrutalistDashboard() {
           <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
           {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
             <button 
-              onClick={() => NotificationEngine.initialize()}
+              onClick={() => requestAndStoreNotificationToken(session?.user?.id!)}
               className="flex items-center gap-2 border border-zinc-800 bg-black text-white px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-zinc-900 transition-colors animate-pulse"
             >
               <Bell size={14} /> Enable Notifications

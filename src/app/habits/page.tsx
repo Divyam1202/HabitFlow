@@ -1,12 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Plus, Settings2, Trash2, X, Clock, Bell } from 'lucide-react'
+import { Plus, Settings2, Trash2, X, Clock } from 'lucide-react'
 import { useSettings, formatTime } from '@/hooks/useSettings'
 
 import { useHabitContext } from '@/contexts/habit-context'
-
-const NOTIFICATION_OPTIONS = ['None', '5 mins', '15 mins', '30 mins', '1 hr']
 
 export default function HabitsPage() {
   const { timeFormat } = useSettings()
@@ -17,8 +15,7 @@ export default function HabitsPage() {
   // Form State
   const [name, setName] = useState('')
   const [category, setCategory] = useState('🏋️ Health')
-  const [time, setTime] = useState('')
-  const [notification, setNotification] = useState('None')
+  const [time, setTime] = useState('09:00')
   const [frequency, setFrequency] = useState<number[]>([])
 
   const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
@@ -52,8 +49,7 @@ export default function HabitsPage() {
   const resetForm = () => {
     setName('')
     setCategory('🏋️ Health')
-    setTime('')
-    setNotification('None')
+    setTime('09:00')
     setFrequency([])
     setIsEditing(null)
     setShowAddForm(false)
@@ -62,8 +58,7 @@ export default function HabitsPage() {
   const handleEdit = (habit: any) => {
     setName(habit.name || '')
     setCategory(habit.category || '🏋️ Health')
-    setTime(habit.time || '')
-    setNotification(habit.notification || 'None')
+    setTime(habit.time || '09:00')
     setFrequency(habit.frequency || [])
     setIsEditing(habit.id)
     setShowAddForm(true)
@@ -80,9 +75,9 @@ export default function HabitsPage() {
     const goal = getFrequencyLabel(frequency);
 
     if (isEditing) {
-      editHabit(isEditing, { name, category, goal, time, notification, frequency })
+      editHabit(isEditing, { name, category, goal, time, frequency })
     } else {
-      addHabit({ name, category, goal, streak: 0, time, notification, frequency })
+      addHabit({ name, category, goal, streak: 0, time, frequency })
     }
     resetForm()
   }
@@ -93,7 +88,7 @@ export default function HabitsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-tight text-white">Manage Habits</h1>
-          <p className="text-zinc-500 mt-2 text-sm">Configure your routines, digital timings, and notifications.</p>
+          <p className="text-zinc-500 mt-2 text-sm">Configure your routines and digital timings.</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowAddForm(true); }}
@@ -118,16 +113,11 @@ export default function HabitsPage() {
             </div>
 
             <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
-              {/* Timing & Notification Block */}
+              {/* Timing Block */}
               <div className="flex items-center gap-4 border border-zinc-800 px-4 py-2 bg-zinc-950">
                 <div className="flex items-center gap-2">
                   <Clock size={14} className="text-zinc-500" />
                   <span className="text-xs font-black text-white tabular-nums">{habit.time ? formatTime(habit.time, timeFormat) : 'Anytime'}</span>
-                </div>
-                <div className="w-[1px] h-4 bg-zinc-800" />
-                <div className="flex items-center gap-2">
-                  <Bell size={14} className={(habit.notification && habit.notification !== 'None') ? 'text-zinc-300' : 'text-zinc-700'} />
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${(habit.notification && habit.notification !== 'None') ? 'text-zinc-400' : 'text-zinc-700'}`}>{habit.notification || 'None'}</span>
                 </div>
               </div>
 
@@ -222,28 +212,16 @@ export default function HabitsPage() {
               </div>
 
               <div className="border-t border-zinc-900 pt-6 mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Clock size={14} /> Timing & Notifications</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={e => setTime(e.target.value)}
-                      required
-                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Remind Before</label>
-                    <select
-                      value={notification}
-                      onChange={e => setNotification(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 appearance-none"
-                    >
-                      {NOTIFICATION_OPTIONS.map(opt => <option key={opt}>{opt}</option>)}
-                    </select>
-                  </div>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Clock size={14} /> Timing</h3>
+                <div className="w-full">
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
+                  <input
+                    type="time"
+                    value={time}
+                    onChange={e => setTime(e.target.value)}
+                    required
+                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
+                  />
                 </div>
               </div>
 
