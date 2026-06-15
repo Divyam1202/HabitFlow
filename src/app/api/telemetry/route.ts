@@ -11,12 +11,12 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase()
-    
+
     const newEvent = new TelemetryEvent({
       eventType,
       metadata
     })
-    
+
     await newEvent.save()
 
     return NextResponse.json({ success: true })

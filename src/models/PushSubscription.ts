@@ -10,7 +10,8 @@ export interface IPushSubscription extends Document {
 const PushSubscriptionSchema: Schema = new Schema(
   {
     userId: { type: String, required: true, index: true },
-    subscription: { type: Schema.Types.Mixed, required: true }
+    subscription: { type: Schema.Types.Mixed, required: true },
+    timezone: { type: String, default: 'UTC' }
   },
   { timestamps: true }
 )

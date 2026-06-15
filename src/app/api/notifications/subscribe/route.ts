@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { subscription } = body;
+    const { subscription, timezone } = body;
 
     if (!subscription) {
       return NextResponse.json({ error: 'Subscription data is required' }, { status: 400 });
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
       },
       { 
         userId: session.user.id,
-        subscription 
+        subscription,
+        timezone: timezone || 'UTC'
       },
       { upsert: true, new: true }
     );

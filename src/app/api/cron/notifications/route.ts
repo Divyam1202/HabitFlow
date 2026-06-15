@@ -26,17 +26,8 @@ export async function GET(req: Request) {
     await connectToDatabase();
 
     const now = new Date();
-    // Get current time in HH:MM format using local system time of server/user or assume UTC.
-    // Assuming the user's selected time maps to their local timezone, we would ideally store their timezone.
-    // For this prototype, we'll use the server's UTC time and match against stored HH:MM 
-    // (In production, user tzOffset must be factored in).
-    
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentTimeHHMM = `${hours}:${minutes}`;
-    const currentDayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-
     const userStates = await UserState.find({});
+    const subscriptions = await PushSubscription.find({});
     
     let notificationsSent = 0;
 
@@ -46,18 +37,34 @@ export async function GET(req: Request) {
       const parsed = JSON.parse(state.stateData);
       const gridData = parsed.gridData || [];
 
-      // Find habits that should trigger right now
-      const triggeredHabits = gridData.filter((habit: any) => {
-        const matchesTime = habit.time === currentTimeHHMM;
-        const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
-        return matchesTime && matchesFrequency;
-      });
+      // Find subscriptions for this user
+      const userSubs = subscriptions.filter(sub => sub.userId === state.userId);
+      if (userSubs.length === 0) continue;
 
-      if (triggeredHabits.length > 0) {
-        // Fetch push subscriptions for this user
-        const subscriptions = await PushSubscription.find({ userId: state.userId });
-        
-        for (const subDoc of subscriptions) {
+      for (const subDoc of userSubs) {
+        // Calculate the current time in the user's timezone
+        const tz = subDoc.timezone || 'UTC';
+        let userNow;
+        try {
+          const tzDateStr = new Date().toLocaleString("en-US", {timeZone: tz});
+          userNow = new Date(tzDateStr);
+        } catch (e) {
+          userNow = now; // Fallback
+        }
+
+        const hours = String(userNow.getHours()).padStart(2, '0');
+        const minutes = String(userNow.getMinutes()).padStart(2, '0');
+        const currentTimeHHMM = `${hours}:${minutes}`;
+        const currentDayOfWeek = userNow.getDay(); // 0 = Sunday, 6 = Saturday
+
+        // Find habits that should trigger right now
+        const triggeredHabits = gridData.filter((habit: any) => {
+          const matchesTime = habit.time === currentTimeHHMM;
+          const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
+          return matchesTime && matchesFrequency;
+        });
+
+        if (triggeredHabits.length > 0) {
           for (const habit of triggeredHabits) {
             const payload = JSON.stringify({
               title: 'HabytFlow Reminder',

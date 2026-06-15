@@ -33,10 +33,11 @@ export class NotificationEngine {
         
         // Send this subscription to the backend
         console.log('PWA Push Subscription created:', subscription);
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         await fetch('/api/notifications/subscribe', { 
           method: 'POST', 
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ subscription }) 
+          body: JSON.stringify({ subscription, timezone }) 
         });
       }
     } catch (error) {
