@@ -40,6 +40,8 @@ export type HabitContextType = {
   editHabit: (id: number, habit: Partial<HabitDef>) => void;
   deleteHabit: (id: number) => void;
   isMounted: boolean;
+  isInitialized: boolean;
+  initializeJourney: () => void;
 }
 
 const HabitContext = createContext<HabitContextType | null>(null)
@@ -52,11 +54,11 @@ export const useHabitContext = () => {
 
 // --- Initial Seed Data ---
 const MOCK_HABITS: HabitDef[] = [
-  { id: 1, name: "Gym", category: "Fitness", time: "18:00", frequency: [1, 3, 5] },
-  { id: 2, name: "Reading", category: "Mind", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 3, name: "Coding", category: "Work", time: "09:00", frequency: [1, 2, 3, 4, 5] },
-  { id: 4, name: "Meditation", category: "Mind", time: "07:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 5, name: "No Spend", category: "Finance", time: "", frequency: [0, 1, 2, 3, 4, 5, 6] }
+  { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [1, 3, 5] },
+  { id: 2, name: "Reading", category: "🧠 Growth", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 3, name: "Office", category: "💼 Career", time: "09:00", frequency: [1, 2, 3, 4, 5] },
+  { id: 4, name: "Meditation", category: "🕉️ Spiritual", time: "07:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 5, name: "Laundry", category: "🏠 Home", time: "10:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
 ]
 
 const SEED_GRID_DATA = MOCK_HABITS.map(habit => ({
@@ -109,6 +111,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   
   const [gridData, setGridData] = useState<GridHabit[]>(SEED_GRID_DATA)
   const [heatmapData, setHeatmapData] = useState<{id: number, count: number}[]>(SEED_HEATMAP)
+  const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   const getStorageKey = () => user?.id ? `habitflow_state_${user.id}` : 'habitflow_state'
 
@@ -141,6 +144,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (parsed) {
+        setIsInitialized(true)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
         setTodayHabits(parsed.todayHabits || [])
         setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
@@ -148,26 +152,57 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         setGridData(parsed.gridData || SEED_GRID_DATA)
         setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
       } else {
-        setCurrentSystemDate(getLocalYYYYMMDD())
-        setTodayHabits([])
-        setTodayNutrition(INITIAL_NUTRITION)
-        setTodayActivity(INITIAL_ACTIVITY)
-        
-        if (isAuthenticated) {
-          // Brand new account -> start with a clean slate
+        const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
+        if (hasInitialized || isAuthenticated) {
+          setIsInitialized(true)
+          setCurrentSystemDate(getLocalYYYYMMDD())
+          setTodayHabits([])
+          setTodayNutrition(INITIAL_NUTRITION)
+          setTodayActivity(INITIAL_ACTIVITY)
           setGridData([])
           setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
         } else {
-          // Unauthenticated guest -> show preview data with some habits already ticked for demonstration
+          setIsInitialized(false)
+          setCurrentSystemDate(getLocalYYYYMMDD())
+          setTodayHabits([1, 3])
+          setTodayNutrition(INITIAL_NUTRITION)
+          setTodayActivity(INITIAL_ACTIVITY)
           setGridData(SEED_GRID_DATA)
           setHeatmapData(SEED_HEATMAP)
-          setTodayHabits([1, 3]) // Pre-tick some habits to show the green "Completed" state
         }
       }
       setMounted(true)
     };
 
     loadState();
+
+    // Background sync when returning to the tab (Cross-platform updates)
+    const onFocus = async () => {
+      if (isAuthenticated) {
+        try {
+          const res = await fetch('/api/user-state', { cache: 'no-store' });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.stateData) {
+              const parsed = JSON.parse(data.stateData);
+              if (parsed) {
+                setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
+                setTodayHabits(parsed.todayHabits || [])
+                setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
+                setTodayActivity(parsed.todayActivity || INITIAL_ACTIVITY)
+                setGridData(parsed.gridData || SEED_GRID_DATA)
+                setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Failed to sync on focus", e);
+        }
+      }
+    };
+
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [user?.id, isLoading, isAuthenticated])
 
   // Persistence & Rollover Check
@@ -185,13 +220,24 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         fetch('/api/user-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
           body: JSON.stringify({ stateData: stateString })
         }).catch(e => console.error("Failed to sync remote state", e));
       }, 1500); // 1.5s debounce
       
       return () => clearTimeout(timer);
     }
-  }, [mounted, isLoading, isAuthenticated, user?.id, currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData])
+  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted])
+
+  const initializeJourney = () => {
+    localStorage.setItem('habitflow_has_initialized', 'true')
+    setIsInitialized(true)
+    setGridData([])
+    setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+    setTodayHabits([])
+    setTodayNutrition(INITIAL_NUTRITION)
+    setTodayActivity(INITIAL_ACTIVITY)
+  }
 
   // Midnight Rollover Engine
   useEffect(() => {
@@ -364,7 +410,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       addHabit,
       editHabit,
       deleteHabit,
-      isMounted: mounted
+      isMounted: mounted,
+      isInitialized,
+      initializeJourney
     }}>
       {children}
     </HabitContext.Provider>

@@ -22,7 +22,7 @@ import { useAuth } from '@/contexts/auth-context'
 
 export default function BrutalistDashboard() {
   const { timeFormat } = useSettings()
-  const { gridData, todayHabits, toggleTodayHabit, toggleGridHabit, heatmapData, isMounted } = useHabitContext()
+  const { gridData, todayHabits, toggleTodayHabit, toggleGridHabit, heatmapData, isMounted, isInitialized, initializeJourney } = useHabitContext()
   const { isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -151,9 +151,25 @@ export default function BrutalistDashboard() {
 
       <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-8 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
       
-
-
-
+        {/* Initialization Banner */}
+        {!isInitialized && (
+          <div className="border border-green-900 bg-green-950/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-3">
+              <h2 className="text-white text-xl font-bold uppercase tracking-widest flex items-center gap-2">
+                <Rocket className="text-white" /> INITIALIZE YOUR JOURNEY
+              </h2>
+              <p className="text-zinc-400 text-sm max-w-3xl leading-relaxed">
+                Welcome to HabytFlow. You are currently viewing simulated preview data. To begin tracking your real activity, initialize your profile. This will erase the preview data and prepare a blank slate.
+              </p>
+            </div>
+            <button 
+              onClick={() => initializeJourney()}
+              className="bg-green-500 text-black px-8 py-3 font-black uppercase tracking-widest text-sm hover:bg-green-400 transition-colors whitespace-nowrap shrink-0"
+            >
+              START TRACKING &gt;
+            </button>
+          </div>
+        )}
 
         {/* Section B: Today's Action Items */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
