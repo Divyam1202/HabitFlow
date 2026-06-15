@@ -26,7 +26,7 @@ import { toast } from 'sonner'
 export default function BrutalistDashboard() {
   const { timeFormat } = useSettings()
   const { gridData, todayHabits, toggleTodayHabit, toggleGridHabit, heatmapData, isMounted, isInitialized, initializeJourney } = useHabitContext()
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [selectedWeek, setSelectedWeek] = useState<'all' | 1 | 2 | 3 | 4>('all')
@@ -195,7 +195,7 @@ export default function BrutalistDashboard() {
           <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
           {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
             <button 
-              onClick={() => requestAndStoreNotificationToken(session?.user?.id!)}
+              onClick={() => requestAndStoreNotificationToken(user?.id!)}
               className="flex items-center gap-2 border border-zinc-800 bg-black text-white px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-zinc-900 transition-colors animate-pulse"
             >
               <Bell size={14} /> Enable Notifications
