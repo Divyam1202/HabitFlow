@@ -17,6 +17,8 @@ import { CanvasLoader } from '@/components/ui/canvas-loader'
 import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
+import { NotificationEngine } from '@/lib/notifications'
+import { Bell } from 'lucide-react'
 
 
 
@@ -62,6 +64,12 @@ export default function BrutalistDashboard() {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && isMounted) {
+      NotificationEngine.initialize().catch(console.error);
+    }
+  }, [isAuthenticated, isMounted]);
 
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
@@ -172,6 +180,9 @@ export default function BrutalistDashboard() {
         )}
 
         {/* Section B: Today's Action Items */}
+        <div className="flex justify-between items-end mb-4">
+          <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {gridData.length === 0 && (
             <div className="col-span-full border border-zinc-800 bg-zinc-950 p-8 flex flex-col items-center justify-center text-center">

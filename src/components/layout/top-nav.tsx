@@ -44,7 +44,7 @@ export function TopNav() {
     <>
       <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black text-white h-14 flex items-center">
         <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between">
-          
+
           {/* Logo (All viewports) */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter z-50 relative font-panchang">
             <div className="w-4 h-4 bg-white rounded-[1px] flex items-center justify-center">
@@ -58,8 +58,8 @@ export function TopNav() {
             {navLinks.map((link) => {
               const isActive = pathname === link.href
               return (
-                <Link 
-                  key={link.name} 
+                <Link
+                  key={link.name}
                   href={link.href}
                   className={`relative pb-0.5 group transition-colors duration-150 ${isActive ? "text-white" : "text-zinc-500 hover:text-white"}`}
                 >
@@ -77,14 +77,14 @@ export function TopNav() {
                 {mounted ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '...'}
               </div>
               {!isAuthenticated && mounted ? (
-                <button 
+                <button
                   onClick={() => setShowGatekeeper(true)}
                   className="text-[10px] uppercase tracking-widest text-zinc-400 hover:text-white transition-colors duration-150 underline decoration-zinc-800 hover:decoration-white underline-offset-2"
                 >
                   Sign In / Register
                 </button>
               ) : mounted && (
-                <button 
+                <button
                   onClick={() => {
                     import('@/lib/auth-client').then(({ authClient }) => {
                       authClient.signOut().then(() => window.location.reload())
@@ -101,9 +101,9 @@ export function TopNav() {
                 {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
-            
+
             {/* Mobile Sidebar Toggle (max-width: 767px) */}
-            <button 
+            <button
               className="md:hidden text-zinc-500 hover:text-white transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -117,20 +117,20 @@ export function TopNav() {
       <>
         {/* Backdrop */}
         {mobileMenuOpen && (
-          <div 
+          <div
             className="md:hidden fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
         )}
-        
+
         {/* Sidebar Panel */}
         <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => {
               const isActive = pathname === link.href
               return (
-                <Link 
-                  key={link.name} 
+                <Link
+                  key={link.name}
                   href={link.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-4 p-3 rounded-[1px] transition-colors duration-150 ${isActive ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-white hover:bg-zinc-900/50"}`}
@@ -141,7 +141,7 @@ export function TopNav() {
               )
             })}
           </nav>
-          
+
           <div className="mt-auto border-t border-zinc-900 pt-6">
             <PwaInstallButton />
           </div>
