@@ -3,6 +3,8 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import OneSignal from 'react-onesignal';
 
+let isOneSignalInitialized = false;
+
 export class NotificationEngine {
   /**
    * Universal initialization point.
@@ -27,15 +29,12 @@ export class NotificationEngine {
         return;
       }
       
-      // We only want to initialize OneSignal once per page load
-      if (!OneSignal.initialized) {
+      if (!isOneSignalInitialized) {
         await OneSignal.init({
           appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
           allowLocalhostAsSecureOrigin: true,
-          notifyButton: {
-            enable: false, // We use our own UI
-          },
         });
+        isOneSignalInitialized = true;
       }
 
       await OneSignal.Slidedown.promptPush();

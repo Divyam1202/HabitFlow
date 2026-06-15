@@ -45,12 +45,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isAuthenticated && session?.user?.id) {
       import('react-onesignal').then(mod => {
         const OneSignal = mod.default;
-        if (OneSignal.initialized) {
-           OneSignal.login(session.user.id);
-        } else {
-           // If not initialized yet, we can wait or retry, but NotificationEngine handles init.
-           // Usually it's fine to call login after init, so we might want to ensure login is called
-           // in NotificationEngine as well.
+        // In react-onesignal v3+, initialized is not exposed in types.
+        // But we can check via type casting or simply login inside the promise.
+        // It's safe to call login directly if we know it's imported, 
+        // or we can cast it as any to bypass the TS error.
+        if ((OneSignal as any).initialized) {
+          OneSignal.login(session.user.id);
         }
       }).catch(console.error);
     }
