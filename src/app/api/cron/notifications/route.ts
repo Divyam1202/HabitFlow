@@ -4,6 +4,25 @@ import { connectToDatabase } from '@/lib/db';
 import UserState from '@/models/UserState';
 import PushSubscription from '@/models/PushSubscription';
 
+function getOffsetMinutes(notificationStr: string | undefined): number {
+  if (!notificationStr || notificationStr === 'None') return 0;
+  if (notificationStr === '5 mins') return 5;
+  if (notificationStr === '15 mins') return 15;
+  if (notificationStr === '30 mins') return 30;
+  if (notificationStr === '1 hr') return 60;
+  return 0;
+}
+
+function getReminderTimeHHMM(timeStr: string, offsetMins: number): string | null {
+  if (offsetMins === 0) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  let totalMins = h * 60 + m - offsetMins;
+  if (totalMins < 0) totalMins += 24 * 60; // Handle midnight wrap-around
+  const newH = Math.floor(totalMins / 60);
+  const newM = totalMins % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
 // Vercel Cron will hit this endpoint automatically
 export const dynamic = 'force-dynamic';
 
@@ -59,16 +78,37 @@ export async function GET(req: Request) {
 
         // Find habits that should trigger right now
         const triggeredHabits = gridData.filter((habit: any) => {
-          const matchesTime = habit.time === currentTimeHHMM;
+          if (!habit.time) return false;
+          
+          let matchesTime = habit.time === currentTimeHHMM;
+          let isReminder = false;
+          
+          const offsetMins = getOffsetMinutes(habit.notification);
+          if (offsetMins > 0) {
+             const reminderTime = getReminderTimeHHMM(habit.time, offsetMins);
+             if (reminderTime === currentTimeHHMM) {
+               matchesTime = true;
+               isReminder = true;
+             }
+          }
+          
+          if (matchesTime) {
+             habit._isReminder = isReminder;
+          }
+
           const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
           return matchesTime && matchesFrequency;
         });
 
         if (triggeredHabits.length > 0) {
           for (const habit of triggeredHabits) {
+            const bodyText = habit._isReminder 
+              ? `Upcoming in ${habit.notification}: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`
+              : `It's time for: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`;
+
             const payload = JSON.stringify({
               title: 'HabytFlow Reminder',
-              body: `It's time for: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`,
+              body: bodyText,
               url: '/dashboard'
             });
 
