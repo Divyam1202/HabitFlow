@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'better-auth';
+
 import { auth } from '@/lib/auth';
 import UserState from '@/models/UserState';
 import { connectToDatabase as connectMongo } from '@/lib/db';
