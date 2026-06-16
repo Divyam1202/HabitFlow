@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Plus, Settings2, Trash2, X, Clock } from 'lucide-react'
+import { Plus, Settings2, Trash2, X, Clock, Bell } from 'lucide-react'
 import { useSettings, formatTime } from '@/hooks/useSettings'
 
 import { useHabitContext } from '@/contexts/habit-context'
@@ -17,6 +17,7 @@ export default function HabitsPage() {
   const [category, setCategory] = useState('🏋️ Health')
   const [time, setTime] = useState('09:00')
   const [frequency, setFrequency] = useState<number[]>([])
+  const [notification, setNotification] = useState<number | null>(null)
 
   const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
     '🏋️ Health': ['Gym', 'Water', 'Breakfast', 'Dinner', 'Sleep'],
@@ -51,6 +52,7 @@ export default function HabitsPage() {
     setCategory('🏋️ Health')
     setTime('09:00')
     setFrequency([])
+    setNotification(null)
     setIsEditing(null)
     setShowAddForm(false)
   }
@@ -60,6 +62,7 @@ export default function HabitsPage() {
     setCategory(habit.category || '🏋️ Health')
     setTime(habit.time || '09:00')
     setFrequency(habit.frequency || [])
+    setNotification(habit.notification !== undefined ? habit.notification : null)
     setIsEditing(habit.id)
     setShowAddForm(true)
   }
@@ -75,9 +78,9 @@ export default function HabitsPage() {
     const goal = getFrequencyLabel(frequency);
 
     if (isEditing) {
-      editHabit(isEditing, { name, category, goal, time, frequency })
+      editHabit(isEditing, { name, category, goal, time, frequency, notification })
     } else {
-      addHabit({ name, category, goal, streak: 0, time, frequency })
+      addHabit({ name, category, goal, streak: 0, time, frequency, notification })
     }
     resetForm()
   }
@@ -119,6 +122,17 @@ export default function HabitsPage() {
                   <Clock size={14} className="text-zinc-500" />
                   <span className="text-xs font-black text-white tabular-nums">{habit.time ? formatTime(habit.time, timeFormat) : 'Anytime'}</span>
                 </div>
+                {habit.notification !== null && habit.notification !== undefined && (
+                  <>
+                    <div className="w-[1px] h-4 bg-zinc-800" />
+                    <div className="flex items-center gap-2">
+                      <Bell size={14} className="text-blue-500" />
+                      <span className="text-xs font-bold text-zinc-400">
+                        {habit.notification === 0 ? 'On Time' : `-${habit.notification}m`}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -213,15 +227,33 @@ export default function HabitsPage() {
 
               <div className="border-t border-zinc-900 pt-6 mt-6">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Clock size={14} /> Timing</h3>
-                <div className="w-full">
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
-                  <input
-                    type="time"
-                    value={time}
-                    onChange={e => setTime(e.target.value)}
-                    required
-                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="w-full">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={e => setTime(e.target.value)}
+                      required
+                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
+                    />
+                  </div>
+                  <div className="w-full">
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Remind Before</label>
+                    <select
+                      value={notification === null ? 'none' : notification.toString()}
+                      onChange={(e) => setNotification(e.target.value === 'none' ? null : parseInt(e.target.value))}
+                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 appearance-none"
+                    >
+                      <option value="none">None (No Notification)</option>
+                      <option value="0">At time of event (0 mins)</option>
+                      <option value="5">5 mins before</option>
+                      <option value="15">15 mins before</option>
+                      <option value="20">20 mins before</option>
+                      <option value="30">30 mins before</option>
+                      <option value="60">1 hour before</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

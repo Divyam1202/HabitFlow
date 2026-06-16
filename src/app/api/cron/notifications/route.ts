@@ -14,6 +14,21 @@ function getCurrentISTTimeHHMM(): string {
   return new Intl.DateTimeFormat('en-GB', options).format(new Date());
 }
 
+// Helper to calculate the notification target time based on the offset
+function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
+  if (!timeHHMM) return '';
+  const [hours, minutes] = timeHHMM.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return '';
+  
+  const date = new Date();
+  date.setHours(hours);
+  date.setMinutes(minutes - offsetMinutes);
+  
+  const targetHours = String(date.getHours()).padStart(2, '0');
+  const targetMinutes = String(date.getMinutes()).padStart(2, '0');
+  return `${targetHours}:${targetMinutes}`;
+}
+
 export async function GET(request: Request) {
   // In a real production app, verify Vercel Cron Secret here:
   // const authHeader = request.headers.get('authorization');
@@ -45,8 +60,13 @@ export async function GET(request: Request) {
       }
 
       for (const habit of habits) {
-        // If the habit is scheduled for the exact current minute
-        if (habit.time === currentTimeHHMM) {
+        // Skip if notification is explicitly turned off or not configured
+        if (habit.notification === null || habit.notification === undefined) continue;
+
+        const targetTimeHHMM = calculateTargetTime(habit.time, habit.notification);
+
+        // If the calculated target time perfectly matches the current time
+        if (targetTimeHHMM === currentTimeHHMM) {
           try {
             const message = {
               notification: {
