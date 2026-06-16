@@ -16,12 +16,7 @@ const messaging = firebase.messaging();
 // Handle background notification triggers
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/icon-192x192.png' // Use the PWA icon we generated
-  };
-
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // Do not call self.registration.showNotification here!
+  // Since our backend sends a "notification" payload with "webpush" Urgency: "high", 
+  // the browser natively handles displaying the loud notification automatically.
 });
