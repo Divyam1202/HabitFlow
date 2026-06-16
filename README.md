@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Licensing
+
+### 1. The Closed-Source Commercial Route (Private Repo)
+If HabytFlow is a proprietary SaaS meant to generate revenue and you are keeping the code in a private repository, you do not use an open-source license.
+
+* **The Action**: Include a standard copyright notice and a `LICENSE.txt` file stating "All Rights Reserved."
+* **The Reality**: You only need an End-User License Agreement (EULA) or Terms of Service on the user-facing application itself, not an open-source license in the repo.
