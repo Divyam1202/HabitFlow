@@ -141,9 +141,14 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
         ctx.save()
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillStyle = `rgba(161, 161, 170, ${fadeInOpacity * 0.8})` // zinc-400 color
-        ctx.font = `500 ${fontSize * 0.35}px sans-serif`
-        ctx.letterSpacing = '4px'
+        
+        // Neon white glow effect
+        ctx.shadowColor = `rgba(255, 255, 255, ${fadeInOpacity * 0.8})`
+        ctx.shadowBlur = 8
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${fadeInOpacity})` // Neon white color
+        ctx.font = `700 ${fontSize * 0.55}px sans-serif`
+        ctx.letterSpacing = '5px'
         ctx.fillText('CONSISTENCY IN MOTION', cx, height * 0.65)
         ctx.restore()
       }
