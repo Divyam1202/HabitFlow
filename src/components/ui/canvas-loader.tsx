@@ -108,18 +108,29 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
 
       // Draw Center Text
       if (elapsed < T_PHASE2_END) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0, 1 - (elapsed - T_PHASE1_END)/1000)})`
+        const opacity = Math.max(0, 1 - (elapsed - T_PHASE1_END)/1000);
         const fontFamily = typeof window !== 'undefined' ? getComputedStyle(document.body).getPropertyValue('--font-panchang') || 'sans-serif' : 'sans-serif';
         const fontSize = Math.min(width, height) < 768 ? 24 : 32;
-        ctx.font = `700 ${fontSize}px ${fontFamily}`
-        ctx.letterSpacing = '2px'
+        
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         const pulse = 1 + Math.sin(time * 0.005) * 0.05
         ctx.save()
         ctx.translate(cx, cy)
         ctx.scale(pulse, pulse)
-        ctx.fillText('HabytFLow', 0, 0)
+        
+        // Main title
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
+        ctx.font = `700 ${fontSize}px ${fontFamily}`
+        ctx.letterSpacing = '2px'
+        ctx.fillText('HabytFLow', 0, -fontSize * 0.3)
+        
+        // Subtitle "Consistency in Motion"
+        ctx.fillStyle = `rgba(161, 161, 170, ${opacity * 0.8})` // zinc-400 with slight fade
+        ctx.font = `500 ${fontSize * 0.35}px sans-serif`
+        ctx.letterSpacing = '4px'
+        ctx.fillText('CONSISTENCY IN MOTION', 0, fontSize * 0.8)
+        
         ctx.restore()
       }
       
