@@ -73,17 +73,35 @@ export async function GET(request: Request) {
         if (targetTimeHHMM === currentTimeHHMM || habit.time === currentTimeHHMM) {
           try {
             const message: any = {
-              data: {
+              notification: {
                 title: 'HabytFlow Reminder',
                 body: `Time for your habit: ${habit.name}!`,
               },
               token: user.fcmToken,
               android: {
                 priority: 'high',
+                notification: {
+                  sound: 'default',
+                  channelId: 'default',
+                  vibrateTimingsMillis: [0, 500, 500, 500],
+                  defaultVibrateTimings: false,
+                  defaultSound: true
+                }
+              },
+              apns: {
+                payload: {
+                  aps: {
+                    sound: 'default'
+                  }
+                }
               },
               webpush: {
                 headers: {
                   Urgency: 'high'
+                },
+                notification: {
+                  requireInteraction: true,
+                  vibrate: [200, 100, 200, 100, 200, 100, 200]
                 }
               }
             };
