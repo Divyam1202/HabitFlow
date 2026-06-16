@@ -82,6 +82,13 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, isMounted]);
 
+  // Automatically sync FCM token if permission was already granted
+  useEffect(() => {
+    if (isAuthenticated && user?.id && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      requestAndStoreNotificationToken(user.id)
+    }
+  }, [isAuthenticated, user?.id])
+
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
