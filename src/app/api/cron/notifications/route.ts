@@ -51,13 +51,15 @@ export async function GET(request: Request) {
     for (const user of users) {
       if (!user.stateData) continue;
 
-      let habits = [];
+      let parsed: any = {};
       try {
-        habits = JSON.parse(user.stateData);
+        parsed = JSON.parse(user.stateData);
       } catch (err) {
         console.error('Failed to parse stateData for user', user.userId);
         continue;
       }
+
+      const habits = parsed.gridData || [];
 
       for (const habit of habits) {
         // Default to 0 offset (at time of event) if undefined or null
