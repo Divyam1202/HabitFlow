@@ -60,10 +60,10 @@ export async function GET(request: Request) {
       }
 
       for (const habit of habits) {
-        // Skip if notification is explicitly turned off or not configured
-        if (habit.notification === null || habit.notification === undefined) continue;
+        // Default to 0 offset (at time of event) if undefined or null
+        const offset = (habit.notification === null || habit.notification === undefined) ? 0 : habit.notification;
 
-        const targetTimeHHMM = calculateTargetTime(habit.time, habit.notification);
+        const targetTimeHHMM = calculateTargetTime(habit.time, offset);
 
         // If the calculated target time perfectly matches the current time
         if (targetTimeHHMM === currentTimeHHMM) {
