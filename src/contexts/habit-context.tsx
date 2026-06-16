@@ -388,14 +388,58 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   const editHabit = (id: number, habit: Partial<HabitDef>) => {
     requireAuth(() => {
-      setGridData(prev => prev.map(h => h.id === id ? { ...h, ...habit } : h))
+      const updatedGridData = gridData.map(h => h.id === id ? { ...h, ...habit } : h);
+      setGridData(updatedGridData);
+
+      // Immediate Remote Sync (Bypass debounce) for visual confidence
+      const stateToSave = {
+        currentSystemDate, todayHabits, todayNutrition, todayActivity, 
+        gridData: updatedGridData, 
+        heatmapData
+      };
+
+      toast.promise(
+        fetch('/api/user-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stateData: JSON.stringify(stateToSave) })
+        }),
+        {
+          loading: 'Syncing edits securely...',
+          success: 'Habit changes saved and synced!',
+          error: 'Warning: Failed to sync edits to cloud.'
+        }
+      );
     })
   }
 
   const deleteHabit = (id: number) => {
     requireAuth(() => {
-      setGridData(prev => prev.filter(h => h.id !== id))
-      setTodayHabits(prev => prev.filter(x => x !== id))
+      const updatedGridData = gridData.filter(h => h.id !== id);
+      const updatedTodayHabits = todayHabits.filter(x => x !== id);
+      
+      setGridData(updatedGridData);
+      setTodayHabits(updatedTodayHabits);
+
+      // Immediate Remote Sync (Bypass debounce) for visual confidence
+      const stateToSave = {
+        currentSystemDate, todayHabits: updatedTodayHabits, todayNutrition, todayActivity, 
+        gridData: updatedGridData, 
+        heatmapData
+      };
+
+      toast.promise(
+        fetch('/api/user-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stateData: JSON.stringify(stateToSave) })
+        }),
+        {
+          loading: 'Deleting habit...',
+          success: 'Habit deleted and synced!',
+          error: 'Warning: Failed to sync deletion to cloud.'
+        }
+      );
     })
   }
 
