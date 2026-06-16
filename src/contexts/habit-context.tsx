@@ -17,7 +17,7 @@ export type ActivityState = {
   hrAverage: number | null;
 }
 
-export type HabitDef = { id: number; name: string; category: string; time: string; notification?: string; goal?: string; streak?: number; frequency?: number[]; }
+export type HabitDef = { id: number; name: string; category: string; time: string; notification?: number | null; goal?: string; streak?: number; frequency?: number[]; }
 export type GridHabit = HabitDef & { days: {day: number; completed: boolean}[] }
 
 export type HabitContextType = {

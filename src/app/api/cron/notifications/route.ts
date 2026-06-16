@@ -1,95 +1,101 @@
 import { NextResponse } from 'next/server';
-import webpush from 'web-push';
-import { connectToDatabase } from '@/lib/db';
+import { connectToDatabase as connectMongo } from '@/lib/db';
 import UserState from '@/models/UserState';
-import PushSubscription from '@/models/PushSubscription';
+import { adminMessaging } from '@/lib/firebase-admin';
 
-// Vercel Cron will hit this endpoint automatically
-export const dynamic = 'force-dynamic';
-
-if (process.env.VAPID_SUBJECT && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT,
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  );
+// Helper to get current time in IST (HH:mm)
+function getCurrentISTTimeHHMM(): string {
+  const options: Intl.DateTimeFormatOptions = { 
+    timeZone: 'Asia/Kolkata', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    hour12: false 
+  };
+  return new Intl.DateTimeFormat('en-GB', options).format(new Date());
 }
 
-export async function GET(req: Request) {
-  // Optional: Verify the request is coming from Vercel Cron
-  // const authHeader = req.headers.get('authorization');
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
+// Helper to calculate the notification target time based on the offset
+function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
+  if (!timeHHMM) return '';
+  const [hours, minutes] = timeHHMM.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return '';
+  
+  const date = new Date();
+  date.setHours(hours);
+  date.setMinutes(minutes - offsetMinutes);
+  
+  const targetHours = String(date.getHours()).padStart(2, '0');
+  const targetMinutes = String(date.getMinutes()).padStart(2, '0');
+  return `${targetHours}:${targetMinutes}`;
+}
+
+export async function GET(request: Request) {
+  // In a real production app, verify Vercel Cron Secret here:
+  // const authHeader = request.headers.get('authorization');
+  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) { ... }
 
   try {
-    await connectToDatabase();
-
-    const now = new Date();
-    const userStates = await UserState.find({});
-    const subscriptions = await PushSubscription.find({});
+    await connectMongo();
     
+    // Get all users who have registered an FCM token
+    const users = await UserState.find({ fcmToken: { $exists: true, $ne: "" } });
+    if (!users || users.length === 0) {
+      return NextResponse.json({ success: true, message: 'No users with FCM tokens found' });
+    }
+
+    const currentTimeHHMM = getCurrentISTTimeHHMM();
+    console.log(`[Cron] Checking habits for time: ${currentTimeHHMM} IST`);
+
     let notificationsSent = 0;
 
-    for (const state of userStates) {
-      if (!state.stateData) continue;
-      
-      const parsed = JSON.parse(state.stateData);
-      const gridData = parsed.gridData || [];
+    for (const user of users) {
+      if (!user.stateData) continue;
 
-      // Find subscriptions for this user
-      const userSubs = subscriptions.filter(sub => sub.userId === state.userId);
-      if (userSubs.length === 0) continue;
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(user.stateData);
+      } catch (err) {
+        console.error('Failed to parse stateData for user', user.userId);
+        continue;
+      }
 
-      for (const subDoc of userSubs) {
-        // Calculate the current time in the user's timezone
-        const tz = subDoc.timezone || 'UTC';
-        let userNow;
-        try {
-          const tzDateStr = new Date().toLocaleString("en-US", {timeZone: tz});
-          userNow = new Date(tzDateStr);
-        } catch (e) {
-          userNow = now; // Fallback
-        }
+      const habits = parsed.gridData || [];
 
-        const hours = String(userNow.getHours()).padStart(2, '0');
-        const minutes = String(userNow.getMinutes()).padStart(2, '0');
-        const currentTimeHHMM = `${hours}:${minutes}`;
-        const currentDayOfWeek = userNow.getDay(); // 0 = Sunday, 6 = Saturday
+      for (const habit of habits) {
+        // Default to 0 offset (at time of event) if undefined or null
+        const offset = (habit.notification === null || habit.notification === undefined) ? 0 : habit.notification;
 
-        // Find habits that should trigger right now
-        const triggeredHabits = gridData.filter((habit: any) => {
-          const matchesTime = habit.time === currentTimeHHMM;
-          const matchesFrequency = !habit.frequency || habit.frequency.includes(currentDayOfWeek);
-          return matchesTime && matchesFrequency;
-        });
+        const targetTimeHHMM = calculateTargetTime(habit.time, offset);
 
-        if (triggeredHabits.length > 0) {
-          for (const habit of triggeredHabits) {
-            const payload = JSON.stringify({
-              title: 'HabytFlow Reminder',
-              body: `It's time for: ${habit.name} ${habit.category ? `(${habit.category})` : ''}`,
-              url: '/dashboard'
-            });
+        // If the calculated target time perfectly matches the current time
+        if (targetTimeHHMM === currentTimeHHMM) {
+          try {
+            const message = {
+              notification: {
+                title: 'HabytFlow Reminder 🎯',
+                body: `It's time for: ${habit.name}!`,
+              },
+              token: user.fcmToken,
+            };
 
-            try {
-              await webpush.sendNotification(subDoc.subscription, payload);
-              notificationsSent++;
-            } catch (error: any) {
-              console.error('Web push failed:', error);
-              // If subscription is invalid/gone (HTTP 410), delete it
-              if (error.statusCode === 410 || error.statusCode === 404) {
-                await PushSubscription.findByIdAndDelete(subDoc._id);
-              }
-            }
+            await adminMessaging.send(message);
+            notificationsSent++;
+            console.log(`Successfully sent notification for habit: ${habit.name} to user: ${user.userId}`);
+          } catch (error) {
+            console.error(`Failed to send FCM to user ${user.userId}:`, error);
           }
         }
       }
     }
 
-    return NextResponse.json({ success: true, sent: notificationsSent });
-  } catch (error) {
-    console.error('Error in cron job:', error);
-    return NextResponse.json({ error: 'Failed to run notifications cron' }, { status: 500 });
+    return NextResponse.json({ 
+      success: true, 
+      currentTime: currentTimeHHMM,
+      notificationsSent 
+    });
+
+  } catch (error: any) {
+    console.error('Cron job error:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

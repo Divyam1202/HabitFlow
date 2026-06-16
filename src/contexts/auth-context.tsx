@@ -41,11 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [pendingAction])
 
-  // useEffect(() => {
-  //   if (!isPending && !isAuthenticated) {
-  //     setShowGatekeeper(true)
-  //   }
-  // }, [isPending, isAuthenticated])
+  useEffect(() => {
+    // If we wanted to initialize tracking or other side effects when logged in,
+    // it would go here.
+  }, [isAuthenticated, session?.user?.id])
 
   return (
     <AuthContext.Provider value={{
