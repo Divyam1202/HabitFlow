@@ -133,6 +133,20 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
         
         ctx.restore()
       }
+
+      // Draw Void Space Text "Consistency in motion" in Phase 2 & 3 (between Grid and Wave)
+      if (elapsed > T_PHASE1_END) {
+        const fadeInOpacity = Math.min((elapsed - T_PHASE1_END) / 500, 1);
+        const fontSize = Math.min(width, height) < 768 ? 24 : 32;
+        ctx.save()
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillStyle = `rgba(161, 161, 170, ${fadeInOpacity * 0.8})` // zinc-400 color
+        ctx.font = `500 ${fontSize * 0.35}px sans-serif`
+        ctx.letterSpacing = '4px'
+        ctx.fillText('CONSISTENCY IN MOTION', cx, height * 0.65)
+        ctx.restore()
+      }
       
       // Rotate sphere (Freeze rotation when explosion/morph begins)
       const activeRotTime = Math.min(time, (startTime || 0) + T_PHASE1_END);
