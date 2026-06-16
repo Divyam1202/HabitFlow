@@ -30,9 +30,10 @@ function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
 }
 
 export async function GET(request: Request) {
-  // In a real production app, verify Vercel Cron Secret here:
-  // const authHeader = request.headers.get('authorization');
-  // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) { ... }
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET || 'fallback_cron_token_1202'}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     await connectMongo();

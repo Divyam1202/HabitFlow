@@ -1,8 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { LineChart, Line, BarChart, Bar, YAxis, XAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
+import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 const DynamicResponsiveContainer = dynamic(
   () => import('recharts').then((mod) => mod.ResponsiveContainer),
@@ -67,6 +69,24 @@ const FAKE_REPORTS = [
 export default function AnalyticsPage() {
   const [selectedReport, setSelectedReport] = useState(FAKE_REPORTS[0].id)
   const { gridData, todayActivity, heatmapData } = useHabitContext()
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/')
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
+          Authenticating...
+        </div>
+      </div>
+    )
+  }
 
   // --- Metrics Calculations ---
   const monthlyTotalCompletedDays = gridData.reduce((acc, habit) => acc + habit.days.filter(d => d.completed).length, 0);

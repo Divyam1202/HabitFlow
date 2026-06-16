@@ -4,10 +4,18 @@ import React, { useState, useEffect } from 'react'
 import { Download, LogOut, Trash2, CheckCircle2 } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 export default function SettingsPage() {
   const { timeFormat, updateTimeFormat } = useSettings()
-  const { user } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/')
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -21,6 +29,16 @@ export default function SettingsPage() {
       setEmail(user.email || 'divyam@example.com')
     }
   }, [user])
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
+          Authenticating...
+        </div>
+      </div>
+    )
+  }
 
   const handlePasswordEdit = (e: React.FormEvent) => {
     e.preventDefault()

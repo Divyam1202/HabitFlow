@@ -1,14 +1,27 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useHabitContext } from '@/contexts/habit-context'
+import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 export default function CalendarPage() {
   const { gridData } = useHabitContext()
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/')
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const today = new Date()
+
   const currentMonth = today.getMonth()
+
   const currentYear = today.getFullYear()
+
   const todayDay = today.getDate()
 
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay()
@@ -57,6 +70,16 @@ export default function CalendarPage() {
     if (ratio >= 0.75) return 'bg-yellow-400 text-black border-yellow-500 font-bold'
     if (ratio >= 0.5) return 'bg-orange-500 text-black border-orange-600 font-bold'
     return 'bg-red-500 text-black border-red-600 font-bold' // Below 50%
+  }
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
+          Authenticating...
+        </div>
+      </div>
+    )
   }
 
   return (

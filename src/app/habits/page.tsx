@@ -1,15 +1,36 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Plus, Settings2, Trash2, X, Clock, Bell } from 'lucide-react'
 import { useSettings, formatTime } from '@/hooks/useSettings'
+import { useAuth } from '@/contexts/auth-context'
+import { useRouter } from 'next/navigation'
 
 import { useHabitContext } from '@/contexts/habit-context'
 
 export default function HabitsPage() {
   const { timeFormat } = useSettings()
   const { gridData: habits, addHabit, editHabit, deleteHabit: deleteHabitContext } = useHabitContext()
+  const { isAuthenticated, isLoading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/')
+    }
+  }, [isAuthenticated, isLoading, router])
+
   const [isEditing, setIsEditing] = useState<number | null>(null)
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
+          Authenticating...
+        </div>
+      </div>
+    )
+  }
   const [showAddForm, setShowAddForm] = useState(false)
 
   // Form State

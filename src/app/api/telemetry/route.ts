@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/db'
 import TelemetryEvent from '@/models/TelemetryEvent'
+import { auth } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth.api.getSession({ headers: req.headers })
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { eventType, metadata } = await req.json()
 
     if (!eventType) {
