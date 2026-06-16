@@ -123,13 +123,7 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
         ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
         ctx.font = `700 ${fontSize}px ${fontFamily}`
         ctx.letterSpacing = '2px'
-        ctx.fillText('HabytFLow', 0, -fontSize * 0.3)
-        
-        // Subtitle "Consistency in Motion"
-        ctx.fillStyle = `rgba(161, 161, 170, ${opacity * 0.8})` // zinc-400 with slight fade
-        ctx.font = `500 ${fontSize * 0.35}px sans-serif`
-        ctx.letterSpacing = '4px'
-        ctx.fillText('CONSISTENCY IN MOTION', 0, fontSize * 0.8)
+        ctx.fillText('HabytFLow', 0, 0)
         
         ctx.restore()
       }
