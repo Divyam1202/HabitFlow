@@ -67,8 +67,10 @@ export async function GET(request: Request) {
 
         const targetTimeHHMM = calculateTargetTime(habit.time, offset);
 
-        // If the calculated target time perfectly matches the current time
-        if (targetTimeHHMM === currentTimeHHMM) {
+        // Fire if the calculated offset time perfectly matches the current time,
+        // OR if the exact time of the event perfectly matches the current time (double reminder)
+        // Note: If offset is 0, both are identical, so it safely evaluates to true and fires once.
+        if (targetTimeHHMM === currentTimeHHMM || habit.time === currentTimeHHMM) {
           try {
             const message = {
               notification: {
