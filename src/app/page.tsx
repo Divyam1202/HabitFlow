@@ -73,7 +73,16 @@ export default function BrutalistDashboard() {
         if (!messaging) return;
         unsubscribe = onMessage(messaging, (payload) => {
           console.log("Foreground push notification received:", payload);
-          toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
+          // Trigger the loud native OS Notification instead of a quiet toast
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(payload.notification?.title || 'HabytFlow Reminder', {
+              body: payload.notification?.body,
+              icon: '/favicon.ico',
+              requireInteraction: true
+            });
+          } else {
+            toast.info(`${payload.notification?.title}: ${payload.notification?.body}`);
+          }
         });
       });
       return () => {
