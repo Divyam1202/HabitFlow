@@ -22,6 +22,12 @@ export async function POST(request: Request) {
 
     await connectMongo();
 
+    // First, clear this FCM token from any other users to prevent duplicate delivery
+    await UserState.updateMany(
+      { userId: { $ne: userId }, fcmToken: token },
+      { $unset: { fcmToken: "" } }
+    );
+
     // Update the user state with the FCM token
     await UserState.findOneAndUpdate(
       { userId },

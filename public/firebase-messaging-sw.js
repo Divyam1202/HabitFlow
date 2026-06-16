@@ -20,3 +20,13 @@ messaging.onBackgroundMessage((payload) => {
   // Since our backend sends a "notification" payload with "webpush" Urgency: "high", 
   // the browser natively handles displaying the loud notification automatically.
 });
+
+// Force immediate activation of the new service worker
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+

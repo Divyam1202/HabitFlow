@@ -68,9 +68,10 @@ export default function BrutalistDashboard() {
 
   useEffect(() => {
     if (isAuthenticated && isMounted) {
-      let unsubscribe: () => void;
+      let active = true;
+      let unsubscribe: (() => void) | undefined;
       getFirebaseMessaging().then(messaging => {
-        if (!messaging) return;
+        if (!messaging || !active) return;
         unsubscribe = onMessage(messaging, (payload) => {
           console.log("Foreground push notification received:", payload);
           // Trigger the loud native OS Notification instead of a quiet toast
@@ -86,6 +87,7 @@ export default function BrutalistDashboard() {
         });
       });
       return () => {
+        active = false;
         if (unsubscribe) unsubscribe();
       }
     }
