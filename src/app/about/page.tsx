@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useMemo, useRef } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 
 // Robust inline SVG for LinkedIn
 const LinkedInIcon = () => (
@@ -26,8 +26,104 @@ const LinkedInIcon = () => (
   </svg>
 )
 
+const DeveloperMarquee = () => {
+  return (
+    <div className="relative w-full overflow-hidden whitespace-nowrap py-6 select-none my-4">
+      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
+      <motion.div
+        className="inline-flex gap-16 whitespace-nowrap"
+        animate={{ x: [0, "-50%"] }}
+        transition={{
+          repeat: Infinity,
+          ease: "linear",
+          duration: 25
+        }}
+      >
+        {/* We repeat the elements twice for a perfect seamless loop */}
+        {Array.from({ length: 2 }).map((_, outerIdx) => (
+          <div key={outerIdx} className="flex gap-16">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <span
+                key={idx}
+                style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
+                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-zinc-800/20 font-panchang tracking-[0.2em] uppercase leading-none"
+              >
+                DEVELOPER
+              </span>
+            ))}
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
+
+const DeveloperCard = () => {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [rotateX, setRotateX] = useState(0)
+  const [rotateY, setRotateY] = useState(0)
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return
+    const card = cardRef.current
+    const rect = card.getBoundingClientRect()
+    const x = e.clientX - rect.left - rect.width / 2
+    const y = e.clientY - rect.top - rect.height / 2
+    // Max rotation 15 degrees
+    const rx = -(y / (rect.height / 2)) * 15
+    const ry = (x / (rect.width / 2)) * 15
+    setRotateX(rx)
+    setRotateY(ry)
+  }
+
+  const handleMouseLeave = () => {
+    setRotateX(0)
+    setRotateY(0)
+  }
+
+  return (
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ rotateX, rotateY }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      style={{ transformStyle: "preserve-3d", perspective: 1000 }}
+      className="relative w-80 bg-zinc-950/80 border border-zinc-900 rounded-xl p-8 flex flex-col items-start select-none cursor-pointer group shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
+    >
+      {/* Glow background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
+      
+      <div style={{ transform: "translateZ(50px)" }} className="w-full space-y-6">
+        <div className="text-left">
+          <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Architect & Creator</p>
+          <h4 className="text-white text-2xl font-panchang tracking-tight font-extrabold">Divyam Chandak</h4>
+        </div>
+
+        <div className="flex justify-between items-center w-full border-t border-zinc-900 pt-6">
+          <div className="text-left">
+            <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-wider mb-0.5">Established</p>
+            <p className="text-zinc-300 text-xs font-semibold">June 2027</p>
+          </div>
+
+          <a
+            href="https://www.linkedin.com/in/divyam-chandak/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-[10px] font-bold transition-colors group/link text-left"
+          >
+            <LinkedInIcon />
+            <span>LinkedIn</span>
+          </a>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 const UniverseBackground = () => {
-  const [mounted, setMounted] = React.useState(false)
+  const [mounted, setMounted] = useState(false)
   React.useEffect(() => {
     setMounted(true)
   }, [])
@@ -87,10 +183,12 @@ const UniverseBackground = () => {
 
 const CinematicBlock = ({
   children,
-  containerRef
+  containerRef,
+  animateOnScroll = false
 }: {
   children: React.ReactNode
   containerRef: React.RefObject<HTMLDivElement | null>
+  animateOnScroll?: boolean
 }) => {
   const targetRef = useRef<HTMLDivElement>(null)
 
@@ -112,10 +210,10 @@ const CinematicBlock = ({
   return (
     <div
       ref={targetRef}
-      className="h-screen w-full flex flex-col items-center justify-center px-6 snap-center select-none"
+      className="w-full flex flex-col items-center justify-center py-12 px-6 select-none"
     >
       <motion.div
-        style={{ opacity, y, filter }}
+        style={animateOnScroll ? { opacity, y, filter } : undefined}
         className="text-center max-w-4xl w-full text-[1.15rem] md:text-[1.7rem] leading-relaxed text-zinc-300 font-medium"
       >
         {children}
@@ -127,11 +225,12 @@ const CinematicBlock = ({
 export default function AboutPage() {
   const router = useRouter()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [noteOpen, setNoteOpen] = useState(false)
 
   return (
     <div
       ref={scrollContainerRef}
-      className="relative h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth bg-[#050505]"
+      className="relative min-h-screen overflow-x-hidden scroll-smooth bg-[#050505]"
     >
       <UniverseBackground />
 
@@ -212,72 +311,105 @@ export default function AboutPage() {
 
         {/* Cinematic Manifesto Blocks */}
         <div className="w-full flex flex-col relative z-10">
-          {/* Section 1 */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              HabytFlow began with a simple belief: meaningful change is built through consistency.
-            </p>
-            <br />
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              Most people don't struggle because they lack goals, ambition, or potential. They struggle because progress is often invisible, motivation is temporary, and the small actions that compound into long-term results are easy to overlook.
-            </p>
-            <br />
-            <span className="text-2xl md:text-4xl text-white font-bold bg-gradient-to-b from-emerald-400 to-cyan-400 bg-clip-text text-transparent block text-center mt-4">
-              We built HabytFlow to change that.
-            </span>
-          </CinematicBlock>
+          
+          {/* Section: The Engine (Core Features) */}
+          <div className="w-full flex flex-col items-center justify-center py-16 px-6 select-none border-t border-zinc-900/30">
+            <div className="max-w-4xl w-full">
+              <p className="text-xs font-panchang tracking-[0.3em] text-zinc-500 font-bold uppercase mb-4 text-center">
+                The Engine
+              </p>
+              <h2
+                style={{ fontVariationSettings: '"wdth" 130, "wght" 800' }}
+                className="text-2xl sm:text-4xl text-white font-panchang tracking-tight mb-12 text-center"
+              >
+                Core Features
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  { title: "Intelligent Auth", desc: "Secure account registration and passwordless session states powered by Better Auth." },
+                  { title: "Habit Engine", desc: "Create, schedule, and log routines with adaptive calendar configurations." },
+                  { title: "Streak Tracking", desc: "Keep momentum alive with real-time consistency metrics and milestone tracking." },
+                  { title: "Deep Analytics", desc: "Understand your execution with weekly and monthly progress graphs." },
+                  { title: "Reminders & Alerts", desc: "Stay accountable with push notifications and automated transaction emails." },
+                  { title: "Data Ownership", desc: "Export details or permanently delete your account directly from the settings." },
+                ].map((feature, i) => (
+                  <div key={i} className="bg-zinc-950/40 border border-zinc-900/50 rounded-lg p-6 hover:border-zinc-800 transition-colors duration-200">
+                    <h4 className="text-white font-sans font-bold text-base mb-2">{feature.title}</h4>
+                    <p className="text-zinc-500 text-sm font-sans leading-relaxed">{feature.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
-          {/* Section 2 */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              Habits shape outcomes, but <strong className="text-white">consistency shapes habits.</strong> The challenge isn't knowing what to do—it's doing it often enough for it to matter.
-            </p>
-            <br />
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              That's why HabytFlow exists: to make execution trackable, reduce friction, and help you stay focused on what truly moves you forward.
-            </p>
-          </CinematicBlock>
-
-          {/* Section 3 */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              Every completed habit, every maintained streak, and every day you show up becomes part of a larger picture. A picture of growth, discipline, and forward drive forged one action at a time.
-            </p>
-            <br />
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              We've intentionally designed HabytFlow around clarity and simplicity. <strong className="text-white">No distractions, no unnecessary complexity, and a better productivity display.</strong> Just a reliable system that helps you engineer better routines, stay accountable, and maintain momentum over the long term.
-            </p>
-          </CinematicBlock>
-
-          {/* Section 4 */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <p className="text-left md:text-justify max-w-2xl mx-auto w-full">
-              Whether you're improving your health, developing new skills, strengthening discipline, increasing productivity, or establishing structure in your daily life, HabytFlow provides a space where consistency becomes measurable and progress becomes visible.
-            </p>
-            <br />
-            <strong className="text-white text-base sm:text-lg md:text-xl block text-center mt-4">
-              Because lasting results are rarely achieved by a single breakthrough.
-              <br />
-              They are forged by what you do repeatedly.
-            </strong>
-          </CinematicBlock>
+          {/* Merged Manifesto Section */}
+          <div className="w-full flex flex-col items-center justify-center py-12 px-6 select-none border-t border-zinc-900/30">
+            <div className="max-w-2xl mx-auto w-full space-y-6 text-zinc-400 text-left leading-relaxed text-sm md:text-base font-sans">
+              <p className="text-white font-extrabold text-base md:text-lg uppercase tracking-wider text-center">
+                THE GAP IS IN THE EXECUTION.
+              </p>
+              <p>
+                Meaningful progress is rarely the result of a single breakthrough. It's built through the small actions we repeat every day—the choices that seem insignificant in the moment but compound into something remarkable over time.
+              </p>
+              <p>
+                Most people already know what they need to do.
+              </p>
+              <p>
+                <strong className="text-white font-semibold">HabytFlow was born from that realization.</strong>
+              </p>
+              <p>
+                I wasn't looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
+              </p>
+              <p className="py-2 text-center">
+                <span className="text-sm md:text-base text-white font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
+                  A system that measured actions, not intentions.
+                </span>
+              </p>
+              <p>
+                What started as a personal tool gradually evolved into HabytFlow.
+              </p>
+              <p>
+                Built alongside my work as an AI & Machine Learning Engineer, HabytFlow was developed through late-night iterations, constant refinement, and a relentless focus on simplicity. Every feature exists because it solves a real problem. Every decision was made with one goal in mind: helping people stay consistent with the things that matter.
+              </p>
+              <p>
+                Just a clear view of the promises you make to yourself—and whether you're keeping them.
+              </p>
+              <p>
+                Today, HabytFlow is more than a habit tracker.
+              </p>
+              <div className="pl-4 border-l border-zinc-800 space-y-2 py-1 italic">
+                <p>It's a system for accountability.</p>
+                <p>A record of consistency.</p>
+                <p>A reminder that progress isn't created by what we intend to do, but by what we repeatedly choose to do.</p>
+              </div>
+              
+              <div className="pt-4 text-center">
+                <strong className="text-white text-base sm:text-lg font-bold block leading-relaxed font-sans">
+                  Because lasting results are rarely achieved by a single breakthrough.
+                  <br />
+                  They are forged by what you do repeatedly.
+                </strong>
+              </div>
+            </div>
+          </div>
 
           {/* Section 5 (Action Grid) */}
           <CinematicBlock containerRef={scrollContainerRef}>
             <div className="flex flex-col md:flex-row justify-center items-center gap-12 w-full">
-              {['Begin.', 'Rhythm.', 'Elevate.'].map((phrase, i) => (
+              {['Define.', 'Execute.', 'Elevate.'].map((phrase, i) => (
                 <div
                   key={phrase}
                   className="text-center flex items-center justify-center py-8 select-none relative"
                 >
                   <motion.div
-                    className="absolute inset-0 bg-white/10 blur-2xl rounded-full pointer-events-none"
-                    animate={{ opacity: [0.1, 0.6, 0.1], scale: [0.8, 1.3, 0.8] }}
+                    className="absolute inset-0 bg-white/5 blur-2xl rounded-full pointer-events-none"
+                    animate={{ opacity: [0.05, 0.3, 0.05], scale: [0.9, 1.1, 0.9] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }}
                   />
                   <span
                     style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                    className="relative z-10 font-panchang text-3xl md:text-4xl lg:text-5xl text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                    className="relative z-10 font-panchang text-xl md:text-2xl text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
                   >
                     {phrase}
                   </span>
@@ -285,60 +417,114 @@ export default function AboutPage() {
               ))}
             </div>
           </CinematicBlock>
-
-          {/* Section 6 (Developed by) */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <div className="flex flex-col items-center gap-8">
-              <p className="text-xs md:text-sm uppercase tracking-[0.3em] text-zinc-500 font-bold font-sans">
-                Developed by
-              </p>
-              <h3
+          {/* Section 5.5 (Developer Note Section) */}
+          <div className="relative w-full flex flex-col items-center justify-center py-16 px-6 select-none overflow-hidden border-y border-zinc-900/30 border-t">
+            {/* Grid mesh background */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+            
+            <div className="relative z-10 max-w-4xl w-full flex flex-col items-center text-center gap-8">
+              <h2
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                className="text-[clamp(2.5rem,6vw,5rem)] text-white font-panchang leading-none tracking-tight whitespace-nowrap"
+                className="text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase whitespace-nowrap"
               >
-                Divyam Chandak
-              </h3>
-              <div className="flex flex-col sm:flex-row items-center gap-6">
-                <p className="text-lg md:text-xl font-bold uppercase tracking-widest bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent font-sans">
-                  AI ML Developer
-                </p>
-                <motion.a
-                  href="https://www.linkedin.com/in/divyam-chandak/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="inline-flex items-center gap-2 px-6 py-3 border border-zinc-800 bg-black/40 text-zinc-400 hover:bg-white hover:text-black hover:border-white transition-all rounded-md text-sm font-semibold"
-                >
-                  <LinkedInIcon />
-                  <span>LinkedIn</span>
-                </motion.a>
+                WE'RE JUST GETTING STARTED.
+              </h2>
+
+              <div className="w-full flex flex-col items-center gap-4 mt-2">
+                <DeveloperMarquee />
+                
+                {/* 3D Tilt Developer Card */}
+                <DeveloperCard />
               </div>
+              
+              <button
+                onClick={() => setNoteOpen(true)}
+                className="px-6 py-3 bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono text-xs md:text-sm font-bold tracking-widest uppercase rounded-none hover:bg-zinc-100 hover:text-black hover:border-zinc-100 active:scale-95 transition-all duration-200 shadow-[0_0_20px_rgba(255,255,255,0.02)] mt-4"
+              >
+                [ A NOTE FROM THE DEVELOPER ]
+              </button>
             </div>
-          </CinematicBlock>
+          </div>
 
-          {/* Section 7 (Philosophy) */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <div className="flex flex-col items-center gap-8">
-              <p className="text-xs md:text-sm uppercase tracking-[0.3em] text-zinc-500 font-bold font-sans">
-                Philosophy
-              </p>
-              <p className="text-3xl md:text-5xl lg:text-6xl text-white font-sans tracking-tight leading-tight">
-                "Data over delusion.
-                <br />
-                Action over intention."
-              </p>
-            </div>
-          </CinematicBlock>
+          {/* Modal Popup for Developer Note */}
+          <AnimatePresence>
+            {noteOpen && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-md">
+                {/* Click outside to close */}
+                <div className="absolute inset-0" onClick={() => setNoteOpen(false)} />
+                
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative max-w-2xl w-full max-h-[90vh] md:max-h-[85vh] bg-zinc-950 border border-zinc-900 rounded-xl p-6 md:p-10 shadow-[0_50px_100px_rgba(0,0,0,0.9)] z-10 select-text flex flex-col overflow-hidden"
+                >
+                  {/* Close Cross Button */}
+                  <button
+                    onClick={() => setNoteOpen(false)}
+                    className="absolute top-5 right-5 p-2 rounded-full border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 hover:bg-zinc-900/50 transition-all duration-200 z-50"
+                    aria-label="Close Note"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
 
-          {/* Section 8 (Disclaimer & Footer) */}
-          <CinematicBlock containerRef={scrollContainerRef}>
-            <div className="text-zinc-600 text-sm md:text-base leading-relaxed tracking-widest uppercase font-bold max-w-2xl w-full mx-auto space-y-6 text-left md:text-justify">
-              <p>HabytFlow is an original and independently developed software product. Its branding, design, features, and user experience have been created to support its own distinct vision and purpose.</p>
-              <p>Any similarities to other applications, products, services, interfaces, workflows, or industry practices are coincidental, functional in nature, or derived from commonly accepted design standards and productivity principles.</p>
-              <p>HabytFlow respects the intellectual property rights of all creators, organizations, and trademark holders. Any third-party names, trademarks, logos, or references remain the property of their respective owners and do not imply endorsement, affiliation, or partnership unless explicitly stated.</p>
-            </div>
-            <div className="flex flex-col items-center gap-4 w-full mx-auto mt-12 text-center select-none">
+                  <div className="flex-1 flex flex-col overflow-hidden mt-4 text-left">
+                    <div className="space-y-1 pb-4 border-b border-zinc-900">
+                      <h2 
+                        style={{ fontVariationSettings: '"wdth" 140, "wght" 900' }}
+                        className="text-white text-xl md:text-3xl font-panchang tracking-tight font-extrabold uppercase pr-8"
+                      >
+                        A NOTE FROM THE ARCHITECT
+                      </h2>
+                      <p className="text-zinc-500 font-mono text-[10px] md:text-xs uppercase tracking-widest">
+                        Thank you for being here.
+                      </p>
+                    </div>
+
+                    {/* Scrollable container for the letter text */}
+                    <div className="flex-1 overflow-y-auto py-6 pr-2 space-y-4 text-zinc-400 font-sans text-sm md:text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                      <p>
+                        Every habit completed, every streak maintained, and every commitment honored represents something larger than a number on a screen.
+                      </p>
+                      <p className="text-white font-medium italic">
+                        It represents a promise kept.
+                      </p>
+                      <p>
+                        HabytFlow was built with a simple goal: to create a space where progress feels honest. A place where consistency matters more than perfection and where small actions are given the recognition they deserve.
+                      </p>
+                      <p>
+                        Like many people, I've started routines I couldn't maintain, set goals I didn't achieve, and underestimated the power of simply showing up. HabytFlow is the result of those lessons.
+                      </p>
+                      <p>
+                        If this platform helps you stay consistent for one more day, finish one more workout, read one more chapter, or keep one more promise to yourself, then it has already served its purpose.
+                      </p>
+                      <p>
+                        Thank you for trusting HabytFlow to be part of your journey.
+                      </p>
+                      <p className="text-white font-semibold pt-2">
+                        Keep showing up.
+                      </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-zinc-900 flex justify-between items-baseline text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                      <div>
+                        <p className="text-white font-bold text-xs">— Divyam Chandak</p>
+                        <p className="text-[9px] text-zinc-650 font-semibold mt-0.5">Founder & Developer</p>
+                      </div>
+                      <span>June 2027</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Section 8 (Footer Only) */}
+          <div className="w-full flex flex-col items-center justify-center py-12 px-6 select-none">
+            <div className="flex flex-col items-center gap-4 w-full mx-auto text-center select-none">
               {/* Copyright with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
                 <div className="h-px bg-zinc-800 flex-grow max-w-[80px]" />
@@ -352,14 +538,14 @@ export default function AboutPage() {
               <div className="flex items-center gap-4 w-full justify-center">
                 <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
                 <div className="flex items-center gap-4 text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest font-black whitespace-nowrap">
-                  <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                  <Link href="/about/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
                   <span className="text-zinc-700">·</span>
-                  <Link href="/terms" className="hover:text-white transition-colors">Terms of Conditions</Link>
+                  <Link href="/about/terms" className="hover:text-white transition-colors">Terms of Conditions</Link>
                 </div>
                 <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
               </div>
             </div>
-          </CinematicBlock>
+          </div>
         </div>
 
       </div>
