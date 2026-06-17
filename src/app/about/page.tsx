@@ -8,21 +8,21 @@ import { motion } from 'framer-motion'
 
 // Robust inline SVG for LinkedIn
 const LinkedInIcon = () => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="20" 
-    height="20" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className="transition-colors duration-200"
   >
-    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-    <rect width="4" height="12" x="2" y="9"/>
-    <circle cx="4" cy="4" r="2"/>
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
   </svg>
 )
 
@@ -30,10 +30,10 @@ const LinkedInIcon = () => (
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }
   }
 }
 
@@ -54,11 +54,11 @@ export default function AboutPage() {
     <div className="relative min-h-screen overflow-hidden">
 
       <div className="relative z-10 max-w-[900px] mx-auto px-6 pt-12 pb-24 space-y-16">
-        
+
         {/* Back Button */}
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5 }}>
-          <button 
-            onClick={() => router.back()} 
+          <button
+            onClick={() => router.back()}
             className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-xs font-bold transition-colors group"
           >
             <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
@@ -66,19 +66,19 @@ export default function AboutPage() {
         </motion.div>
 
         {/* Hero Section */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] as const }}
           className="space-y-4 text-center md:text-left"
         >
-          <h1 
+          <h1
             style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
             className="text-6xl md:text-8xl text-white font-panchang leading-none tracking-tight"
           >
             HabytFLow
           </h1>
-          <p className="text-lg md:text-xl font-bold tracking-wide text-emerald-400 font-sans">
+          <p className="text-lg md:text-xl font-bold tracking-wide bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent font-sans">
             Consistency in Motion.
           </p>
         </motion.div>
@@ -87,52 +87,52 @@ export default function AboutPage() {
         <div className="h-px w-full bg-zinc-900" />
 
         {/* Main Body (Animated Text Blocks) */}
-        <motion.div 
+        <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="space-y-8 text-zinc-400 text-sm md:text-base leading-relaxed max-w-[780px]"
+          className="space-y-8 text-zinc-400 text-base md:text-lg leading-relaxed w-full text-justify"
         >
           <motion.p variants={fadeInUp}>
             HabytFlow began with a simple belief: <strong className="text-white">meaningful change is built through consistency.</strong>
           </motion.p>
 
           <motion.p variants={fadeInUp}>
-            Most people don't struggle because they lack goals, ambition, or potential. They struggle because progress is often invisible, motivation is temporary, and the small actions that create long-term results are easy to overlook.
+            Most people don't struggle because they lack goals, ambition, or potential. They struggle because progress is often invisible, motivation is temporary, and the small actions that compound into long-term results are easy to overlook.
           </motion.p>
 
-          <motion.p variants={fadeInUp} className="text-white font-bold text-base border-l-2 border-emerald-500 pl-4 py-1 bg-emerald-950/10">
+          <motion.p variants={fadeInUp} className="relative text-white font-bold text-base pl-4 py-1 bg-emerald-950/10 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-gradient-to-b before:from-emerald-400 before:to-cyan-400">
             We built HabytFlow to change that.
           </motion.p>
 
           <motion.p variants={fadeInUp}>
-            Habits shape outcomes, but <strong className="text-white">consistency shapes habits.</strong> The challenge isn't knowing what to do—it's doing it often enough for it to matter. That's why HabytFlow exists: to make progress visible, reduce friction, and help you stay focused on what truly moves you forward. Every completed habit, every maintained streak, and every day you show up becomes part of a larger picture. A picture of growth, discipline, and momentum built one action at a time.
+            Habits shape outcomes, but <strong className="text-white">consistency shapes habits.</strong> The challenge isn't knowing what to do it's doing it often enough for it to matter. That's why HabytFlow exists: to make execution trackable, reduce friction, and help you stay focused on what truly moves you forward. Every completed habit, every maintained streak, and every day you show up becomes part of a larger picture. A picture of growth, discipline, and forward drive forged one action at a time.
           </motion.p>
 
           <motion.p variants={fadeInUp}>
-            We've intentionally designed HabytFlow around clarity and simplicity. <strong className="text-white">No distractions. No unnecessary complexity. No productivity theater.</strong> Just a reliable system that helps you build better routines, stay accountable, and maintain momentum over the long term.
+            We've intentionally designed HabytFlow around clarity and simplicity. <strong className="text-white">No distractions. No unnecessary complexity. No productivity theater.</strong> Just a reliable system that helps you engineer better routines, stay accountable, and maintain momentum over the long term.
           </motion.p>
 
           <motion.p variants={fadeInUp}>
-            Whether you're improving your health, developing new skills, strengthening discipline, increasing productivity, or creating structure in your daily life, HabytFlow provides a space where consistency becomes measurable and progress becomes visible.
+            Whether you're improving your health, developing new skills, strengthening discipline, increasing productivity, or establishing structure in your daily life, HabytFlow provides a space where consistency becomes measurable and progress becomes visible.
           </motion.p>
 
-          <motion.p variants={fadeInUp} className="text-zinc-300 italic text-base md:text-lg font-medium border-l border-zinc-700 pl-4">
-            Because lasting results are rarely created by a single breakthrough. <br />
-            They are created by <strong className="text-white">what you do repeatedly.</strong>
+          <motion.p variants={fadeInUp} className="relative text-zinc-300 italic text-base md:text-lg font-medium pl-4 before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-gradient-to-b before:from-emerald-400 before:to-cyan-400">
+            Because lasting results are rarely achieved by a single breakthrough. <br />
+            They are forged by <strong className="text-white">what you do repeatedly.</strong>
           </motion.p>
         </motion.div>
 
         {/* 3-Column Gen-Z Action Grid */}
-        <motion.div 
+        <motion.div
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 my-12"
+          className="flex flex-col md:flex-row justify-between items-center gap-6 pt-12 md:pt-16 pb-0 w-full"
         >
-          {['Stack Habits.', 'Lock In.', 'Own the Streak.'].map((phrase, i) => (
+          {['Begin.', 'Rhythm.', 'Elevate.'].map((phrase, i) => (
             <motion.div
               key={phrase}
               variants={fadeInUp}
@@ -142,8 +142,8 @@ export default function AboutPage() {
             >
               {/* Subtle glowing ambient light behind text on hover */}
               <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 blur-2xl transition-all duration-500 pointer-events-none" />
-              
-              <span 
+
+              <span
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
                 className="relative z-10 font-panchang text-2xl md:text-3xl lg:text-4xl text-zinc-500 group-hover:text-white transition-all duration-300 uppercase drop-shadow-none group-hover:drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]"
               >
@@ -162,27 +162,27 @@ export default function AboutPage() {
           className="relative w-full"
         >
           {/* The Content Container */}
-          <div className="relative z-10 py-8 md:py-16 flex flex-col gap-16 md:gap-20">
-            
+          <div className="relative z-10 pt-8 md:pt-16 pb-0 flex flex-col gap-6 md:gap-8">
+
             {/* Identity Group */}
-            <div className="flex flex-col w-fit">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-6 font-sans">
+            <div className="flex flex-col w-full">
+              <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-zinc-500 font-bold mb-6 font-sans w-full text-left">
                 Developed by
               </p>
-              
-              <div className="space-y-4 mb-8">
-                <h3 
+
+              <div className="space-y-4 mb-8 w-full">
+                <h3
                   style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                  className="text-4xl md:text-5xl lg:text-6xl text-white font-panchang leading-none tracking-tight"
+                  className="text-[clamp(2.5rem,6.3vw,4.4rem)] text-white font-panchang leading-none tracking-tight w-full whitespace-nowrap"
                 >
                   Divyam Chandak
                 </h3>
-                
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <p className="text-lg md:text-xl font-bold uppercase tracking-wider text-cyan-400 font-sans">
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full">
+                  <p className="text-lg md:text-xl font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent font-sans">
                     AI ML Developer
                   </p>
-                  
+
                   <motion.a
                     href="https://www.linkedin.com/in/divyam-chandak/"
                     target="_blank"
@@ -197,14 +197,14 @@ export default function AboutPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Philosophy Group */}
-            <div className="flex flex-col">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-6 font-sans">
+            <div className="flex flex-col w-full">
+              <p className="text-xs md:text-sm uppercase tracking-[0.2em] text-zinc-500 font-bold mb-6 font-sans w-full text-left">
                 Philosophy
               </p>
-              <div className="border-l-2 border-zinc-800 pl-6 py-1">
-                <p className="text-xl md:text-2xl lg:text-3xl text-zinc-200 font-sans tracking-tight leading-relaxed">
+              <div className="relative pl-6 py-1 w-full before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-gradient-to-b before:from-emerald-400 before:to-cyan-400">
+                <p className="text-2xl md:text-3xl lg:text-4xl text-zinc-200 font-sans tracking-tight leading-relaxed text-justify w-full">
                   "Data over delusion.
                   <br />
                   Action over intention."
@@ -218,14 +218,14 @@ export default function AboutPage() {
         <div className="h-px w-full bg-zinc-900" />
 
         {/* Independence & Product Integrity / Legal Footer */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
           className="space-y-6"
         >
-          <div className="text-zinc-500 text-[11px] md:text-xs leading-relaxed space-y-4 max-w-[800px] text-justify tracking-wide uppercase font-semibold">
+          <div className="text-zinc-500 text-xs md:text-[13px] leading-relaxed space-y-4 w-full text-justify tracking-wide uppercase font-semibold">
             <p>
               HabytFlow is an original and independently developed software product. Its branding, design, features, and user experience have been created to support its own distinct vision and purpose.
             </p>
