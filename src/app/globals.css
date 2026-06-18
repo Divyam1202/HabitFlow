@@ -134,3 +134,12 @@
     @apply font-sans;
   }
 }
+
+/* Hide scrollbars globally for scrollbar-none helper */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;  /* Firefox */
+}

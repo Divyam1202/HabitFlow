@@ -53,7 +53,10 @@ const FAKE_REPORTS = [
     activeDays: 28,
     bestHabit: 'Reading (100%)',
     worstHabit: 'No Spend (60%)',
-    insights: 'Excellent momentum this month. Gym consistency improved by 15% compared to May. Week 3 saw a minor dip due to travel, but recovery was immediate.'
+    longestLapse: '2 Days',
+    highestFrictionDay: 'Sunday',
+    systemDecay: '12%',
+    insights: 'System operating at 94% efficiency. Gym pipeline output increased by 15% vs May baseline. Week 3 variance detected (3-day lapse); recovery protocol initiated successfully. No critical interventions required.'
   },
   {
     id: 'may-2026',
@@ -62,7 +65,10 @@ const FAKE_REPORTS = [
     activeDays: 26,
     bestHabit: 'Meditation (90%)',
     worstHabit: 'Gym (50%)',
-    insights: 'Solid foundational month. Meditation streak reached 20 days. Gym attendance suffered in the first half of the month but picked up significantly in Week 4.'
+    longestLapse: '4 Days',
+    highestFrictionDay: 'Wednesday',
+    systemDecay: '22%',
+    insights: 'System operating at 85% efficiency. Meditation pipeline output optimized. Gym variance detected in first half of month; calibration completed in Week 4.'
   }
 ]
 
@@ -121,6 +127,14 @@ export default function AnalyticsPage() {
     }
   }
 
+  // Calculate current operating state based on current streak
+  let currentOperatingState = 'INITIATION';
+  if (currentStreak > 21) {
+    currentOperatingState = 'AUTOMATED';
+  } else if (currentStreak > 0) {
+    currentOperatingState = 'MOMENTUM';
+  }
+
   const pieDataRaw = gridData.reduce((acc, h) => {
     const completedCount = h.days.filter(d => d.completed).length;
     const existing = acc.find(a => a.name === h.category);
@@ -148,45 +162,46 @@ export default function AnalyticsPage() {
         <div className="lg:col-span-3">
           <div className="flex flex-col gap-6 bg-black p-6 border border-zinc-900 rounded-[1px]">
             <div>
-              <h1 className="text-xl font-bold uppercase tracking-tight text-white mb-4">Productivity Dashboard</h1>
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[1px] border border-white bg-white text-black text-[10px] font-black uppercase tracking-wider min-w-max">
-                  <span>🔥</span> 1 Wk
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[1px] border border-zinc-500 bg-zinc-900 text-white text-[10px] font-bold uppercase tracking-wider min-w-max">
-                  <span>⚡</span> 2 Wks
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[1px] border border-zinc-800 bg-black text-zinc-600 text-[10px] font-bold uppercase tracking-wider min-w-max opacity-50">
-                  <span>🚀</span> 3 Wks
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-[1px] border border-zinc-800 bg-black text-zinc-600 text-[10px] font-bold uppercase tracking-wider min-w-max opacity-50">
-                  <span>🌟</span> 4 Wks
-                </div>
-              </div>
+              <h1 className="text-xl font-bold uppercase tracking-tight text-white">Productivity Dashboard</h1>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Highest Streak (All-Time)</div>
-                <div className="text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeMaxStreak} /></div>
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Current Operating State</div>
+                <div className="text-xl md:text-2xl font-black text-white">{currentOperatingState}</div>
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Flame size={48} />
                 </div>
               </div>
               <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Total Ticks</div>
-                <div className="text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeTotalTicks} /></div>
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Active Streak</div>
+                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={currentStreak} /> <span className="text-xs font-bold text-zinc-500">Days</span></div>
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Flame size={48} />
+                </div>
+              </div>
+              <div className="border border-zinc-800 p-4 relative overflow-hidden group">
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Total Task Executions</div>
+                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeTotalTicks} /></div>
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Check size={48} />
                 </div>
               </div>
               <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Active Days</div>
-                <div className="text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeActiveDays} /></div>
+                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Execution Days</div>
+                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeActiveDays} /></div>
                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Rocket size={48} />
                 </div>
               </div>
+            </div>
+
+            <div className="border-t border-zinc-900 pt-4 mt-2">
+              <p className="text-[10px] text-zinc-500 leading-relaxed font-mono uppercase tracking-wider">
+                <span className="text-white font-bold">System Calibration Math:</span><br />
+                • <span className="text-zinc-300">Active Streak:</span> If you miss, this drops to 0 instantly.<br />
+                • <span className="text-zinc-300">Execution Days (Lifetime Volume):</span> If you miss, this does not change. If you were at 28 days, it stays at 28 days. It only increments (+1) on days when you actually show up and execute 100% of your required pipeline.
+              </p>
             </div>
           </div>
         </div>
@@ -201,7 +216,7 @@ export default function AnalyticsPage() {
               </div>
               <div>
                 <div className="text-2xl font-black text-white tabular-nums">{monthlyTotalActiveDays} <span className="text-sm text-zinc-600">/ 30</span></div>
-                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Days Logged</div>
+                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Execution Days</div>
               </div>
               <div>
                 <div className="text-2xl font-black text-white tabular-nums">{gridData.length}</div>
@@ -235,33 +250,55 @@ export default function AnalyticsPage() {
 
           {/* Detailed Report View */}
           {FAKE_REPORTS.filter(r => r.id === selectedReport).map(report => (
-            <div key={report.id} className="border border-zinc-900 bg-black p-6">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
+            <div key={report.id} className="border border-zinc-900 bg-black p-6 space-y-6">
+              <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
                 <h2 className="text-xl font-bold uppercase tracking-tight text-white">{report.date} Summary</h2>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-3 py-1 border border-zinc-800 bg-zinc-950">Official Report</div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="border border-zinc-800 p-4">
                   <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Completion</div>
                   <div className="text-2xl font-black text-white tabular-nums">{report.completionRate}%</div>
                 </div>
                 <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Active Days</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Execution Days</div>
                   <div className="text-2xl font-black text-white tabular-nums">{report.activeDays}</div>
                 </div>
                 <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Top Habit</div>
-                  <div className="text-sm font-bold text-green-500 uppercase tracking-tight mt-1">{report.bestHabit}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Top Pipeline</div>
+                  <div className="text-sm font-bold text-white uppercase tracking-tight mt-1">{report.bestHabit}</div>
                 </div>
                 <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Needs Work</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Critical Failure</div>
                   <div className="text-sm font-bold text-red-500 uppercase tracking-tight mt-1">{report.worstHabit}</div>
                 </div>
               </div>
 
+              {/* Variance Report */}
+              <div className="border border-zinc-800 p-6 bg-zinc-950/40 space-y-4">
+                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
+                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Variance Report</h3>
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-red-500 bg-red-950/40 px-2.5 py-0.5 border border-red-900/30">System Deviations</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="border border-zinc-850 p-4 bg-black">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Longest Lapse</div>
+                    <div className="text-xl font-black text-white tabular-nums">{report.longestLapse}</div>
+                  </div>
+                  <div className="border border-zinc-850 p-4 bg-black">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Highest Friction Day</div>
+                    <div className="text-xl font-black text-white uppercase">{report.highestFrictionDay}</div>
+                  </div>
+                  <div className="border border-zinc-850 p-4 bg-black">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">System Decay</div>
+                    <div className="text-xl font-black text-red-500 tabular-nums">{report.systemDecay}</div>
+                  </div>
+                </div>
+              </div>
+
               <div className="border border-zinc-800 p-6 bg-zinc-950">
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white mb-3">AI Insights</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white mb-3">Diagnostic Insights (AI)</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed font-medium">
                   {report.insights}
                 </p>

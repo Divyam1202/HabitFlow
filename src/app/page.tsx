@@ -112,16 +112,16 @@ export default function BrutalistDashboard() {
   const completionRateData = Array.from({ length: daysInMonth }).map((_, i) => {
     const actualCalendarDay = i + 1;
     const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-    
+
     const today = new Date();
     const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    
+
     const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
     const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-    
+
     let rate = null; // Out of rolling window or in future
-    
+
     if (diffDays <= 0 && diffDays >= -29) {
       const relativeDayNum = 30 + diffDays;
       let completed = 0;
@@ -189,9 +189,9 @@ export default function BrutalistDashboard() {
   return (
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
-      
+
       <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
-      
+
         {/* Initialization Banner */}
         {!isInitialized && (
           <div className="border border-green-900 bg-green-950/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -203,7 +203,7 @@ export default function BrutalistDashboard() {
                 Welcome to HabytFlow. You are currently viewing simulated preview data. To begin tracking your real activity, initialize your profile. This will erase the preview data and prepare a blank slate.
               </p>
             </div>
-            <button 
+            <button
               onClick={() => initializeJourney()}
               className="bg-green-500 text-black px-8 py-3 font-black uppercase tracking-widest text-sm hover:bg-green-400 transition-colors whitespace-nowrap shrink-0"
             >
@@ -216,7 +216,7 @@ export default function BrutalistDashboard() {
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
           {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
-            <button 
+            <button
               onClick={() => requestAndStoreNotificationToken(user?.id!)}
               className="flex items-center gap-2 border border-zinc-800 bg-black text-white px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-zinc-900 transition-colors animate-pulse"
             >
@@ -337,54 +337,51 @@ export default function BrutalistDashboard() {
             </div>
             <div className="w-full overflow-x-auto pb-2">
               <div className="h-40 min-w-[600px] w-full -ml-2">
-              <DynamicResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <LineChart data={filteredCompletionRate} margin={{ top: 5, right: 15, left: -15, bottom: 0 }}>
-                  <XAxis
-                    dataKey="day"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 9, fill: '#52525b' }}
-                    dy={10}
-                    interval={0}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    ticks={[0, 50, 100]}
-                    tickFormatter={(val) => `${val}%`}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 9, fill: '#52525b' }}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: '#ffffff', strokeWidth: 1, strokeDasharray: '3 3' }}
-                    contentStyle={{ backgroundColor: '#ffffff', color: '#000000', border: 'none', borderRadius: '0px', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px' }}
-                    itemStyle={{ color: '#000000' }}
-                    labelStyle={{ color: '#000000', marginBottom: '4px' }}
-                    formatter={(value: any) => [`${value}% completed`, 'Trend']}
-                    labelFormatter={(label) => {
-                      return new Date(currentYear, currentMonth, Number(label)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    }}
-                  />
-                  <ReferenceLine x={new Date().getDate()} stroke="#52525b" strokeDasharray="3 3" />
-                  <Line
-                    type="monotone"
-                    dataKey="rate"
-                    stroke="#ffffff"
-                    strokeWidth={2}
-                    dot={{ r: 2, fill: '#000', stroke: '#fff', strokeWidth: 1.5 }}
-                    activeDot={{ r: 4, fill: '#fff' }}
-                    isAnimationActive={false}
-                    connectNulls={true}
-                  />
-                </LineChart>
-              </DynamicResponsiveContainer>
+                <DynamicResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                  <LineChart data={filteredCompletionRate} margin={{ top: 5, right: 15, left: -15, bottom: 0 }}>
+                    <XAxis
+                      dataKey="day"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 9, fill: '#52525b' }}
+                      dy={10}
+                      interval={0}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      ticks={[0, 50, 100]}
+                      tickFormatter={(val) => `${val}%`}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 9, fill: '#52525b' }}
+                    />
+                    <Tooltip
+                      cursor={{ stroke: '#ffffff', strokeWidth: 1, strokeDasharray: '3 3' }}
+                      contentStyle={{ backgroundColor: '#ffffff', color: '#000000', border: 'none', borderRadius: '0px', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px' }}
+                      itemStyle={{ color: '#000000' }}
+                      labelStyle={{ color: '#000000', marginBottom: '4px' }}
+                      formatter={(value: any) => [`${value}% completed`, 'Trend']}
+                      labelFormatter={(label) => {
+                        return new Date(currentYear, currentMonth, Number(label)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                      }}
+                    />
+                    <ReferenceLine x={new Date().getDate()} stroke="#52525b" strokeDasharray="3 3" />
+                    <Line
+                      type="monotone"
+                      dataKey="rate"
+                      stroke="#ffffff"
+                      strokeWidth={2}
+                      dot={{ r: 2, fill: '#000', stroke: '#fff', strokeWidth: 1.5 }}
+                      activeDot={{ r: 4, fill: '#fff' }}
+                      isAnimationActive={false}
+                      connectNulls={true}
+                    />
+                  </LineChart>
+                </DynamicResponsiveContainer>
               </div>
             </div>
           </div>
         </div>
-
-
-
         {/* Micro Yearly Heatmap */}
         <div className="border border-zinc-900 bg-black p-4 overflow-x-auto">
           <div className="mb-4">
@@ -397,7 +394,7 @@ export default function BrutalistDashboard() {
               <span>Fri</span>
             </div>
             <div className="flex-1">
-              <div className="flex justify-between text-[8px] text-zinc-600 uppercase tracking-widest mb-1.5 pl-1 pr-8">
+              <div className="flex justify-between text-[8px] text-zinc-650 uppercase tracking-widest mb-1.5 pl-1 pr-8">
                 <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
                 <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
               </div>
