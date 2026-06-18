@@ -190,7 +190,7 @@ export default function BrutalistDashboard() {
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
       
-      <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-8 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
+      <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
       
         {/* Initialization Banner */}
         {!isInitialized && (
@@ -244,15 +244,15 @@ export default function BrutalistDashboard() {
             const isCompleted = todayHabits.includes(habit.id);
 
             const BRUTALIST_COLORS = [
-              "bg-[#ef4444] text-black border-[#ef4444]", // Red
-              "bg-[#3b82f6] text-black border-[#3b82f6]", // Blue
-              "bg-[#eab308] text-black border-[#eab308]", // Yellow
-              "bg-[#a855f7] text-black border-[#a855f7]", // Purple
-              "bg-[#06b6d4] text-black border-[#06b6d4]", // Cyan
-              "bg-[#ec4899] text-black border-[#ec4899]", // Pink
-              "bg-[#f97316] text-black border-[#f97316]", // Orange
-              "bg-[#84cc16] text-black border-[#84cc16]", // Lime
-              "bg-[#10b981] text-black border-[#10b981]", // Emerald
+              "bg-[#ef4444] text-white border-[#ef4444]", // Red
+              "bg-[#3b82f6] text-white border-[#3b82f6]", // Blue
+              "bg-[#eab308] text-white border-[#eab308]", // Yellow
+              "bg-[#a855f7] text-white border-[#a855f7]", // Purple
+              "bg-[#06b6d4] text-white border-[#06b6d4]", // Cyan
+              "bg-[#ec4899] text-white border-[#ec4899]", // Pink
+              "bg-[#f97316] text-white border-[#f97316]", // Orange
+              "bg-[#84cc16] text-white border-[#84cc16]", // Lime
+              "bg-[#10b981] text-white border-[#10b981]", // Emerald
             ];
             let colorClass = BRUTALIST_COLORS[habit.id % BRUTALIST_COLORS.length];
 
@@ -270,7 +270,7 @@ export default function BrutalistDashboard() {
                 className={`p-3 md:p-4 flex flex-col justify-between min-h-[80px] md:min-h-[100px] border rounded-[1px] transition-all duration-300 transform active:scale-95 text-left ${colorClass}`}
               >
                 <div className="flex justify-between items-start w-full">
-                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">{habit.category}</span>
+                  <span className="text-[11px] md:text-xs font-black uppercase tracking-widest opacity-80">{habit.category}</span>
                   <div className="flex items-center gap-2">
                     <AnimatePresence>
                       {isCompleted && (
@@ -285,13 +285,13 @@ export default function BrutalistDashboard() {
                       )}
                     </AnimatePresence>
                     {habit.time && (
-                      <span className="text-[10px] font-black text-white tracking-widest bg-black/30 px-1.5 py-0.5 rounded-[1px] shadow-sm">
+                      <span className="text-[11px] md:text-xs font-black text-white tracking-widest bg-black/30 px-1.5 py-0.5 rounded-[1px] shadow-sm">
                         {formatTime(habit.time, timeFormat)}
                       </span>
                     )}
                   </div>
                 </div>
-                <span className={`text-base md:text-lg font-black uppercase leading-tight mt-2 ${isCompleted ? 'line-through opacity-70' : ''}`}>
+                <span className={`text-base md:text-lg font-black uppercase leading-tight mt-2 ${isCompleted ? 'line-through opacity-70' : 'text-black'}`}>
                   {habit.name}
                 </span>
               </button>
