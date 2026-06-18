@@ -242,7 +242,7 @@ export default function AboutPage() {
         transition={{ duration: 1, delay: 3.5 }}
       >
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push('/')}
           className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-xs font-bold transition-colors group"
         >
           <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
