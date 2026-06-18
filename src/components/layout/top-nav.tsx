@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Sun, Moon, LayoutDashboard, CheckSquare, Calendar, BarChart2, Settings, Menu, X, ShieldAlert, MessageSquare } from 'lucide-react'
+import { Sun, Moon, LayoutDashboard, CheckSquare, Calendar, BarChart2, Settings, Menu, X, ShieldAlert, MessageSquare, Info } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/contexts/auth-context'
 import { PwaInstallButton } from '@/components/pwa-install-button'
 
 export function TopNav() {
   const pathname = usePathname()
+
   const { theme, setTheme } = useTheme()
   const { isAuthenticated, setShowGatekeeper, user } = useAuth()
   const [mounted, setMounted] = useState(false)
@@ -33,12 +34,15 @@ export function TopNav() {
     { name: 'Calendar', href: '/calendar', icon: <Calendar size={18} /> },
     { name: 'Analytics', href: '/analytics', icon: <BarChart2 size={18} /> },
     { name: 'Settings', href: '/settings', icon: <Settings size={18} /> },
+    { name: 'About', href: '/about', icon: <Info size={18} /> },
     { name: 'Contact Us', href: '/contact', icon: <MessageSquare size={18} /> },
   ]
 
   const navLinks = user?.email === 'habytflow@gmail.com'
     ? [...baseLinks, { name: 'Admin', href: '/admin', icon: <ShieldAlert size={18} /> }]
     : baseLinks
+
+  if (pathname === '/about') return null
 
   return (
     <>
