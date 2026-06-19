@@ -51,7 +51,7 @@ export default function ContactPage() {
     <div className="max-w-[800px] mx-auto px-6 pt-12 pb-24 space-y-12">
       <button 
         onClick={() => router.back()} 
-        className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-xs font-bold transition-colors"
+        className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-xs font-bold transition-colors"
       >
         <ArrowLeft size={16} /> Back
       </button>
@@ -61,8 +61,8 @@ export default function ContactPage() {
         <p className="text-zinc-500 mt-2 text-sm">Have an issue or a feature request? Let us know.</p>
       </div>
 
-      <div className="border border-zinc-800 bg-black p-8 relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="border border-border bg-card p-8 relative overflow-hidden text-card-foreground">
+        <div className="absolute -top-24 -right-24 w-48 h-48 bg-foreground/5 rounded-full blur-3xl pointer-events-none"></div>
         
         <form onSubmit={handleSubmit} className="relative z-10 space-y-6">
           <div className="flex flex-col gap-2">
@@ -73,7 +73,7 @@ export default function ContactPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="hello@example.com"
               required
-              className="bg-zinc-950 border border-zinc-800 text-white p-4 text-sm focus:outline-none focus:border-white transition-colors"
+              className="bg-background border border-border text-foreground p-4 text-sm focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
 
@@ -82,10 +82,10 @@ export default function ContactPage() {
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 text-white p-4 text-sm focus:outline-none focus:border-white transition-colors uppercase tracking-widest"
+              className="bg-background border border-border text-foreground p-4 text-sm focus:outline-none focus:border-foreground transition-colors uppercase tracking-widest"
             >
-              <option value="issue">Issue / Bug Report</option>
-              <option value="feature_request">Feature Request</option>
+              <option value="issue" className="bg-background text-foreground">Issue / Bug Report</option>
+              <option value="feature_request" className="bg-background text-foreground">Feature Request</option>
             </select>
           </div>
 
@@ -97,14 +97,14 @@ export default function ContactPage() {
               placeholder="How can we help you?"
               required
               rows={5}
-              className="bg-zinc-950 border border-zinc-800 text-white p-4 text-sm focus:outline-none focus:border-white transition-colors resize-y"
+              className="bg-background border border-border text-foreground p-4 text-sm focus:outline-none focus:border-foreground transition-colors resize-y"
             />
           </div>
 
           <button 
             type="submit" 
             disabled={status === 'loading'}
-            className="w-full bg-white text-black py-4 font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-foreground text-background py-4 font-bold uppercase tracking-widest text-xs hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {status === 'loading' ? 'Sending...' : 'Submit Request'}
             <Send size={16} />

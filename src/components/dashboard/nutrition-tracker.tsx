@@ -94,34 +94,34 @@ export function NutritionTracker() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-4">
         
         {/* Hydration Tracker */}
-        <div className="border border-zinc-800 bg-black p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-zinc-700">
+        <div className="border border-border bg-card p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-foreground rounded-[1px]">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1 md:gap-1.5 leading-tight">
+              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1 md:gap-1.5 leading-tight">
                 <Droplet size={12} /> Hydration
               </h3>
               <p className="text-[8.5px] min-[400px]:text-[9.5px] md:text-[10.5px] text-zinc-500 mt-0.5 font-medium">Goal: {hydrationGoal}ml</p>
             </div>
-            <button onClick={() => openModal('hydration', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-black hover:bg-white p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
-              <Target size={11} className="group-hover/target:text-black" />
+            <button onClick={() => openModal('hydration', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-foreground hover:bg-muted p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
+              <Target size={11} className="group-hover/target:text-foreground" />
               <span className="text-[7px] uppercase font-bold tracking-widest">Set Limit</span>
             </button>
           </div>
 
-          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
-            {hydration} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-650 font-bold">/ {hydrationGoal} ml</span>
+          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-foreground dark:group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
+            {hydration} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-500 font-bold">/ {hydrationGoal} ml</span>
           </div>
 
           <div className="space-y-1">
             <button 
               onClick={() => openModal('hydration', 'add')}
-              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-zinc-800 hover:border-white hover:bg-white hover:text-black text-white flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
+              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-border hover:border-foreground hover:bg-foreground hover:text-background text-foreground flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
             >
               <Plus size={14} /> Add ML
             </button>
             <button 
               onClick={() => openModal('hydration', 'edit')}
-              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-white hover:text-black transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
+              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-foreground hover:text-background transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
             >
               Edit Value
             </button>
@@ -129,34 +129,34 @@ export function NutritionTracker() {
         </div>
 
         {/* Calories Tracker */}
-        <div className="border border-zinc-800 bg-black p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-zinc-700">
+        <div className="border border-border bg-card p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-foreground rounded-[1px]">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1 md:gap-1.5 leading-tight">
+              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1 md:gap-1.5 leading-tight">
                 <FlameIcon size={12} /> Calories
               </h3>
               <p className="text-[8.5px] min-[400px]:text-[9.5px] md:text-[10.5px] text-zinc-500 mt-0.5 font-medium">Goal: {caloriesGoal}kcal</p>
             </div>
-            <button onClick={() => openModal('calories', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-black hover:bg-white p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
-              <Target size={11} className="group-hover/target:text-black" />
+            <button onClick={() => openModal('calories', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-foreground hover:bg-muted p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
+              <Target size={11} className="group-hover/target:text-foreground" />
               <span className="text-[7px] uppercase font-bold tracking-widest">Set Limit</span>
             </button>
           </div>
 
-          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
-            {calories} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-650 font-bold">/ {caloriesGoal}</span>
+          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-foreground dark:group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
+            {calories} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-500 font-bold">/ {caloriesGoal}</span>
           </div>
 
           <div className="space-y-1">
             <button 
               onClick={() => openModal('calories', 'add')}
-              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-zinc-800 hover:border-white hover:bg-white hover:text-black text-white flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
+              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-border hover:border-foreground hover:bg-foreground hover:text-background text-foreground flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
             >
               <Plus size={14} /> Add Kcal
             </button>
             <button 
               onClick={() => openModal('calories', 'edit')}
-              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-white hover:text-black transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
+              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-foreground hover:text-background transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
             >
               Edit Value
             </button>
@@ -164,34 +164,34 @@ export function NutritionTracker() {
         </div>
 
         {/* Protein Tracker */}
-        <div className="border border-zinc-800 bg-black p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-zinc-700">
+        <div className="border border-border bg-card p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-foreground rounded-[1px]">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1 md:gap-1.5 leading-tight">
+              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1 md:gap-1.5 leading-tight">
                 <Beef size={12} /> Protein
               </h3>
               <p className="text-[8.5px] min-[400px]:text-[9.5px] md:text-[10.5px] text-zinc-500 mt-0.5 font-medium">Goal: {proteinGoal}g</p>
             </div>
-            <button onClick={() => openModal('protein', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-black hover:bg-white p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
-              <Target size={11} className="group-hover/target:text-black" />
+            <button onClick={() => openModal('protein', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-foreground hover:bg-muted p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
+              <Target size={11} className="group-hover/target:text-foreground" />
               <span className="text-[7px] uppercase font-bold tracking-widest">Set Limit</span>
             </button>
           </div>
 
-          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
-            {protein} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-650 font-bold">/ {proteinGoal} g</span>
+          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-foreground dark:group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
+            {protein} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-500 font-bold">/ {proteinGoal} g</span>
           </div>
 
           <div className="space-y-1">
             <button 
               onClick={() => openModal('protein', 'add')}
-              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-zinc-800 hover:border-white hover:bg-white hover:text-black text-white flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
+              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-border hover:border-foreground hover:bg-foreground hover:text-background text-foreground flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
             >
               <Plus size={14} /> Add Protein
             </button>
             <button 
               onClick={() => openModal('protein', 'edit')}
-              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-white hover:text-black transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
+              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-foreground hover:text-background transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
             >
               Edit Value
             </button>
@@ -199,34 +199,34 @@ export function NutritionTracker() {
         </div>
 
         {/* Carbs Tracker */}
-        <div className="border border-zinc-800 bg-black p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-zinc-700">
+        <div className="border border-border bg-card p-2.5 min-[400px]:p-3 md:p-4 flex flex-col justify-between gap-1.5 md:gap-2 relative group transition-all duration-150 ease-in-out hover:border-foreground rounded-[1px]">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1 md:gap-1.5 leading-tight">
+              <h3 className="text-[10px] min-[400px]:text-[11px] md:text-xs font-bold uppercase tracking-wider text-foreground flex items-center gap-1 md:gap-1.5 leading-tight">
                 <Wheat size={12} /> Carbs
               </h3>
               <p className="text-[8.5px] min-[400px]:text-[9.5px] md:text-[10.5px] text-zinc-500 mt-0.5 font-medium">Goal: {carbsGoal}g</p>
             </div>
-            <button onClick={() => openModal('carbs', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-black hover:bg-white p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
-              <Target size={11} className="group-hover/target:text-black" />
+            <button onClick={() => openModal('carbs', 'goal')} className="flex flex-col items-center gap-0.5 text-zinc-500 hover:text-foreground hover:bg-muted p-0.5 rounded-[1px] transition-all duration-150 group/target" title="Set Limit">
+              <Target size={11} className="group-hover/target:text-foreground" />
               <span className="text-[7px] uppercase font-bold tracking-widest">Set Limit</span>
             </button>
           </div>
 
-          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-white group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
-            {carbs} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-650 font-bold">/ {carbsGoal} g</span>
+          <div className="text-lg min-[400px]:text-xl md:text-2xl font-black tracking-tighter tabular-nums text-foreground dark:group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] transition-all duration-150 py-0.5">
+            {carbs} <span className="text-[9px] min-[400px]:text-[10px] md:text-sm text-zinc-500 font-bold">/ {carbsGoal} g</span>
           </div>
 
           <div className="space-y-1">
             <button 
               onClick={() => openModal('carbs', 'add')}
-              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-zinc-800 hover:border-white hover:bg-white hover:text-black text-white flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
+              className="h-7 min-[400px]:h-8 md:h-9 w-full border border-border hover:border-foreground hover:bg-foreground hover:text-background text-foreground flex items-center justify-center gap-0.5 transition-all duration-150 font-bold uppercase text-[9px] min-[400px]:text-[10px] md:text-[11px]"
             >
               <Plus size={14} /> Add Carbs
             </button>
             <button 
               onClick={() => openModal('carbs', 'edit')}
-              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-white hover:text-black transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
+              className="h-4 min-[400px]:h-5 md:h-6 w-full text-zinc-500 hover:bg-foreground hover:text-background transition-all duration-150 font-bold uppercase text-[8px] min-[400px]:text-[8.5px] md:text-[9.5px] tracking-wider rounded-[1px]"
             >
               Edit Value
             </button>
@@ -237,9 +237,9 @@ export function NutritionTracker() {
 
       {/* Custom Brutalist Modal Overlay */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
-          <div className="bg-black border border-zinc-700 max-w-sm w-full p-8 shadow-2xl">
-            <h2 className="text-xl font-bold uppercase tracking-wider text-white mb-2">
+        <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
+          <div className="bg-card text-card-foreground border border-border max-w-sm w-full p-8 shadow-2xl">
+            <h2 className="text-xl font-bold uppercase tracking-wider text-foreground mb-2">
               {modalAction === 'add' && `Add ${modalType}`}
               {modalAction === 'edit' && `Edit ${modalType}`}
               {modalAction === 'goal' && `Set ${modalType} Goal`}
@@ -260,7 +260,7 @@ export function NutritionTracker() {
                 type="number"
                 min="0"
                 autoFocus
-                className="w-full bg-zinc-950 border border-zinc-800 text-white p-4 text-xl font-bold outline-none focus:border-white transition-colors mb-6"
+                className="w-full bg-background border border-border text-foreground p-4 text-xl font-bold outline-none focus:border-foreground transition-colors mb-6"
                 placeholder="e.g. 250"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -269,13 +269,13 @@ export function NutritionTracker() {
                 <button 
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="flex-1 py-3 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors uppercase font-bold text-sm"
+                  className="flex-1 py-3 border border-border text-zinc-500 hover:text-foreground hover:border-foreground transition-colors uppercase font-bold text-sm"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-3 bg-white text-black hover:bg-zinc-200 transition-colors uppercase font-bold text-sm"
+                  className="flex-1 py-3 bg-foreground text-background hover:bg-foreground/90 transition-colors uppercase font-bold text-sm"
                 >
                   Save
                 </button>

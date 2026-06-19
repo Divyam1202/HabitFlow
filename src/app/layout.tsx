@@ -43,7 +43,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${panchang.variable} font-sans bg-white text-black dark:bg-black dark:text-white antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${panchang.variable} font-sans bg-background text-foreground antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

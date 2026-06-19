@@ -111,44 +111,44 @@ export default function HabitsPage() {
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight text-white">Manage Habits</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-tight text-foreground">Manage Habits</h1>
           <p className="text-zinc-500 mt-2 text-sm">Configure your routines and digital timings.</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowAddForm(true); }}
-          className="flex items-center gap-2 px-6 py-3 bg-white text-black font-bold uppercase tracking-wider text-sm hover:bg-zinc-200 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-foreground text-background font-bold uppercase tracking-wider text-sm hover:bg-foreground/90 transition-colors"
         >
           <Plus size={18} /> New Habit
         </button>
       </div>
 
-      <div className="border border-zinc-800 bg-black">
+      <div className="border border-border bg-card">
         {habits.map((habit, idx) => (
-          <div key={habit.id} className={`p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ${idx !== habits.length - 1 ? 'border-b border-zinc-800' : ''}`}>
+          <div key={habit.id} className={`p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 ${idx !== habits.length - 1 ? 'border-b border-border' : ''}`}>
             <div>
-              <h3 className="font-bold text-lg text-white">{habit.name}</h3>
+              <h3 className="font-bold text-lg text-foreground">{habit.name}</h3>
               <div className="flex flex-wrap items-center gap-4 mt-2 text-xs font-medium uppercase tracking-widest text-zinc-500">
                 <span>{habit.category}</span>
-                <span className="w-1 h-1 bg-zinc-700 rounded-full" />
+                <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
                 <span>{habit.goal || 'Daily'}</span>
-                <span className="w-1 h-1 bg-zinc-700 rounded-full" />
-                <span className="text-white flex items-center gap-1">🔥 {habit.streak || 0} Days</span>
+                <span className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
+                <span className="text-foreground flex items-center gap-1">🔥 {habit.streak || 0} Days</span>
               </div>
             </div>
 
             <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto">
               {/* Timing Block */}
-              <div className="flex items-center gap-4 border border-zinc-800 px-4 py-2 bg-zinc-950">
+              <div className="flex items-center gap-4 border border-border px-4 py-2 bg-background">
                 <div className="flex items-center gap-2">
                   <Clock size={14} className="text-zinc-500" />
-                  <span className="text-xs font-black text-white tabular-nums">{habit.time ? formatTime(habit.time, timeFormat) : 'Anytime'}</span>
+                  <span className="text-xs font-black text-foreground tabular-nums">{habit.time ? formatTime(habit.time, timeFormat) : 'Anytime'}</span>
                 </div>
                 {habit.notification !== undefined && (
                   <>
-                    <div className="w-[1px] h-4 bg-zinc-800" />
+                    <div className="w-[1px] h-4 bg-border" />
                     <div className="flex items-center gap-2">
                       <Bell size={14} className="text-blue-500" />
-                      <span className="text-xs font-bold text-zinc-400">
+                      <span className="text-xs font-bold text-zinc-500">
                         {habit.notification === 0 ? 'On Time' : `-${habit.notification}m`}
                       </span>
                     </div>
@@ -157,10 +157,10 @@ export default function HabitsPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button onClick={() => handleEdit(habit)} className="p-3 border border-zinc-800 hover:border-zinc-500 text-zinc-400 hover:text-white transition-colors">
+                <button onClick={() => handleEdit(habit)} className="p-3 border border-border hover:border-foreground text-zinc-500 hover:text-foreground transition-colors">
                   <Settings2 size={18} />
                 </button>
-                <button onClick={() => handleDelete(habit.id)} className="p-3 border border-zinc-800 hover:border-red-900 hover:bg-red-950 text-zinc-400 hover:text-red-500 transition-colors">
+                <button onClick={() => handleDelete(habit.id)} className="p-3 border border-border hover:border-red-650 hover:bg-red-500/10 text-zinc-500 hover:text-red-500 transition-colors">
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -176,12 +176,12 @@ export default function HabitsPage() {
 
       {/* Editor Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-black border border-zinc-800 w-full max-w-[500px] p-6 shadow-2xl relative">
-            <button onClick={resetForm} className="absolute top-4 right-4 text-zinc-500 hover:text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border w-full max-w-[500px] p-6 shadow-2xl relative text-card-foreground">
+            <button onClick={resetForm} className="absolute top-4 right-4 text-zinc-500 hover:text-foreground">
               <X size={24} />
             </button>
-            <h2 className="text-xl font-bold uppercase tracking-tight text-white mb-6">
+            <h2 className="text-xl font-bold uppercase tracking-tight text-foreground mb-6">
               {isEditing ? 'Edit Habit' : 'Create New Habit'}
             </h2>
 
@@ -192,7 +192,7 @@ export default function HabitsPage() {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-foreground transition-colors"
                   placeholder="e.g., Gym, Reading, Meditation"
                   list="habit-suggestions"
                   required
@@ -210,7 +210,7 @@ export default function HabitsPage() {
                   <select
                     value={category}
                     onChange={e => setCategory(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 appearance-none"
+                    className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-foreground appearance-none"
                   >
                     {CATEGORIES.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
@@ -219,7 +219,7 @@ export default function HabitsPage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Goal Frequency</label>
-                  <div className="flex gap-1 border border-zinc-800 bg-zinc-950 p-1">
+                  <div className="flex gap-1 border border-border bg-background p-1">
                     {DAYS_OF_WEEK.map(day => {
                       const isSelected = frequency.includes(day.value);
                       return (
@@ -233,7 +233,7 @@ export default function HabitsPage() {
                               setFrequency([...frequency, day.value])
                             }
                           }}
-                          className={`flex-1 py-1.5 text-xs font-bold uppercase transition-colors rounded-[1px] ${isSelected ? 'bg-white text-black' : 'text-zinc-500 hover:bg-zinc-900 hover:text-white'}`}
+                          className={`flex-1 py-1.5 text-xs font-bold uppercase transition-colors rounded-[1px] ${isSelected ? 'bg-foreground text-background' : 'text-zinc-500 hover:bg-muted hover:text-foreground'}`}
                         >
                           {day.label}
                         </button>
@@ -246,8 +246,8 @@ export default function HabitsPage() {
                 </div>
               </div>
 
-              <div className="border-t border-zinc-900 pt-6 mt-6">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-white mb-4 flex items-center gap-2"><Clock size={14} /> Timing</h3>
+              <div className="border-t border-border pt-6 mt-6">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-foreground mb-4 flex items-center gap-2"><Clock size={14} /> Timing</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="w-full">
                     <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Digital Time</label>
@@ -256,7 +256,7 @@ export default function HabitsPage() {
                       value={time}
                       onChange={e => setTime(e.target.value)}
                       required
-                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500"
+                      className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-foreground"
                     />
                   </div>
                   <div className="w-full">
@@ -264,7 +264,7 @@ export default function HabitsPage() {
                     <select
                       value={notification.toString()}
                       onChange={(e) => setNotification(parseInt(e.target.value))}
-                      className="w-full bg-zinc-950 border border-zinc-800 p-3 text-white focus:outline-none focus:border-zinc-500 appearance-none"
+                      className="w-full bg-background border border-border p-3 text-foreground focus:outline-none focus:border-foreground appearance-none"
                     >
                       <option value="0">None</option>
                       <option value="5">5 mins before</option>
@@ -278,7 +278,7 @@ export default function HabitsPage() {
               </div>
 
               <div className="pt-4">
-                <button type="submit" className="w-full py-4 bg-white text-black font-bold uppercase tracking-wider text-sm hover:bg-zinc-200 transition-colors">
+                <button type="submit" className="w-full py-4 bg-foreground text-background font-bold uppercase tracking-wider text-sm hover:bg-foreground/90 transition-colors">
                   {isEditing ? 'Save Changes' : 'Create Habit'}
                 </button>
               </div>

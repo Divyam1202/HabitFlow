@@ -31,15 +31,15 @@ const UniverseBackground = () => {
   }, [])
 
   if (!mounted) {
-    return <div className="fixed inset-0 z-0 bg-[#050505]" />
+    return <div className="fixed inset-0 z-0 bg-background" />
   }
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050505]">
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-background">
       {stars.map((star) => (
         <motion.div
           key={star.id}
-          className="absolute bg-white rounded-full"
+          className="absolute bg-foreground rounded-full"
           style={{
             left: `${star.x}%`,
             top: `${star.y}%`,
@@ -59,7 +59,7 @@ const UniverseBackground = () => {
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
     </div>
   )
 }
@@ -68,7 +68,7 @@ export default function TermsAndConditionsPage() {
   const router = useRouter()
 
   return (
-    <div className="relative min-h-screen bg-[#050505] text-zinc-300 font-sans selection:bg-white selection:text-black pb-24">
+    <div className="relative min-h-screen bg-background text-foreground/80 font-sans selection:bg-foreground selection:text-background pb-24">
       <UniverseBackground />
 
       {/* Back Button */}
@@ -80,7 +80,7 @@ export default function TermsAndConditionsPage() {
       >
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-xs font-bold transition-colors group"
+          className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-xs font-bold transition-colors group"
         >
           <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
         </button>
@@ -98,7 +98,7 @@ export default function TermsAndConditionsPage() {
           </span>
           <h1 
             style={{ fontVariationSettings: '"wdth" 130, "wght" 800' }}
-            className="text-4xl sm:text-5xl md:text-6xl text-white font-panchang tracking-tight mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl text-foreground font-panchang tracking-tight mb-6"
           >
             Terms & Conditions
           </h1>
@@ -106,46 +106,46 @@ export default function TermsAndConditionsPage() {
             Last updated: June 17, 2026
           </p>
 
-          <div className="h-px bg-zinc-900 w-full mb-12" />
+          <div className="h-px bg-border w-full mb-12" />
 
           {/* Legal Copy */}
-          <div className="space-y-10 text-sm md:text-base leading-relaxed text-zinc-400">
+          <div className="space-y-10 text-sm md:text-base leading-relaxed text-muted-foreground">
             
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">1. Acceptance of Terms</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">1. Acceptance of Terms</h2>
               <p>
                 Welcome to HabytFlow. These Terms & Conditions govern your access to and use of the HabytFlow software platform, including any associated features, routines, analytics, profile dashboards, and notifications. By creating an account or using the service, you agree to be bound by these Terms. If you do not agree, please do not access or use the platform.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">2. Eligibility</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">2. Eligibility</h2>
               <p>
                 You must be at least 13 years of age to use HabytFlow. By using the service, you represent and warrant that you meet this age requirement, possess the legal capacity to enter into a binding agreement, and are not barred from receiving services under applicable jurisdiction laws.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">3. User Accounts</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">3. User Accounts</h2>
               <p className="mb-4">
                 To access certain features of HabytFlow, you must register for an account using email authentication supported by Better Auth.
               </p>
-              <ul className="list-disc pl-5 space-y-2 text-zinc-400">
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
-                  <strong className="text-white">Account Security:</strong> You are solely responsible for maintaining the privacy and security of your account credentials, security sessions, and active cookies. You are fully responsible for all activities that occur under your account.
+                  <strong className="text-foreground">Account Security:</strong> You are solely responsible for maintaining the privacy and security of your account credentials, security sessions, and active cookies. You are fully responsible for all activities that occur under your account.
                 </li>
                 <li>
-                  <strong className="text-white">Truthful Information:</strong> You agree to provide accurate, current, and complete information during registration and keep your account details updated.
+                  <strong className="text-foreground">Truthful Information:</strong> You agree to provide accurate, current, and complete information during registration and keep your account details updated.
                 </li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">4. Acceptable Use and Prohibited Activities</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">4. Acceptable Use and Prohibited Activities</h2>
               <p className="mb-4">
                 You agree to use HabytFlow only for personal, lawful productivity tracking purposes. You explicitly agree not to engage in any of the following prohibited activities:
               </p>
-              <ul className="list-disc pl-5 space-y-2 text-zinc-400">
+              <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>Attempt to bypass authentication mechanisms, probe system vulnerabilities, or disrupt server infrastructure.</li>
                 <li>Use automated scripts, bots, scrapers, or indexers to access, extract, or load platform interfaces.</li>
                 <li>Upload malicious code, viruses, spyware, or execute denial of service attacks.</li>
@@ -154,7 +154,7 @@ export default function TermsAndConditionsPage() {
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">5. User Content and Data</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">5. User Content and Data</h2>
               <p className="mb-4">
                 Users retain full ownership and intellectual property rights over the custom habit lists, tracking logs, schedule parameters, and personal metrics they input into the platform.
               </p>
@@ -164,39 +164,39 @@ export default function TermsAndConditionsPage() {
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">6. Service Availability and Modifications</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">6. Service Availability and Modifications</h2>
               <p>
                 We strive to maintain continuous uptime and platform stability. However, HabytFlow may update, modify, suspend, restrict, or discontinue certain features, workflows, or sections of the platform at any time, with or without prior notice, to execute security patches, roll out updates, or undergo system maintenance.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">7. Intellectual Property Rights & Proprietary Software Notice</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">7. Intellectual Property Rights & Proprietary Software Notice</h2>
               <p className="mb-4">
                 HabytFlow is a proprietary software product. All branding, visual layouts, logo assets, Panchang variable typography styling, interactive interfaces, design tokens, codebase files, and workflow systems are owned exclusively by HabytFlow or its licensors, and are protected by copyright, trademark, and intellectual property legislation.
               </p>
-              <p className="font-semibold text-white">
+              <p className="font-semibold text-foreground">
                 All rights are reserved. You are explicitly prohibited from copying, reproducing, reverse engineering, decompiling, redistributing, reselling, sublicensing, or creating derivative works from any portion of the HabytFlow platform or its source code without prior written authorization.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">8. Third-Party Services</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">8. Third-Party Services</h2>
               <p>
                 The service integrates with third-party components (such as hosting nodes, PostgreSQL servers, and authentication libraries) to provide database services, analytics, and session security. Your interactions with these integrations are subject to the respective terms and privacy policies of those operators. HabytFlow does not assume liability for the uptime, performance, or behavior of third-party systems.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">9. Account Suspension and Termination</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">9. Account Suspension and Termination</h2>
               <p>
                 We reserve the right to suspend or terminate your account access to HabytFlow at our sole discretion, without prior notice, for conduct that we believe violates these Terms, harms other users, breaches server security guidelines, or compromises system integrity.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">10. Professional Disclaimer</h2>
-              <p className="font-semibold text-white mb-2">
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">10. Professional Disclaimer</h2>
+              <p className="font-semibold text-foreground mb-2">
                 HabytFlow is strictly a productivity and habit-tracking tool.
               </p>
               <p>
@@ -205,54 +205,54 @@ export default function TermsAndConditionsPage() {
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">11. Disclaimer of Warranties</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">11. Disclaimer of Warranties</h2>
               <p>
                 HabytFlow is provided on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, non-infringement, or uninterrupted service. We do not warrant that the application will be free of bugs, server latency, security vulnerabilities, or data entry errors.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">12. Limitation of Liability</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">12. Limitation of Liability</h2>
               <p>
                 To the maximum extent permitted by applicable law, in no event shall HabytFlow or its operators be liable for any direct, indirect, incidental, special, consequential, or exemplary damages, including but not limited to loss of profits, data corruption, loss of goodwill, or other intangible losses resulting from your use of or inability to use the platform.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">13. Indemnification</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">13. Indemnification</h2>
               <p>
                 You agree to defend, indemnify, and hold harmless HabytFlow and its operators from and against any claims, damages, obligations, losses, liabilities, costs, or debt, and expenses (including attorney's fees) arising from your misuse of the platform, violation of these Terms, or infringement of third-party rights.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">14. Governing Law</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">14. Governing Law</h2>
               <p>
                 These Terms & Conditions shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions. Any legal disputes or claims arising out of or related to these Terms will be resolved exclusively in the competent courts located in Pune, Maharashtra.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">15. Changes to Terms</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">15. Changes to Terms</h2>
               <p>
                 We reserve the right to modify or replace these Terms & Conditions at any time. We will indicate changes by updating the "Last updated" date at the top of this document. Continued use of the platform after updates have been posted constitutes your acceptance of the revised Terms.
               </p>
             </section>
 
             <section>
-              <h2 className="text-white text-lg md:text-xl font-semibold mb-4">16. Contact Information</h2>
+              <h2 className="text-foreground text-lg md:text-xl font-semibold mb-4">16. Contact Information</h2>
               <p>If you have any questions, concerns, or requests regarding these Terms & Conditions, please contact our support team:</p>
-              <div className="bg-zinc-950 border border-zinc-900 rounded-lg p-6 mt-4">
-                <p className="font-semibold text-white">HabytFlow Legal & Support</p>
-                <p className="text-zinc-400 mt-2">Email: habytflow+legal@gmail.com</p>
+              <div className="bg-card border border-border rounded-lg p-6 mt-4 text-card-foreground">
+                <p className="font-semibold text-foreground">HabytFlow Legal & Support</p>
+                <p className="text-muted-foreground mt-2">Email: habytflow+legal@gmail.com</p>
               </div>
             </section>
 
-            <div className="h-px bg-zinc-900 w-full my-12" />
+            <div className="h-px bg-border w-full my-12" />
 
             {/* Additional Legal Notice */}
-            <div className="bg-zinc-950/40 border border-zinc-900/50 rounded-lg p-6 text-xs md:text-sm text-zinc-600 leading-relaxed space-y-4 tracking-widest uppercase font-bold">
-              <p className="font-extrabold text-zinc-400">Additional Legal Notice</p>
+            <div className="bg-card/40 border border-border/50 rounded-lg p-6 text-xs md:text-sm text-muted-foreground/60 leading-relaxed space-y-4 tracking-widest uppercase font-bold">
+              <p className="font-extrabold text-foreground/80">Additional Legal Notice</p>
               <p>HabytFlow is an original and independently developed software product. Its branding, design, features, and user experience have been created to support its own distinct vision and purpose.</p>
               <p>Any similarities to other applications, products, services, interfaces, workflows, or industry practices are coincidental, functional in nature, or derived from commonly accepted design standards and productivity principles.</p>
               <p>HabytFlow respects the intellectual property rights of all creators, organizations, and trademark holders. Any third-party names, trademarks, logos, or references remain the property of their respective owners and do not imply endorsement, affiliation, or partnership unless explicitly stated.</p>

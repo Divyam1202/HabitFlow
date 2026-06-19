@@ -51,6 +51,15 @@ export const auth = betterAuth({
     protocol: process.env.NODE_ENV === "development" ? "http" : "https"
   },
   database: mongodbAdapter(db),
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "USER",
+        required: false
+      }
+    }
+  },
   // 2. Expand trusted origins to cover the root wildcard as well
   trustedOrigins: [
     "https://habit-flow-9684.vercel.app",
