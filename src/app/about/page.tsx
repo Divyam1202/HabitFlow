@@ -254,7 +254,7 @@ export default function AboutPage() {
         <div className="flex flex-col items-center gap-4">
           <h1
             style={{ fontVariationSettings: '"wdth" 150, "wght" 900', perspective: "1000px" }}
-            className="text-[4rem] sm:text-7xl md:text-9xl text-white font-panchang leading-none tracking-tighter flex justify-center overflow-visible w-full"
+            className="text-[2.25rem] xs:text-[3.25rem] sm:text-6xl md:text-8xl text-white font-panchang leading-none tracking-tighter flex justify-center overflow-visible w-full"
           >
             {"HabytFlow".split("").map((char, i) => (
               <motion.span
@@ -269,7 +269,7 @@ export default function AboutPage() {
             ))}
           </h1>
 
-          <div className="text-xs md:text-sm font-panchang tracking-[0.4em] uppercase flex justify-center flex-wrap mt-2 w-full">
+          <div className="text-[10px] sm:text-xs font-panchang tracking-[0.3em] sm:tracking-[0.4em] uppercase flex justify-center flex-wrap mt-2 w-full">
             {"CONSISTENCY IN MOTION".split("").map((char, i) => (
               <motion.span
                 key={i}
@@ -396,7 +396,7 @@ export default function AboutPage() {
 
           {/* Section 5 (Action Grid) */}
           <CinematicBlock containerRef={scrollContainerRef}>
-            <div className="flex flex-col md:flex-row justify-center items-center gap-12 w-full">
+            <div className="flex flex-row justify-center items-center gap-4 sm:gap-8 md:gap-12 w-full">
               {['Define.', 'Execute.', 'Elevate.'].map((phrase, i) => (
                 <div
                   key={phrase}
@@ -409,7 +409,7 @@ export default function AboutPage() {
                   />
                   <span
                     style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                    className="relative z-10 font-panchang text-xl md:text-2xl text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                    className="relative z-10 font-panchang text-sm xs:text-base sm:text-lg md:text-2xl text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
                   >
                     {phrase}
                   </span>
@@ -425,7 +425,7 @@ export default function AboutPage() {
             <div className="relative z-10 max-w-4xl w-full flex flex-col items-center text-center gap-8">
               <h2
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                className="text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase whitespace-nowrap"
+                className="text-sm xs:text-base sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase text-center sm:whitespace-nowrap"
               >
                 WE'RE JUST GETTING STARTED.
               </h2>
