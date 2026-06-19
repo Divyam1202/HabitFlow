@@ -289,7 +289,7 @@ export function GatekeeperModal() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors tracking-widest"
+                    className="w-full bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
                   />
                 </div>
 
