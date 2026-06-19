@@ -54,11 +54,11 @@ export const useHabitContext = () => {
 
 // --- Initial Seed Data ---
 const MOCK_HABITS: HabitDef[] = [
-  { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [1, 3, 5] },
+  { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 2, name: "Reading", category: "🧠 Growth", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 3, name: "Office", category: "💼 Career", time: "09:00", frequency: [1, 2, 3, 4, 5] },
-  { id: 4, name: "Meditation", category: "🕉️ Spiritual", time: "07:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 5, name: "Laundry", category: "🏠 Home", time: "10:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
+  { id: 3, name: "Touch Grass", category: "🌳 Nature", time: "17:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 4, name: "Skincare", category: "✨ Self-care", time: "22:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 5, name: "Digital Detox", category: "📱 Mindset", time: "20:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
 ]
 
 const SEED_GRID_DATA = MOCK_HABITS.map(habit => ({
@@ -144,13 +144,19 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (parsed) {
-        setIsInitialized(true)
+        const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
+        setIsInitialized(hasInitialized || !!isAuthenticated)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
         setTodayHabits(parsed.todayHabits || [])
         setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
         setTodayActivity(parsed.todayActivity || INITIAL_ACTIVITY)
-        setGridData(parsed.gridData || SEED_GRID_DATA)
-        setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
+        if (!hasInitialized && !isAuthenticated) {
+          setGridData(SEED_GRID_DATA)
+          setHeatmapData(SEED_HEATMAP)
+        } else {
+          setGridData(parsed.gridData || SEED_GRID_DATA)
+          setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
+        }
       } else {
         const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
         if (hasInitialized || isAuthenticated) {

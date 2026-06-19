@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     if (!db) throw new Error("No database connection")
 
     const users = await db.collection('user').find().sort({ createdAt: -1 }).toArray()
-    
+
     // Map database fields safely
     const formattedUsers = users.map(u => ({
       id: u._id.toString(),

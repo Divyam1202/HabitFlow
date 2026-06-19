@@ -34,7 +34,7 @@ export default async function AdminAnalyticsPage() {
   // --- HABIT METRICS & RETENTION ---
   const totalHabits = await Habit.countDocuments()
   const habits = await Habit.find({}, 'history').lean()
-  
+
   let completionsCount = 0
   let totalStreakSum = 0
   let totalEvaluations = 0
@@ -44,7 +44,7 @@ export default async function AdminAnalyticsPage() {
       const historyObj = h.history instanceof Map ? Object.fromEntries(h.history) : h.history
       let currentStreak = 0
       let maxStreak = 0
-      
+
       const dates = Object.keys(historyObj)
       dates.forEach((date) => {
         totalEvaluations++
@@ -88,7 +88,7 @@ export default async function AdminAnalyticsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Growth & Usage Section */}
         <div className="space-y-6">
           <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">

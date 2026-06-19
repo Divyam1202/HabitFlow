@@ -120,12 +120,11 @@ export default function AdminFeedbackPage() {
               <div key={item.id} className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${
-                      item.type === 'BUG_REPORT' ? 'bg-red-500/10 text-red-500' :
-                      item.type === 'FEATURE_REQUEST' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-300'
-                    }`}>
+                    <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${item.type === 'BUG_REPORT' ? 'bg-red-500/10 text-red-500' :
+                        item.type === 'FEATURE_REQUEST' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-300'
+                      }`}>
                       {item.type === 'BUG_REPORT' ? <AlertCircle size={10} /> :
-                       item.type === 'FEATURE_REQUEST' ? <Sparkles size={10} /> : <MessageSquare size={10} />}
+                        item.type === 'FEATURE_REQUEST' ? <Sparkles size={10} /> : <MessageSquare size={10} />}
                       {item.type.replace('_', ' ')}
                     </span>
                     <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase">
@@ -140,7 +139,7 @@ export default function AdminFeedbackPage() {
 
                 <div className="border-t border-border pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <span className="text-[10px] text-zinc-500 font-semibold truncate max-w-xs">{item.email}</span>
-                  
+
                   {updatingId === item.id ? (
                     <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
                   ) : (

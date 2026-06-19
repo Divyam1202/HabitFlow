@@ -19,7 +19,7 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
-  
+
   // Profile Modal State
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [userStats, setUserStats] = useState<any>(null)
@@ -116,8 +116,8 @@ export default function AdminUsersPage() {
     }
   }
 
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredUsers = users.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -181,10 +181,9 @@ export default function AdminUsersPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="py-4 px-6 text-sm">
-                      <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase ${
-                        user.role === 'SUPER_ADMIN' ? 'bg-red-500/10 text-red-500' :
-                        user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-300'
-                      }`}>
+                      <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase ${user.role === 'SUPER_ADMIN' ? 'bg-red-500/10 text-red-500' :
+                          user.role === 'ADMIN' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-300'
+                        }`}>
                         {user.role}
                       </span>
                     </td>
@@ -192,9 +191,8 @@ export default function AdminUsersPage() {
                       {user.plan}
                     </td>
                     <td className="py-4 px-6 text-sm">
-                      <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase ${
-                        user.status === 'suspended' ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
-                      }`}>
+                      <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase ${user.status === 'suspended' ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-500'
+                        }`}>
                         {user.status}
                       </span>
                     </td>
@@ -210,9 +208,8 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => handleAction(user.id, 'SUSPEND')}
                         disabled={actionUserId === user.id}
-                        className={`text-xs font-bold uppercase tracking-wider ${
-                          user.status === 'suspended' ? 'text-emerald-500 hover:underline' : 'text-amber-500 hover:underline'
-                        }`}
+                        className={`text-xs font-bold uppercase tracking-wider ${user.status === 'suspended' ? 'text-emerald-500 hover:underline' : 'text-amber-500 hover:underline'
+                          }`}
                       >
                         {user.status === 'suspended' ? 'Activate' : 'Suspend'}
                       </button>

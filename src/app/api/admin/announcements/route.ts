@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const isAdmin = session && (session.user.email === 'habytflow@gmail.com' || ['ADMIN', 'SUPER_ADMIN'].includes(session.user.role || 'USER'))
 
     await connectToDatabase()
-    
+
     let announcements;
     if (isAdmin) {
       // Admins see all announcements
