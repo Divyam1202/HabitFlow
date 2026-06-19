@@ -153,16 +153,16 @@ export function GatekeeperModal() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={() => { if (isAuthenticated) setShowGatekeeper(false) }}
       />
       
-      <div className="relative w-full max-w-md bg-black border border-zinc-800 p-8 shadow-2xl flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md bg-card border border-border p-8 shadow-2xl flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 text-card-foreground">
         
         {isAuthenticated && (
           <button 
             onClick={() => setShowGatekeeper(false)}
-            className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-zinc-500 hover:text-foreground transition-colors"
           >
             <X size={20} />
           </button>
@@ -172,7 +172,7 @@ export function GatekeeperModal() {
           <div className="flex flex-col items-center justify-center gap-6 py-8 animate-in fade-in zoom-in">
             <CheckCircle size={64} className="text-green-500" />
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-black uppercase tracking-tight text-white">
+              <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
                 Access Granted
               </h2>
               <p className="text-green-500 text-xs uppercase tracking-widest font-bold">
@@ -183,24 +183,24 @@ export function GatekeeperModal() {
         ) : (
           <>
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tighter text-white font-panchang">
+              <h2 className="text-2xl font-bold tracking-tighter text-foreground font-panchang">
                 {isLogin ? 'ACCESS RESTRICTED' : 'Join HabytFLow'}
               </h2>
-              <p className="text-zinc-400 text-xs uppercase tracking-widest font-bold">
+              <p className="text-zinc-555 text-xs uppercase tracking-widest font-bold">
                 Authentication Required
               </p>
             </div>
 
             {!showOtpInput && (
-              <div className="flex border-b border-zinc-800">
+              <div className="flex border-b border-border">
                 <button
-                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${isLogin ? 'border-b-2 border-white text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${isLogin ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
                   onClick={() => { setIsLogin(true); setError(''); }}
                 >
                   Log In
                 </button>
                 <button
-                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${!isLogin ? 'border-b-2 border-white text-white' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${!isLogin ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
                   onClick={() => { setIsLogin(false); setError(''); }}
                 >
                   Sign Up
@@ -209,13 +209,13 @@ export function GatekeeperModal() {
             )}
 
             {error && (
-              <div className="p-3 bg-red-950 border border-red-900 text-red-500 text-xs font-bold uppercase tracking-widest text-center">
+              <div className="p-3 bg-red-950/20 border border-red-500/50 text-red-600 dark:text-red-500 text-xs font-bold uppercase tracking-widest text-center">
                 {error}
               </div>
             )}
 
             {successMessage && (
-              <div className="p-3 bg-green-950 border border-green-900 text-green-500 text-xs font-bold uppercase tracking-widest text-center">
+              <div className="p-3 bg-green-950/20 border border-green-500/50 text-green-600 dark:text-green-500 text-xs font-bold uppercase tracking-widest text-center">
                 {successMessage}
               </div>
             )}
@@ -230,14 +230,14 @@ export function GatekeeperModal() {
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="000000"
-                    className="w-full bg-zinc-950 border border-zinc-800 text-white p-3 text-center text-2xl tracking-[1em] focus:outline-none focus:border-white transition-colors font-mono"
+                    className="w-full bg-background border border-border text-foreground p-3 text-center text-2xl tracking-[1em] focus:outline-none focus:border-foreground transition-colors font-mono"
                     maxLength={6}
                   />
                 </div>
                 <button 
                   type="submit" 
                   disabled={loading || otp.length < 6}
-                  className="w-full mt-2 bg-white text-black font-black uppercase tracking-widest py-3 text-xs hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                  className="w-full mt-2 bg-foreground text-background font-black uppercase tracking-widest py-3 text-xs hover:bg-foreground/90 transition-colors disabled:opacity-50"
                 >
                   {loading ? 'Verifying...' : 'Verify OTP & Authenticate'}
                 </button>
@@ -252,7 +252,7 @@ export function GatekeeperModal() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 text-white p-3 text-sm focus:outline-none focus:border-white transition-colors"
+                    className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                   />
                 </div>
 
@@ -274,7 +274,7 @@ export function GatekeeperModal() {
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                      className={`w-full bg-zinc-950 border ${username.length >= 6 && isUsernameAvailable === false ? 'border-red-500 focus:border-red-500' : 'border-zinc-800 focus:border-white'} text-white p-3 text-sm focus:outline-none transition-colors`}
+                      className={`w-full bg-background border ${username.length >= 6 && isUsernameAvailable === false ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-foreground'} text-foreground p-3 text-sm focus:outline-none transition-colors`}
                       placeholder="Minimum 6 characters"
                     />
                   </div>
@@ -287,14 +287,14 @@ export function GatekeeperModal() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 text-white p-3 text-sm focus:outline-none focus:border-white transition-colors tracking-widest"
+                    className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors tracking-widest"
                   />
                 </div>
 
                 <button 
                   type="submit" 
                   disabled={loading || (!isLogin && (username.length < 6 || isUsernameAvailable === false))}
-                  className="w-full mt-2 bg-white text-black font-black uppercase tracking-widest py-3 text-xs hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-2 bg-foreground text-background font-black uppercase tracking-widest py-3 text-xs hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Processing...' : isLogin ? 'Authenticate' : 'Create Account'}
                 </button>

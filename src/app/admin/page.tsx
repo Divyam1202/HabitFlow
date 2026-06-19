@@ -2,296 +2,241 @@ import { connectToDatabase } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import SupportRequest from '@/models/SupportRequest'
-import TelemetryEvent from '@/models/TelemetryEvent'
 import mongoose from 'mongoose'
-import { Users, Activity, Clock, MessageSquare, ShieldAlert, BarChart3, Database, Sparkles } from 'lucide-react'
+import Habit from '@/models/Habit'
+import Feedback from '@/models/Feedback'
+import AuditLog from '@/models/AuditLog'
+import { Users, CheckSquare, Trophy, ShieldAlert, FileText, ArrowUpRight, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-type Props = {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
-}
-
-export default async function AdminDashboard(props: Props) {
+export default async function AdminDashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() })
-
-  if (!session || session.user.email !== 'habytflow@gmail.com') {
+  if (!session || !session.user) {
     redirect('/')
   }
 
-  const searchParams = await props.searchParams
-  const activeTab = typeof searchParams.tab === 'string' ? searchParams.tab : 'users'
-
   await connectToDatabase()
-
   const db = mongoose.connection.db
-  if (!db) throw new Error("No db connection")
+  if (!db) throw new Error("No database connection")
 
-  // --- GLOBAL METRICS ---
-  const launchDate = new Date('2026-06-11')
-  const daysLive = Math.max(1, Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60 * 24)))
+  // --- STATS COMPUTATION ---
+  const totalUsers = await db.collection('user').countDocuments()
+  
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  
+  const newUsersToday = await db.collection('user').countDocuments({
+    createdAt: { $gte: todayStart }
+  })
 
-  // --- TAB: USERS ---
-  let usersList: any[] = []
-  if (activeTab === 'users') {
-    const usersCollection = db.collection('user')
-    const rawUsers = await usersCollection.find().sort({ createdAt: -1 }).toArray()
-    usersList = rawUsers.map(u => ({
-      _id: u._id.toString(),
-      name: u.name,
-      email: u.email,
-      createdAt: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'
-    }))
-  }
+  // Active Users Today: Users with active sessions OR user telemetry event today
+  const activeSessionsToday = await db.collection('session').countDocuments({
+    expiresAt: { $gt: new Date() }
+  })
+  const activeUsersCount = Math.max(activeSessionsToday, newUsersToday) || 1
 
-  // --- TAB: SUPPORT ---
-  let supportRequests: any[] = []
-  if (activeTab === 'support') {
-    const rawRequests = await SupportRequest.find().sort({ createdAt: -1 }).lean()
-    supportRequests = rawRequests.map(req => ({
-      _id: req._id?.toString(),
-      email: req.email,
-      type: req.type || 'issue',
-      message: req.message,
-      status: req.status,
-      createdAt: (req.createdAt as Date).toLocaleDateString()
-    }))
-  }
+  const totalHabits = await Habit.countDocuments()
 
-  // --- TAB: ANALYTICS ---
-  let analytics = {
-    totalJourneys: 0,
-    topHabits: [] as any[],
-    topCategories: [] as any[],
-    activeSessions: 0
-  }
-  if (activeTab === 'analytics') {
-    const sessionsCollection = db.collection('session')
-    analytics.activeSessions = await sessionsCollection.countDocuments({
-      expiresAt: { $gt: new Date() }
-    })
+  // Compute completions from habits history maps
+  const allHabits = await Habit.find({}, 'history').lean()
+  let totalCompletions = 0
+  let totalStreakSum = 0
+  
+  allHabits.forEach((h: any) => {
+    if (h.history) {
+      const historyObj = h.history instanceof Map ? Object.fromEntries(h.history) : h.history
+      let currentStreak = 0
+      let maxCurrentStreak = 0
+      
+      // Sort history keys (dates) chronologically to evaluate streak
+      const sortedDates = Object.keys(historyObj).sort()
+      sortedDates.forEach((dateKey) => {
+        if (historyObj[dateKey] === true) {
+          totalCompletions++
+          currentStreak++
+          maxCurrentStreak = Math.max(maxCurrentStreak, currentStreak)
+        } else {
+          currentStreak = 0
+        }
+      })
+      totalStreakSum += maxCurrentStreak
+    }
+  })
 
-    analytics.totalJourneys = await TelemetryEvent.countDocuments({ eventType: 'journey_started' })
+  const averageStreak = totalHabits > 0 ? (totalStreakSum / totalHabits).toFixed(1) : '0'
+  const retentionRate = totalUsers > 0 ? ((activeUsersCount / totalUsers) * 100).toFixed(0) : '0'
 
-    const topHabitsAgg = await TelemetryEvent.aggregate([
-      { $match: { eventType: { $in: ['habit_created', 'habit_completed'] } } },
-      { $group: { _id: "$metadata.habitName", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ])
-    analytics.topHabits = topHabitsAgg
+  // --- LISTS COMPUTATION ---
+  const recentSignups = await db.collection('user')
+    .find({}, { projection: { name: 1, email: 1, createdAt: 1 } })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .toArray()
 
-    const topCategoriesAgg = await TelemetryEvent.aggregate([
-      { $match: { eventType: { $in: ['habit_created', 'habit_completed'] }, "metadata.category": { $ne: null } } },
-      { $group: { _id: "$metadata.category", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 5 }
-    ])
-    analytics.topCategories = topCategoriesAgg
-  }
+  const recentFeedback = await Feedback.find()
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean()
+
+  const recentAuditLogs = await AuditLog.find()
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean()
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 pt-12 pb-24 space-y-12">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <ShieldAlert className="w-8 h-8 text-red-500" />
+    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-black uppercase tracking-tight text-foreground font-panchang">
+          System Overview
+        </h1>
+        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
+          HabitFlow System Core Dashboard
+        </p>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Users */}
+        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
+          <div className="flex justify-between items-center text-zinc-500 mb-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest">Total Users</span>
+            <Users size={16} />
+          </div>
           <div>
-            <h1 className="text-3xl font-black uppercase tracking-tight text-white">Admin Operations</h1>
-            <p className="text-zinc-500 text-sm font-bold tracking-widest uppercase mt-1">Classified Dashboard • {daysLive} Days Live</p>
+            <h3 className="text-3xl font-black text-foreground">{totalUsers}</h3>
+            <p className="text-xs text-emerald-500 font-bold mt-1">
+              +{newUsersToday} Today
+            </p>
           </div>
         </div>
-        <Link href="/" className="text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">
-          Exit to App
-        </Link>
+
+        {/* Active Today */}
+        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
+          <div className="flex justify-between items-center text-zinc-500 mb-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest">Active Users (Today)</span>
+            <TrendingUp size={16} />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-foreground">{activeUsersCount}</h3>
+            <p className="text-xs text-zinc-500 mt-1">
+              Based on active sessions
+            </p>
+          </div>
+        </div>
+
+        {/* Total Habits & Completions */}
+        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
+          <div className="flex justify-between items-center text-zinc-500 mb-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest">Total Habits</span>
+            <CheckSquare size={16} />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-foreground">{totalHabits}</h3>
+            <p className="text-xs text-zinc-500 font-bold mt-1">
+              {totalCompletions} Completions
+            </p>
+          </div>
+        </div>
+
+        {/* Streak & Retention */}
+        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
+          <div className="flex justify-between items-center text-zinc-500 mb-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest">Avg Streak / Retention</span>
+            <Trophy size={16} />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-foreground">{averageStreak} Days</h3>
+            <p className="text-xs text-emerald-500 font-bold mt-1">
+              {retentionRate}% user retention
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex border-b border-zinc-800">
-        <Link 
-          href="?tab=users" 
-          className={`flex items-center gap-2 px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'users' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <Users size={16} /> Users
-        </Link>
-        <Link 
-          href="?tab=support" 
-          className={`flex items-center gap-2 px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'support' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <MessageSquare size={16} /> Support Desk
-        </Link>
-        <Link 
-          href="?tab=analytics" 
-          className={`flex items-center gap-2 px-6 py-4 text-xs font-bold uppercase tracking-widest transition-colors ${activeTab === 'analytics' ? 'text-white border-b-2 border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-        >
-          <BarChart3 size={16} /> Analytics
-        </Link>
+      {/* Activity Panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Signups */}
+        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
+          <div className="mb-6 flex justify-between items-center">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recent Signups</h3>
+            <Link href="/admin/users" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
+              All Users <ArrowUpRight size={14} />
+            </Link>
+          </div>
+          <div className="space-y-4 flex-grow">
+            {recentSignups.map((u, i) => (
+              <div key={i} className="flex justify-between items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                <div>
+                  <p className="text-sm font-bold text-foreground">{u.name || 'Anonymous'}</p>
+                  <p className="text-xs text-zinc-500">{u.email}</p>
+                </div>
+                <span className="text-[10px] font-mono text-zinc-650">
+                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Feedback */}
+        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
+          <div className="mb-6 flex justify-between items-center">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recent Feedback</h3>
+            <Link href="/admin/feedback" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
+              View Desk <ArrowUpRight size={14} />
+            </Link>
+          </div>
+          <div className="space-y-4 flex-grow">
+            {recentFeedback.length === 0 ? (
+              <p className="text-xs text-zinc-500 text-center py-6 font-bold">No feedback submitted yet</p>
+            ) : (
+              recentFeedback.map((f, i) => (
+                <div key={i} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <span className="text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 bg-zinc-800 text-zinc-300 uppercase rounded-sm">
+                      {f.type.replace('_', ' ')}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase">{f.status}</span>
+                  </div>
+                  <p className="text-sm text-foreground line-clamp-1">{f.message}</p>
+                  <p className="text-[10px] text-zinc-500 mt-1 font-semibold">{f.email}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Recent Audit Logs */}
+        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
+          <div className="mb-6 flex justify-between items-center">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Audit Logs</h3>
+            <Link href="/admin/audit-logs" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
+              View Logs <ArrowUpRight size={14} />
+            </Link>
+          </div>
+          <div className="space-y-4 flex-grow">
+            {recentAuditLogs.length === 0 ? (
+              <p className="text-xs text-zinc-500 text-center py-6 font-bold">No audit entries yet</p>
+            ) : (
+              recentAuditLogs.map((log, i) => (
+                <div key={i} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-bold text-foreground">{log.action.replace('_', ' ')}</span>
+                    <span className="text-[9px] font-mono text-zinc-500">
+                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{log.details}</p>
+                  <p className="text-[10px] text-zinc-650 mt-1 font-semibold">{log.adminEmail}</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
-
-      {activeTab === 'users' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-xl font-bold uppercase tracking-tight">Registered Users</h2>
-          <div className="border border-zinc-800 bg-black overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                  <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Name</th>
-                  <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Email</th>
-                  <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Joined</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usersList.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="py-12 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">
-                      No users found
-                    </td>
-                  </tr>
-                )}
-                {usersList.map(u => (
-                  <tr key={u._id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition-colors">
-                    <td className="py-4 px-6 text-sm text-white font-medium">{u.name}</td>
-                    <td className="py-4 px-6 text-sm text-zinc-400">{u.email}</td>
-                    <td className="py-4 px-6 text-sm text-zinc-500">{u.createdAt}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'support' && (
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold uppercase tracking-tight flex items-center gap-2 text-red-500">
-              <ShieldAlert size={24} /> Bugs & Issues
-            </h2>
-            <div className="border border-zinc-800 bg-black overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Date</th>
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Email</th>
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {supportRequests.filter(req => req.type === 'issue').length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="py-12 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">
-                        No bug reports found
-                      </td>
-                    </tr>
-                  )}
-                  {supportRequests.filter(req => req.type === 'issue').map(req => (
-                    <tr key={req._id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition-colors">
-                      <td className="py-4 px-6 text-sm text-zinc-500 whitespace-nowrap">{req.createdAt}</td>
-                      <td className="py-4 px-6 text-sm text-white font-medium">{req.email}</td>
-                      <td className="py-4 px-6 text-sm text-zinc-300 max-w-md truncate">{req.message}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold uppercase tracking-tight flex items-center gap-2 text-blue-500">
-              <Sparkles size={24} /> Feature Requests
-            </h2>
-            <div className="border border-zinc-800 bg-black overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-950/50">
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Date</th>
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Email</th>
-                    <th className="py-4 px-6 text-xs font-bold tracking-widest uppercase text-zinc-500">Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {supportRequests.filter(req => req.type === 'feature_request').length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="py-12 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">
-                        No feature requests found
-                      </td>
-                    </tr>
-                  )}
-                  {supportRequests.filter(req => req.type === 'feature_request').map(req => (
-                    <tr key={req._id} className="border-b border-zinc-800/50 hover:bg-zinc-900/20 transition-colors">
-                      <td className="py-4 px-6 text-sm text-zinc-500 whitespace-nowrap">{req.createdAt}</td>
-                      <td className="py-4 px-6 text-sm text-white font-medium">{req.email}</td>
-                      <td className="py-4 px-6 text-sm text-zinc-300 max-w-md truncate">{req.message}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {activeTab === 'analytics' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-zinc-800 bg-black p-6 relative overflow-hidden">
-              <div className="relative z-10 flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-zinc-500 mb-2">
-                  <Activity size={16} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Active Sessions</span>
-                </div>
-                <span className="text-4xl font-black text-white">{analytics.activeSessions}</span>
-              </div>
-            </div>
-
-            <div className="border border-zinc-800 bg-black p-6 relative overflow-hidden">
-              <div className="relative z-10 flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-zinc-500 mb-2">
-                  <Database size={16} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Journeys Initiated</span>
-                </div>
-                <span className="text-4xl font-black text-white">{analytics.totalJourneys}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="border border-zinc-800 bg-black p-6">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6">Top Habits Tracked</h3>
-              <div className="space-y-4">
-                {analytics.topHabits.length === 0 ? (
-                  <p className="text-sm text-zinc-500">No telemetry data yet.</p>
-                ) : (
-                  analytics.topHabits.map((habit, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <span className="text-sm text-white">{habit._id || 'Unnamed Habit'}</span>
-                      <span className="text-xs font-bold text-zinc-500">{habit.count} events</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="border border-zinc-800 bg-black p-6">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6">Top Categories</h3>
-              <div className="space-y-4">
-                {analytics.topCategories.length === 0 ? (
-                  <p className="text-sm text-zinc-500">No telemetry data yet.</p>
-                ) : (
-                  analytics.topCategories.map((cat, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <span className="text-sm text-white">{cat._id || 'Uncategorized'}</span>
-                      <span className="text-xs font-bold text-zinc-500">{cat.count} events</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

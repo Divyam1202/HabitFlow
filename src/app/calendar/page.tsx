@@ -73,7 +73,7 @@ export default function CalendarPage() {
   };
 
   const getColorClass = (ratio: number | null) => {
-    if (ratio === null) return 'text-zinc-700 bg-zinc-950/50 border-zinc-900' // No data
+    if (ratio === null) return 'text-zinc-500 dark:text-zinc-400 bg-transparent border-border' // No data
     if (ratio === 0) return 'bg-red-500 text-black border-red-600 font-bold'
     if (ratio <= 0.25) return 'bg-orange-500 text-black border-orange-600 font-bold'
     if (ratio <= 0.5) return 'bg-yellow-500 text-black border-yellow-600 font-bold'
@@ -92,16 +92,16 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto px-6 pt-12 pb-24 space-y-8">
+    <div className="max-w-[1000px] mx-auto px-6 pt-12 pb-24 space-y-8 text-foreground">
       
       {/* Calendar View Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-zinc-900 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-widest text-white">CALENDAR VIEW</h1>
-          <p className="text-zinc-500 mt-2 text-sm font-medium">Monthly overview of all your daily ticks.</p>
+          <h1 className="text-2xl font-bold uppercase tracking-widest text-foreground">CALENDAR VIEW</h1>
+          <p className="text-zinc-555 mt-2 text-sm font-medium">Monthly overview of all your daily ticks.</p>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-2">
-          <div className="text-xl font-black uppercase tracking-widest text-white font-mono sm:text-right">
+          <div className="text-xl font-black uppercase tracking-widest text-foreground font-mono sm:text-right">
             {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </div>
           <select
@@ -110,7 +110,7 @@ export default function CalendarPage() {
               const [y, m] = e.target.value.split('-').map(Number)
               setCalendarDate(new Date(y, m, 1))
             }}
-            className="text-[10px] font-bold uppercase tracking-widest bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 px-2.5 py-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono"
+            className="text-[10px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground px-2.5 py-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono"
           >
             {(() => {
               const options = []
@@ -122,7 +122,7 @@ export default function CalendarPage() {
                 const val = `${optDate.getFullYear()}-${optDate.getMonth()}`
                 const label = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                 options.push(
-                  <option key={val} value={val} className="bg-zinc-950 text-white">
+                  <option key={val} value={val} className="bg-background text-foreground">
                     {label}
                   </option>
                 )
@@ -135,10 +135,10 @@ export default function CalendarPage() {
 
 
       {/* Calendar Grid */}
-      <div className="border border-zinc-800 bg-black">
-        <div className="grid grid-cols-7 border-b border-zinc-800">
+      <div className="border border-border bg-card">
+        <div className="grid grid-cols-7 border-b border-border">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-            <div key={day} className="py-4 text-center text-xs font-bold uppercase tracking-widest text-zinc-500 border-r border-zinc-800 last:border-0">
+            <div key={day} className="py-4 text-center text-xs font-bold uppercase tracking-widest text-zinc-555 border-r border-border last:border-0">
               {day}
             </div>
           ))}
@@ -150,7 +150,7 @@ export default function CalendarPage() {
             const displayDay = day > 0 ? (day > daysInMonth ? day - daysInMonth : day) : daysInPrevMonth + day
             
             let cellContent = null
-            let outerClass = 'text-zinc-700 bg-zinc-950 border-zinc-900'
+            let outerClass = 'text-zinc-500 dark:text-zinc-400 bg-transparent border-border'
 
             if (isCurrentMonth) {
               const ratio = getDayStats(day)
@@ -179,7 +179,7 @@ export default function CalendarPage() {
             return (
               <div 
                 key={idx} 
-                className={`min-h-[120px] p-4 border-r border-b border-zinc-800 last:border-r-0 transition-colors duration-200 ${outerClass}`}
+                className={`min-h-[120px] p-4 border-r border-b border-border last:border-r-0 transition-colors duration-200 ${outerClass}`}
               >
                 {cellContent}
               </div>
@@ -189,7 +189,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend & Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-zinc-900 text-[9px] font-mono uppercase tracking-widest text-zinc-500">
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border text-[9px] font-mono uppercase tracking-widest text-zinc-555">
         <div className="flex items-center gap-1">
           <span>Completion Scale:</span>
           <div className="flex items-center gap-1.5 ml-2">
@@ -203,7 +203,7 @@ export default function CalendarPage() {
         
         <button 
           onClick={() => setCalendarDate(new Date())}
-          className="text-zinc-400 hover:text-white transition-all underline decoration-dotted"
+          className="text-zinc-500 hover:text-foreground transition-all underline decoration-dotted"
         >
           Reset to Current Month
         </button>

@@ -72,6 +72,8 @@ const FAKE_REPORTS = [
   }
 ]
 
+const COLORS = ['#22c55e', '#3b82f6', '#a855f7', '#f97316', '#2DD4BF', '#fb293c'];
+
 export default function AnalyticsPage() {
   const [selectedReport, setSelectedReport] = useState(FAKE_REPORTS[0].id)
   const { gridData, todayActivity, heatmapData } = useHabitContext()
@@ -147,224 +149,209 @@ export default function AnalyticsPage() {
     pieDataRaw.push({ name: 'Sports', value: todayActivity.sportsLog.length });
   }
 
-  const COLORS = ['#ffffff', '#a1a1aa', '#52525b', '#27272a', '#18181b', '#09090b'];
-
   return (
-    <div className="max-w-[1200px] mx-auto px-6 pt-12 pb-24 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
+    <div className="max-w-[1200px] mx-auto px-6 pt-12 pb-24 space-y-12 text-foreground">
+
+      {/* Productivity Dashboard Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight text-white">Analytics</h1>
-          <p className="text-zinc-500 mt-2 text-sm">Deep dive into your consistency metrics.</p>
+          <h1 className="text-2xl font-bold uppercase tracking-widest text-foreground">Productivity Dashboard</h1>
+          <p className="text-zinc-500 mt-1.5 text-sm font-medium">Deep dive into your consistency metrics.</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-3">
-          <div className="flex flex-col gap-6 bg-black p-6 border border-zinc-900 rounded-[1px]">
-            <div>
-              <h1 className="text-xl font-bold uppercase tracking-tight text-white">Productivity Dashboard</h1>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Current Operating State</div>
-                <div className="text-xl md:text-2xl font-black text-white">{currentOperatingState}</div>
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Flame size={48} />
-                </div>
-              </div>
-              <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Active Streak</div>
-                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={currentStreak} /> <span className="text-xs font-bold text-zinc-500">Days</span></div>
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Flame size={48} />
-                </div>
-              </div>
-              <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Total Task Executions</div>
-                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeTotalTicks} /></div>
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Check size={48} />
-                </div>
-              </div>
-              <div className="border border-zinc-800 p-4 relative overflow-hidden group">
-                <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Execution Days</div>
-                <div className="text-2xl md:text-3xl font-black text-white"><AnimatedNumber start={true} value={allTimeActiveDays} /></div>
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Rocket size={48} />
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t border-zinc-900 pt-4 mt-2">
-              <p className="text-[10px] text-zinc-500 leading-relaxed font-mono uppercase tracking-wider">
-                <span className="text-white font-bold">System Calibration Math:</span><br />
-                • <span className="text-zinc-300">Active Streak:</span> If you miss, this drops to 0 instantly.<br />
-                • <span className="text-zinc-300">Execution Days (Lifetime Volume):</span> If you miss, this does not change. If you were at 28 days, it stays at 28 days. It only increments (+1) on days when you actually show up and execute 100% of your required pipeline.
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="text-[11px] font-black uppercase tracking-widest text-zinc-500 font-mono">
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric'
+            })}
           </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <div className="h-full border border-zinc-900 bg-black p-4 flex flex-col justify-center gap-4">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-white mb-2">Monthly Stats</h3>
-            <div className="space-y-4 flex-1 flex flex-col justify-center">
-              <div>
-                <div className="text-2xl font-black text-white tabular-nums">{Math.round((monthlyTotalCompletedDays / (totalScheduledDays || 1)) * 100)}%</div>
-                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Completion Rate</div>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-white tabular-nums">{monthlyTotalActiveDays} <span className="text-sm text-zinc-600">/ 30</span></div>
-                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Execution Days</div>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-white tabular-nums">{gridData.length}</div>
-                <div className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Active Habits</div>
-              </div>
-            </div>
+          <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center text-zinc-500">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Metrics Row (No borders or boxes) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-4">
+        {/* CURRENT STATE */}
+        <div className="space-y-1">
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Current State</div>
+          <div className="text-2xl md:text-3xl font-black text-green-500 uppercase tracking-wider">{currentOperatingState}</div>
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Day 24</div>
+        </div>
+        {/* ACTIVE STREAK */}
+        <div className="space-y-1">
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Active Streak</div>
+          <div className="text-3xl md:text-4xl font-black text-foreground">{currentStreak}</div>
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Days</div>
+        </div>
+        {/* LIFETIME VOLUME */}
+        <div className="space-y-1">
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Lifetime Volume</div>
+          <div className="text-3xl md:text-4xl font-black text-foreground">{allTimeTotalTicks}</div>
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Executions</div>
+        </div>
+        {/* 30-DAY RATE */}
+        <div className="space-y-1">
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">30-Day Rate</div>
+          <div className="text-3xl md:text-4xl font-black text-foreground">
+            {Math.round((monthlyTotalCompletedDays / (totalScheduledDays || 1)) * 100)}%
+          </div>
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
+            {monthlyTotalActiveDays} / 30 Days Logged
+          </div>
+        </div>
+      </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1 border border-zinc-900 bg-black p-4">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Report Archive</h3>
-          <div className="flex flex-col gap-2 h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-800 pr-2">
-            {FAKE_REPORTS.map(report => (
-              <button
-                key={report.id}
-                onClick={() => setSelectedReport(report.id)}
-                className={`p-3 text-left border rounded-[1px] transition-colors uppercase tracking-wider text-[10px] font-bold ${selectedReport === report.id ? 'border-white bg-zinc-900 text-white' : 'border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-300'}`}
-              >
-                {report.date}
-              </button>
-            ))}
+      {/* System Diagnostics Section */}
+      <div className="space-y-6 pt-8 border-t border-border">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold uppercase tracking-widest text-foreground">System Diagnostics Section</h2>
+          {/* Archives Selector aligned cleanly on the right */}
+          <div className="flex flex-col gap-1 w-28 shrink-0">
+            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-555 py-0.5 border border-border bg-background text-center w-full">Archives</div>
+            <select
+              value={selectedReport}
+              onChange={(e) => setSelectedReport(e.target.value)}
+              className="text-[9px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground py-0.5 px-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono w-full text-center"
+            >
+              {(() => {
+                const options = []
+                const start = new Date(2026, 5, 1) // June 2026
+                for (let i = 0; i < 12; i++) {
+                  const optDate = new Date(start.getFullYear(), start.getMonth() + i, 1)
+                  const val = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase().replace(' ', '-')
+                  const label = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                  options.push(
+                    <option key={val} value={val} className="bg-background text-foreground">
+                      {label}
+                    </option>
+                  )
+                }
+                return options
+              })()}
+            </select>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="lg:col-span-3 space-y-8">
+        {(() => {
+          const activeReport = FAKE_REPORTS.find(r => r.id === selectedReport) || (() => {
+            const parts = selectedReport.split('-');
+            const m = parts[0] ? (parts[0].charAt(0).toUpperCase() + parts[0].slice(1)) : 'June';
+            const y = parts[1] || '2026';
+            return {
+              id: selectedReport,
+              date: `${m} ${y}`,
+              completionRate: 0,
+              activeDays: 0,
+              bestHabit: 'N/A',
+              worstHabit: 'N/A',
+              longestLapse: 'N/A',
+              highestFrictionDay: 'N/A',
+              systemDecay: '0%',
+              insights: `System analytics initialized for ${m} ${y}. No tracking data exists for this future time window.`
+            };
+          })();
 
-          {/* Detailed Report View */}
-          {FAKE_REPORTS.filter(r => r.id === selectedReport).map(report => (
-            <div key={report.id} className="border border-zinc-900 bg-black p-6 space-y-6">
-              <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-                <h2 className="text-xl font-bold uppercase tracking-tight text-white">{report.date} Summary</h2>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-3 py-1 border border-zinc-800 bg-zinc-950">Official Report</div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Completion</div>
-                  <div className="text-2xl font-black text-white tabular-nums">{report.completionRate}%</div>
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+              {/* Left Column: Diagnostics Statistics */}
+              <div className="lg:col-span-3 space-y-4">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  {activeReport.date} Diagnostics
                 </div>
-                <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Execution Days</div>
-                  <div className="text-2xl font-black text-white tabular-nums">{report.activeDays}</div>
-                </div>
-                <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Top Pipeline</div>
-                  <div className="text-sm font-bold text-white uppercase tracking-tight mt-1">{report.bestHabit}</div>
-                </div>
-                <div className="border border-zinc-800 p-4">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-2">Critical Failure</div>
-                  <div className="text-sm font-bold text-red-500 uppercase tracking-tight mt-1">{report.worstHabit}</div>
-                </div>
-              </div>
-
-              {/* Variance Report */}
-              <div className="border border-zinc-800 p-6 bg-zinc-950/40 space-y-4">
-                <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
-                  <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Variance Report</h3>
-                  <span className="text-[8px] font-bold uppercase tracking-widest text-red-500 bg-red-950/40 px-2.5 py-0.5 border border-red-900/30">System Deviations</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="border border-zinc-850 p-4 bg-black">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Longest Lapse</div>
-                    <div className="text-xl font-black text-white tabular-nums">{report.longestLapse}</div>
+                <div className="border-b border-border pb-2" />
+                <div className="grid grid-cols-3 gap-4 divide-x divide-border">
+                  <div className="space-y-1">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Top Pipeline</div>
+                    <div className="text-sm md:text-base font-bold text-foreground uppercase mt-1">{activeReport.bestHabit}</div>
                   </div>
-                  <div className="border border-zinc-850 p-4 bg-black">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Highest Friction Day</div>
-                    <div className="text-xl font-black text-white uppercase">{report.highestFrictionDay}</div>
+                  <div className="pl-4 space-y-1">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Critical Failure</div>
+                    <div className="text-sm md:text-base font-bold text-red-500 uppercase mt-1">{activeReport.worstHabit}</div>
                   </div>
-                  <div className="border border-zinc-850 p-4 bg-black">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500 mb-1">System Decay</div>
-                    <div className="text-xl font-black text-red-500 tabular-nums">{report.systemDecay}</div>
+                  <div className="pl-4 space-y-1">
+                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Longest Lapse</div>
+                    <div className="text-sm md:text-base font-bold text-foreground uppercase mt-1">{activeReport.longestLapse}</div>
                   </div>
                 </div>
               </div>
 
-              <div className="border border-zinc-800 p-6 bg-zinc-950">
-                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white mb-3">Diagnostic Insights (AI)</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed font-medium">
-                  {report.insights}
+              {/* Right Column: AI Insights */}
+              <div className="lg:col-span-2 space-y-3 lg:border-l lg:border-border lg:pl-8">
+                <div className="flex items-center gap-2">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">System Status (AI Insights)</div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                </div>
+                <p className="text-xs text-zinc-555 leading-relaxed font-mono uppercase tracking-wide">
+                  {activeReport.insights}
                 </p>
               </div>
             </div>
-          ))}
+          )
+        })()}
+      </div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="border border-zinc-900 bg-black p-6">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">6-Month Trajectory</h3>
-              <div className="h-48 w-full -ml-4">
-                <DynamicResponsiveContainer width="100%" height="100%">
-                  <LineChart data={MOCK_MONTHLY_DATA}>
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
-                    <Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #27272a' }} itemStyle={{ color: '#fff' }} />
-                    <Line type="stepAfter" dataKey="rate" stroke="#ffffff" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </DynamicResponsiveContainer>
-              </div>
+      <div className="pt-8 border-t border-border w-full space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="border border-border bg-card p-6 rounded-[1px] text-card-foreground">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">6-Month Trajectory</h3>
+            <div className="h-48 w-full -ml-4">
+              <DynamicResponsiveContainer width="100%" height="100%">
+                <LineChart data={MOCK_MONTHLY_DATA}>
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }} itemStyle={{ color: 'var(--foreground)' }} />
+                  <Line type="stepAfter" dataKey="rate" stroke="var(--foreground)" strokeWidth={2} dot={false} />
+                </LineChart>
+              </DynamicResponsiveContainer>
             </div>
+          </div>
 
-            <div className="border border-zinc-900 bg-black p-6">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Monthly Volume</h3>
-              <div className="h-48 w-full -ml-4">
-                <DynamicResponsiveContainer width="100%" height="100%">
-                  <BarChart data={MOCK_MONTHLY_DATA}>
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
-                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
-                    <Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #27272a', borderRadius: '0px' }} itemStyle={{ color: '#fff' }} cursor={{ fill: '#18181b' }} />
-                    <Bar dataKey="rate" fill="#ffffff" radius={0} />
-                  </BarChart>
-                </DynamicResponsiveContainer>
-              </div>
+          <div className="border border-border bg-card p-6 rounded-[1px] text-card-foreground">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Monthly Volume</h3>
+            <div className="h-48 w-full -ml-4">
+              <DynamicResponsiveContainer width="100%" height="100%">
+                <BarChart data={MOCK_MONTHLY_DATA}>
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '0px' }} itemStyle={{ color: 'var(--foreground)' }} cursor={{ fill: 'var(--muted)' }} />
+                  <Bar dataKey="rate" fill="var(--foreground)" radius={0} />
+                </BarChart>
+              </DynamicResponsiveContainer>
             </div>
+          </div>
 
-            <div className="border border-zinc-900 bg-black p-6 flex flex-col">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Category Spread</h3>
-              <div className="flex-1 min-h-[160px] w-full relative -ml-4">
-                <DynamicResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieDataRaw}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={30}
-                      outerRadius={50}
-                      paddingAngle={2}
-                      dataKey="value"
-                      stroke="none"
-                      label={({ name, percent }: any) => (percent && percent > 0) ? `${name} ${(percent * 100).toFixed(0)}%` : null}
-                      labelLine={{ stroke: '#52525b', strokeWidth: 1 }}
-                      style={{ fontSize: '10px', fill: '#a1a1aa' }}
-                    >
-                      {pieDataRaw.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#000', border: '1px solid #27272a', borderRadius: '2px', fontSize: '10px' }}
-                      itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                    />
-                  </PieChart>
-                </DynamicResponsiveContainer>
-              </div>
+          <div className="border border-border bg-card p-6 flex flex-col rounded-[1px] text-card-foreground">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Category Spread</h3>
+            <div className="flex-1 min-h-[160px] w-full relative -ml-4">
+              <DynamicResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieDataRaw}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={50}
+                    paddingAngle={2}
+                    dataKey="value"
+                    stroke="none"
+                    label={({ name, percent }: any) => (percent && percent > 0) ? `${name} ${(percent * 100).toFixed(0)}%` : null}
+                    labelLine={{ stroke: '#52525b', strokeWidth: 1 }}
+                    style={{ fontSize: '10px', fill: '#a1a1aa' }}
+                  >
+                    {pieDataRaw.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '2px', fontSize: '10px' }}
+                    itemStyle={{ color: 'var(--foreground)', fontWeight: 'bold' }}
+                  />
+                </PieChart>
+              </DynamicResponsiveContainer>
             </div>
           </div>
         </div>

@@ -168,10 +168,10 @@ export default function BrutalistDashboard() {
 
   // Helper for heatmap colors
   const getHeatmapColor = (count: number) => {
-    if (count === 0) return 'bg-zinc-900'
-    if (count <= 2) return 'bg-white'
-    if (count <= 4) return 'bg-green-500'
-    return 'bg-green-800'
+    if (count === 0) return 'bg-zinc-200 dark:bg-zinc-900'
+    if (count <= 2) return 'bg-zinc-400 dark:bg-zinc-650'
+    if (count <= 4) return 'bg-green-400 dark:bg-green-600'
+    return 'bg-green-600 dark:bg-green-850'
   }
 
   // Calculate consecutive missed days up to the most recent day in the grid window
@@ -190,16 +190,16 @@ export default function BrutalistDashboard() {
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
 
-      <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'}`}>
+      <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
 
         {/* Initialization Banner */}
         {!isInitialized && (
-          <div className="border border-green-900 bg-green-950/20 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="border border-green-900/50 bg-green-950/10 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-3">
-              <h2 className="text-white text-xl font-bold uppercase tracking-widest flex items-center gap-2">
-                <Rocket className="text-white" /> INITIALIZE YOUR JOURNEY
+              <h2 className="text-foreground text-xl font-bold uppercase tracking-widest flex items-center gap-2">
+                <Rocket className="text-foreground" /> INITIALIZE YOUR JOURNEY
               </h2>
-              <p className="text-zinc-400 text-sm max-w-3xl leading-relaxed">
+              <p className="text-zinc-500 text-sm max-w-3xl leading-relaxed">
                 Welcome to HabytFlow. You are currently viewing simulated preview data. To begin tracking your real activity, initialize your profile. This will erase the preview data and prepare a blank slate.
               </p>
             </div>
@@ -214,11 +214,11 @@ export default function BrutalistDashboard() {
 
         {/* Section B: Today's Action Items */}
         <div className="flex justify-between items-end mb-4">
-          <h2 className="text-white text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
+          <h2 className="text-foreground text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
           {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
             <button
               onClick={() => requestAndStoreNotificationToken(user?.id!)}
-              className="flex items-center gap-2 border border-zinc-800 bg-black text-white px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-zinc-900 transition-colors animate-pulse"
+              className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse"
             >
               <Bell size={14} /> Enable Notifications
             </button>
@@ -226,17 +226,17 @@ export default function BrutalistDashboard() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {gridData.length === 0 && (
-            <div className="col-span-full border border-zinc-800 bg-zinc-950 p-8 flex flex-col items-center justify-center text-center">
-              <h3 className="text-white text-lg font-bold uppercase tracking-widest mb-2">No Habits Configured</h3>
+            <div className="col-span-full border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
+              <h3 className="text-foreground text-lg font-bold uppercase tracking-widest mb-2">No Habits Configured</h3>
               <p className="text-zinc-500 text-sm mb-6">You haven't set up any habits to track yet.</p>
-              <button onClick={() => router.push('/habits')} className="bg-white text-black px-6 py-2 font-bold uppercase tracking-wider text-xs hover:bg-zinc-200 transition-colors">
+              <button onClick={() => router.push('/habits')} className="bg-foreground text-background px-6 py-2 font-bold uppercase tracking-wider text-xs hover:bg-foreground/90 transition-colors">
                 Go to Manage Habits
               </button>
             </div>
           )}
           {gridData.length > 0 && gridData.filter(h => h.frequency ? h.frequency.includes(new Date().getDay()) : true).length === 0 && (
-            <div className="col-span-full border border-zinc-800 bg-zinc-950 p-8 flex flex-col items-center justify-center text-center">
-              <h3 className="text-white text-lg font-bold uppercase tracking-widest mb-2">Rest Day</h3>
+            <div className="col-span-full border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
+              <h3 className="text-foreground text-lg font-bold uppercase tracking-widest mb-2">Rest Day</h3>
               <p className="text-zinc-500 text-sm">You have no habits scheduled for today.</p>
             </div>
           )}
@@ -257,7 +257,7 @@ export default function BrutalistDashboard() {
             let colorClass = BRUTALIST_COLORS[habit.id % BRUTALIST_COLORS.length];
 
             if (isCompleted) {
-              colorClass = "bg-zinc-900 text-zinc-600 border-zinc-800 opacity-50 grayscale";
+              colorClass = "bg-muted text-zinc-550 border-border opacity-50 grayscale";
             }
 
             return (
@@ -285,7 +285,7 @@ export default function BrutalistDashboard() {
                       )}
                     </AnimatePresence>
                     {habit.time && (
-                      <span className="text-[11px] md:text-xs font-black text-white tracking-widest bg-black/30 px-1.5 py-0.5 rounded-[1px] shadow-sm">
+                      <span className="text-[11px] md:text-xs font-black text-foreground tracking-widest bg-foreground/10 px-1.5 py-0.5 rounded-[1px] shadow-sm">
                         {formatTime(habit.time, timeFormat)}
                       </span>
                     )}
@@ -308,8 +308,8 @@ export default function BrutalistDashboard() {
         {/* 30-Day Grid Trend Cards */}
         <div className="w-full">
           {gridData.length === 0 ? (
-            <div className="border border-zinc-800 bg-zinc-950 p-8 flex flex-col items-center justify-center text-center">
-              <h3 className="text-white text-lg font-bold uppercase tracking-widest mb-2">No Tracking Data</h3>
+            <div className="border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
+              <h3 className="text-foreground text-lg font-bold uppercase tracking-widest mb-2">No Tracking Data</h3>
               <p className="text-zinc-500 text-sm mb-6">Add habits to see your 30-day trends.</p>
             </div>
           ) : (
@@ -320,15 +320,15 @@ export default function BrutalistDashboard() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 gap-6">
           {/* Flatline Completion Graph */}
-          <div className="border border-zinc-900 bg-black p-4">
+          <div className="border border-border bg-card p-4 text-card-foreground">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-[10px] font-bold uppercase tracking-widest text-white">Completion Trend</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground">Completion Trend</h3>
               <div className="flex items-center gap-2">
                 {(['all', 1, 2, 3, 4] as const).map(w => (
                   <button
                     key={w}
                     onClick={() => setSelectedWeek(w)}
-                    className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-[1px] border ${selectedWeek === w ? 'bg-white text-black border-white' : 'bg-transparent text-zinc-500 border-zinc-800 hover:text-white transition-colors'}`}
+                    className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-[1px] border ${selectedWeek === w ? 'bg-foreground text-background border-foreground' : 'bg-transparent text-zinc-500 border-border hover:text-foreground transition-colors'}`}
                   >
                     {w === 'all' ? 'Month' : `Wk ${w}`}
                   </button>
@@ -356,10 +356,10 @@ export default function BrutalistDashboard() {
                       tick={{ fontSize: 9, fill: '#52525b' }}
                     />
                     <Tooltip
-                      cursor={{ stroke: '#ffffff', strokeWidth: 1, strokeDasharray: '3 3' }}
-                      contentStyle={{ backgroundColor: '#ffffff', color: '#000000', border: 'none', borderRadius: '0px', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px' }}
-                      itemStyle={{ color: '#000000' }}
-                      labelStyle={{ color: '#000000', marginBottom: '4px' }}
+                      cursor={{ stroke: 'var(--foreground)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                      contentStyle={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', border: 'none', borderRadius: '0px', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px' }}
+                      itemStyle={{ color: 'var(--foreground)' }}
+                      labelStyle={{ color: 'var(--foreground)', marginBottom: '4px' }}
                       formatter={(value: any) => [`${value}% completed`, 'Trend']}
                       labelFormatter={(label) => {
                         return new Date(currentYear, currentMonth, Number(label)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -369,10 +369,10 @@ export default function BrutalistDashboard() {
                     <Line
                       type="monotone"
                       dataKey="rate"
-                      stroke="#ffffff"
+                      stroke="var(--foreground)"
                       strokeWidth={2}
-                      dot={{ r: 2, fill: '#000', stroke: '#fff', strokeWidth: 1.5 }}
-                      activeDot={{ r: 4, fill: '#fff' }}
+                      dot={{ r: 2, fill: 'var(--background)', stroke: 'var(--foreground)', strokeWidth: 1.5 }}
+                      activeDot={{ r: 4, fill: 'var(--foreground)' }}
                       isAnimationActive={false}
                       connectNulls={true}
                     />
@@ -383,12 +383,12 @@ export default function BrutalistDashboard() {
           </div>
         </div>
         {/* Micro Yearly Heatmap */}
-        <div className="border border-zinc-900 bg-black p-4 overflow-x-auto">
+        <div className="border border-border bg-card p-4 overflow-x-auto text-card-foreground">
           <div className="mb-4">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-white">Yearly Matrix</h3>
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground">Yearly Matrix</h3>
           </div>
           <div className="flex items-start gap-3 min-w-max">
-            <div className="flex flex-col justify-between text-[8px] text-zinc-600 uppercase tracking-widest h-[76px] pt-[14px] pb-1 pr-1">
+            <div className="flex flex-col justify-between text-[8px] text-zinc-650 uppercase tracking-widest h-[76px] pt-[14px] pb-1 pr-1">
               <span>Mon</span>
               <span>Wed</span>
               <span>Fri</span>
@@ -408,9 +408,9 @@ export default function BrutalistDashboard() {
                   return (
                     <div
                       key={day.id}
-                      className={`w-2.5 h-2.5 rounded-[1px] transition-all duration-150 ease-out hover:scale-125 hover:bg-white hover:z-10 relative group ${getHeatmapColor(day.count)}`}
+                      className={`w-2.5 h-2.5 rounded-[1px] transition-all duration-150 ease-out hover:scale-125 hover:bg-foreground hover:z-10 relative group ${getHeatmapColor(day.count)}`}
                     >
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-white text-black text-[10px] font-bold px-2 py-1 whitespace-nowrap z-50 pointer-events-none shadow-lg">
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-background text-foreground border border-border text-[10px] font-bold px-2 py-1 whitespace-nowrap z-50 pointer-events-none shadow-lg">
                         {dateStr}: {day.count} Habits
                       </div>
                     </div>
