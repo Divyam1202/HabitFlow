@@ -54,18 +54,18 @@ export const HabitGridTrend = ({
   };
 
   return (
-    <div className="border border-zinc-800 bg-black p-3 min-[400px]:p-4 md:p-6 flex flex-col justify-between relative group transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:border-zinc-700 w-full rounded-[1px]">
+    <div className="border border-border bg-card p-3 min-[400px]:p-4 md:p-6 flex flex-col justify-between relative group transition-all duration-150 ease-in-out hover:-translate-y-0.5 hover:border-foreground w-full rounded-[1px]">
       {/* Header Info Area */}
       <div className="flex items-start justify-between mb-4 md:mb-6">
         <div>
-          <h3 className="text-[10px] min-[400px]:text-[11px] md:text-sm font-bold uppercase tracking-wider text-white flex items-center gap-1.5 md:gap-2 leading-tight">
+          <h3 className="text-[10px] min-[400px]:text-[11px] md:text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-1.5 md:gap-2 leading-tight">
             {habitName}
           </h3>
           <p className="text-[9px] min-[400px]:text-[10px] md:text-xs text-zinc-500 mt-0.5 md:mt-1">{habitCategory}</p>
         </div>
         <div className="flex flex-col items-end">
           {habitTime && (
-            <span className="text-[9px] min-[400px]:text-[10px] md:text-xs font-bold text-white tracking-widest bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded-[1px] mb-1 md:mb-2">
+            <span className="text-[9px] min-[400px]:text-[10px] md:text-xs font-bold text-foreground tracking-widest bg-background border border-border px-1.5 py-0.5 rounded-[1px] mb-1 md:mb-2">
               {habitTime}
             </span>
           )}
@@ -100,7 +100,7 @@ export const HabitGridTrend = ({
                 ${isAnimating ? 'scale-125 z-10 shadow-[0_0_15px_rgba(255,255,255,0.5)] bg-white text-black rotate-6' : ''}
                 ${!isAnimating && isDone 
                   ? `${habitColor} text-black` // Done: Displays Habit Color
-                  : !isAnimating ? 'bg-transparent border border-zinc-800 text-zinc-600 hover:bg-zinc-900 hover:text-white hover:border-zinc-600' : '' // Unchecked
+                  : !isAnimating ? 'bg-transparent border border-border text-zinc-650 hover:bg-foreground hover:text-background hover:border-foreground' : '' // Unchecked
                 }
                 ${isToday && !isDone && !isAnimating ? 'border-zinc-500' : ''}
               `}
@@ -118,9 +118,9 @@ export const HabitGridTrend = ({
       </div>
       
       {/* Visual System Footer Legend */}
-      <div className="flex items-center gap-3 min-[400px]:gap-4 mt-auto pt-3 min-[400px]:pt-4 border-t border-zinc-900 text-[8px] min-[400px]:text-[9px] md:text-xs font-bold uppercase tracking-widest text-zinc-600">
+      <div className="flex items-center gap-3 min-[400px]:gap-4 mt-auto pt-3 min-[400px]:pt-4 border-t border-border text-[8px] min-[400px]:text-[9px] md:text-xs font-bold uppercase tracking-widest text-zinc-650">
         <div className="flex items-center gap-1.5 md:gap-2">
-          <div className="h-2 w-2 min-[400px]:h-2.5 min-[400px]:w-2.5 md:h-3 md:w-3 rounded-[1px] border border-zinc-800" />
+          <div className="h-2 w-2 min-[400px]:h-2.5 min-[400px]:w-2.5 md:h-3 md:w-3 rounded-[1px] border border-border" />
           <span>Missed</span>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2">

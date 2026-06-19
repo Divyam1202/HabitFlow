@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 
 export default function CalendarPage() {
-  const { gridData } = useHabitContext()
+  const { gridData, heatmapData } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+  const [calendarDate, setCalendarDate] = useState(new Date())
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -17,15 +18,14 @@ export default function CalendarPage() {
   }, [isAuthenticated, isLoading, router])
 
   const today = new Date()
+  const currentMonth = calendarDate.getMonth()
+  const currentYear = calendarDate.getFullYear()
 
-  const currentMonth = today.getMonth()
-
-  const currentYear = today.getFullYear()
-
-  const todayDay = today.getDate()
+  const isCurrentMonthActive = today.getFullYear() === currentYear && today.getMonth() === currentMonth
+  const todayDay = isCurrentMonthActive ? today.getDate() : -1
 
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay()
-  // Adjust so Monday is 0
+  // Adjust so Monday is 0 (Mon = 0, Tue = 1 ... Sun = 6)
   const startOffset = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate()
@@ -41,6 +41,7 @@ export default function CalendarPage() {
     const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
     const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
     
+    // Within 30 days window: compute detailed ratio from gridData
     if (diffDays <= 0 && diffDays >= -29) {
       const relativeDayNum = 30 + diffDays;
       let completedCount = 0;
@@ -59,17 +60,25 @@ export default function CalendarPage() {
       }
       return scheduledCount > 0 ? (completedCount / scheduledCount) : null;
     }
-    return null; // Future or past outside 30 day window
+    
+    // Outside 30 days but within 364 days: compute ratio from heatmapData
+    if (diffDays < -29 && diffDays >= -363) {
+      const heatmapIndex = heatmapData.length - 1 + diffDays;
+      const count = heatmapData[heatmapIndex]?.count || 0;
+      const totalHabits = gridData.length || 5;
+      return count / totalHabits;
+    }
+    
+    return null;
   };
 
   const getColorClass = (ratio: number | null) => {
-    if (ratio === null) return 'text-zinc-700 bg-zinc-950/50' // No data
-    if (ratio === 0) return 'text-zinc-500 bg-zinc-950'
-    if (ratio === 1) return 'bg-green-500 text-black border-green-600 font-bold'
-    if (ratio >= 0.9) return 'bg-blue-500 text-black border-blue-600 font-bold'
-    if (ratio >= 0.75) return 'bg-yellow-400 text-black border-yellow-500 font-bold'
-    if (ratio >= 0.5) return 'bg-orange-500 text-black border-orange-600 font-bold'
-    return 'bg-red-500 text-black border-red-600 font-bold' // Below 50%
+    if (ratio === null) return 'text-zinc-500 dark:text-zinc-400 bg-transparent border-border' // No data
+    if (ratio === 0) return 'bg-red-500 text-black border-red-600 font-bold'
+    if (ratio <= 0.25) return 'bg-orange-500 text-black border-orange-600 font-bold'
+    if (ratio <= 0.5) return 'bg-yellow-500 text-black border-yellow-600 font-bold'
+    if (ratio <= 0.75) return 'bg-blue-500 text-black border-blue-600 font-bold'
+    return 'bg-green-500 text-black border-green-600 font-bold'
   }
 
   if (isLoading || !isAuthenticated) {
@@ -83,22 +92,53 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto px-6 pt-12 pb-24 space-y-12">
+    <div className="max-w-[1000px] mx-auto px-6 pt-12 pb-24 space-y-8 text-foreground">
       
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* Calendar View Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight">Calendar View</h1>
-          <p className="text-zinc-500 mt-2 text-sm">Monthly overview of all your daily ticks.</p>
+          <h1 className="text-2xl font-bold uppercase tracking-widest text-foreground">CALENDAR VIEW</h1>
+          <p className="text-zinc-555 mt-2 text-sm font-medium">Monthly overview of all your daily ticks.</p>
         </div>
-        <div className="text-xl font-bold uppercase tracking-widest text-white">
-          {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+        <div className="flex flex-col items-start sm:items-end gap-2">
+          <div className="text-xl font-black uppercase tracking-widest text-foreground font-mono sm:text-right">
+            {calendarDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </div>
+          <select
+            value={`${currentYear}-${currentMonth}`}
+            onChange={(e) => {
+              const [y, m] = e.target.value.split('-').map(Number)
+              setCalendarDate(new Date(y, m, 1))
+            }}
+            className="text-[10px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground px-2.5 py-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono"
+          >
+            {(() => {
+              const options = []
+              // Start from June 2026
+              const start = new Date(2026, 5, 1)
+              // Show 12 months starting from June 2026 and ahead
+              for (let i = 0; i < 12; i++) {
+                const optDate = new Date(start.getFullYear(), start.getMonth() + i, 1)
+                const val = `${optDate.getFullYear()}-${optDate.getMonth()}`
+                const label = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                options.push(
+                  <option key={val} value={val} className="bg-background text-foreground">
+                    {label}
+                  </option>
+                )
+              }
+              return options
+            })()}
+          </select>
         </div>
       </div>
 
-      <div className="border border-zinc-800 bg-black">
-        <div className="grid grid-cols-7 border-b border-zinc-800">
+
+      {/* Calendar Grid */}
+      <div className="border border-border bg-card">
+        <div className="grid grid-cols-7 border-b border-border">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-            <div key={day} className="py-4 text-center text-xs font-bold uppercase tracking-widest text-zinc-500 border-r border-zinc-800 last:border-0">
+            <div key={day} className="py-4 text-center text-xs font-bold uppercase tracking-widest text-zinc-555 border-r border-border last:border-0">
               {day}
             </div>
           ))}
@@ -110,7 +150,7 @@ export default function CalendarPage() {
             const displayDay = day > 0 ? (day > daysInMonth ? day - daysInMonth : day) : daysInPrevMonth + day
             
             let cellContent = null
-            let outerClass = 'text-zinc-700 bg-zinc-950 border-zinc-900'
+            let outerClass = 'text-zinc-500 dark:text-zinc-400 bg-transparent border-border'
 
             if (isCurrentMonth) {
               const ratio = getDayStats(day)
@@ -122,12 +162,12 @@ export default function CalendarPage() {
                   <div className={`text-sm ${isToday ? 'border-b-2 border-current inline-block' : ''}`}>
                     {displayDay}
                   </div>
-                  {ratio !== null && ratio > 0 && ratio < 1 && (
-                    <div className="mt-4 flex flex-col gap-1 opacity-60">
+                  {ratio !== null && (
+                    <div className="mt-4 flex flex-col gap-1 opacity-80">
                       <div className="h-1 w-full bg-black/20 rounded-full overflow-hidden">
                         <div className="h-full bg-black" style={{ width: `${ratio * 100}%` }} />
                       </div>
-                      <span className="text-[10px] font-bold text-black/60">{Math.round(ratio * 100)}%</span>
+                      <span className="text-[10px] font-black text-black/80">{Math.round(ratio * 100)}%</span>
                     </div>
                   )}
                 </>
@@ -139,13 +179,34 @@ export default function CalendarPage() {
             return (
               <div 
                 key={idx} 
-                className={`min-h-[120px] p-4 border-r border-b border-zinc-800 last:border-r-0 transition-colors duration-200 ${outerClass}`}
+                className={`min-h-[120px] p-4 border-r border-b border-border last:border-r-0 transition-colors duration-200 ${outerClass}`}
               >
                 {cellContent}
               </div>
             )
           })}
         </div>
+      </div>
+
+      {/* Legend & Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-border text-[9px] font-mono uppercase tracking-widest text-zinc-555">
+        <div className="flex items-center gap-1">
+          <span>Completion Scale:</span>
+          <div className="flex items-center gap-1.5 ml-2">
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-red-500 rounded-[1px]" /> 0%</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-orange-500 rounded-[1px]" /> 1-25%</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-yellow-500 rounded-[1px]" /> 26-50%</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-blue-500 rounded-[1px]" /> 51-75%</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-green-500 rounded-[1px]" /> 76-100%</span>
+          </div>
+        </div>
+        
+        <button 
+          onClick={() => setCalendarDate(new Date())}
+          className="text-zinc-500 hover:text-foreground transition-all underline decoration-dotted"
+        >
+          Reset to Current Month
+        </button>
       </div>
 
     </div>

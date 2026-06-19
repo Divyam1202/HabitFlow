@@ -11,10 +11,12 @@ import { PwaInstallButton } from '@/components/pwa-install-button'
 export function TopNav() {
   const pathname = usePathname()
 
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
   const { isAuthenticated, setShowGatekeeper, user } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const activeTheme = resolvedTheme || theme
 
   useEffect(() => {
     setMounted(true)
@@ -42,6 +44,9 @@ export function TopNav() {
     ? [...baseLinks, { name: 'Admin', href: '/admin', icon: <ShieldAlert size={18} /> }]
     : baseLinks
 
+  const isAdminUser = user?.email === 'habytflow@gmail.com'
+  const isAdminRoute = pathname?.startsWith('/admin')
+
   if (pathname === '/about') return null
 
   return (
@@ -58,21 +63,27 @@ export function TopNav() {
           </Link>
 
           {/* Laptop/Desktop Navigation (min-width: 768px) */}
-          <nav className="hidden md:flex items-center gap-6 text-xs font-medium tracking-wider uppercase">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className={`relative pb-0.5 group transition-colors duration-150 ${isActive ? "text-white" : "text-zinc-500 hover:text-white"}`}
-                >
-                  {link.name}
-                  <span className={`absolute left-0 bottom-0 w-full h-[1px] bg-white transition-transform duration-200 origin-center ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`} />
-                </Link>
-              )
-            })}
-          </nav>
+          {!isAdminUser ? (
+            <nav className="hidden md:flex items-center gap-6 text-xs font-medium tracking-wider uppercase">
+              {navLinks.map((link) => {
+                const isActive = pathname === link.href
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className={`relative pb-0.5 group transition-colors duration-150 ${isActive ? "text-white" : "text-zinc-500 hover:text-white"}`}
+                  >
+                    {link.name}
+                    <span className={`absolute left-0 bottom-0 w-full h-[1px] bg-white transition-transform duration-200 origin-center ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`} />
+                  </Link>
+                )
+              })}
+            </nav>
+          ) : (
+            <Link href="/admin" className="text-xs font-bold uppercase tracking-[0.3em] text-red-500 font-panchang hover:text-red-400 transition-colors">
+              Admin
+            </Link>
+          )}
 
           {/* Right Section (All viewports) */}
           <div className="flex items-center gap-4 z-50 relative">
@@ -101,18 +112,20 @@ export function TopNav() {
               )}
             </div>
             {mounted && (
-              <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="text-zinc-500 hover:text-white transition-colors">
-                {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              <button onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} className="text-zinc-500 hover:text-white transition-colors">
+                {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
 
             {/* Mobile Sidebar Toggle (max-width: 767px) */}
-            <button
-              className="md:hidden text-zinc-500 hover:text-white transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            {!isAdminUser && !isAdminRoute && (
+              <button
+                className="md:hidden text-zinc-500 hover:text-white transition-colors"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
           </div>
         </div>
       </header>

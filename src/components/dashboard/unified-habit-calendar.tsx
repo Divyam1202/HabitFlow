@@ -100,11 +100,11 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
   const todayString = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
-    <div className="bg-[#0a0a0a] p-5 md:p-8 flex flex-col justify-between relative group transition-all duration-300 ease-out hover:shadow-xl w-full rounded-3xl border border-white/5">
+    <div className="bg-card p-5 md:p-8 flex flex-col justify-between relative group transition-all duration-300 ease-out hover:shadow-xl w-full rounded-3xl border border-border text-card-foreground">
       {/* Header Info Area */}
       <div className="flex items-start justify-between mb-4 md:mb-6">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-lg md:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h2 className="text-lg md:text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
             Unified Matrix
           </h2>
           <p className="text-[10px] md:text-xs text-zinc-500 font-medium">
@@ -112,10 +112,10 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
           </p>
         </div>
         <div className="flex flex-col items-end">
-          <span className="text-[10px] md:text-xs font-semibold text-zinc-400 bg-white/5 px-2.5 py-1 rounded-full mb-1.5 md:mb-2">
+          <span className="text-[10px] md:text-xs font-semibold text-foreground bg-background border border-border px-2.5 py-1 rounded-full mb-1.5 md:mb-2">
             Today: {todayString}
           </span>
-          <span className="text-[10px] md:text-xs text-zinc-500 font-medium text-right">
+          <span className="text-[10px] md:text-xs text-zinc-555 font-medium text-right">
             {perfectDaysCount}/{daysInMonth} Days
           </span>
         </div>
@@ -142,9 +142,9 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
                 transition-all duration-300 ease-out
                 ${isDone 
                   ? `bg-green-500 text-black shadow-lg shadow-green-500/20` // Perfect Day: Modern Green
-                  : 'bg-white/5 text-zinc-500 hover:bg-white/10' // Missed Day: Soft grey
+                  : 'bg-background text-zinc-550 border border-border/30 hover:bg-muted' // Missed Day: Soft grey
                 }
-                ${isToday && !isDone ? 'ring-2 ring-zinc-600 ring-offset-2 ring-offset-[#0a0a0a]' : ''}
+                ${isToday && !isDone ? 'ring-2 ring-zinc-500 ring-offset-2 ring-offset-background' : ''}
               `}
               title={`${dateForDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${isDone ? '(Perfect Day)' : `(Completion: ${Math.round(ratio * 100)}%)`}`}
             >
@@ -164,7 +164,7 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", bounce: 0.5 }}
-                    className="absolute top-1 right-1 opacity-70"
+                    className="z-10 absolute top-1 right-1 opacity-70"
                   >
                     <Check size={10} strokeWidth={4} />
                   </motion.div>
@@ -193,9 +193,9 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
       </div>
       
       {/* Visual System Footer Legend */}
-      <div className="flex items-center gap-4 mt-auto pt-6 border-t border-white/5 text-[10px] md:text-xs font-medium text-zinc-500">
+      <div className="flex items-center gap-4 mt-auto pt-6 border-t border-border text-[10px] md:text-xs font-medium text-zinc-555">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-white/5" />
+          <div className="h-3 w-3 rounded-full bg-background border border-border" />
           <span>Missed</span>
         </div>
         <div className="flex items-center gap-2">

@@ -19,8 +19,10 @@ const baseNavItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { setTheme, theme } = useTheme()
+  const { setTheme, theme, resolvedTheme } = useTheme()
   const { user } = useAuth()
+
+  const activeTheme = resolvedTheme || theme
 
   const navItems = user?.email === 'habytflow@gmail.com'
     ? [...baseNavItems, { href: '/admin', label: 'Admin', icon: LayoutDashboard }]
@@ -58,9 +60,9 @@ export function Sidebar() {
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 text-muted-foreground"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+          onClick={() => setTheme(activeTheme === 'light' ? 'dark' : 'light')}
         >
-          {theme === 'light' ? (
+          {activeTheme === 'light' ? (
             <>
               <Moon className="h-4 w-4" />
               Dark Mode
