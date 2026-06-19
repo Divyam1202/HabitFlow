@@ -252,6 +252,8 @@ export function GatekeeperModal() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    inputMode="email"
                     className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                   />
                 </div>

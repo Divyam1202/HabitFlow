@@ -6,6 +6,8 @@ import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
+import { authClient } from '@/lib/auth-client'
+import { toast } from 'sonner'
 
 export default function SettingsPage() {
   const { timeFormat, updateTimeFormat } = useSettings()
@@ -21,7 +23,8 @@ export default function SettingsPage() {
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('********')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
 
@@ -42,18 +45,35 @@ export default function SettingsPage() {
     )
   }
 
-  const handlePasswordEdit = (e: React.FormEvent) => {
+  const handlePasswordEdit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!currentPassword || !newPassword) {
+      toast.error('Please enter both current and new passwords')
+      return
+    }
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters')
+      return
+    }
     setSyncPhase('loading')
-    
-    // Simulate network load
-    setTimeout(() => {
+
+    const { error } = await authClient.changePassword({
+      currentPassword,
+      newPassword,
+      revokeOtherSessions: true
+    })
+
+    if (error) {
+      setSyncPhase('idle')
+      toast.error(error.message || 'Failed to update password')
+    } else {
       setSyncPhase('success')
-      // Fade out after showing success
+      setCurrentPassword('')
+      setNewPassword('')
       setTimeout(() => {
         setSyncPhase('idle')
       }, 1500)
-    }, 1200)
+    }
   }
 
   return (
@@ -87,22 +107,39 @@ export default function SettingsPage() {
                   type="email" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  inputMode="email"
                   className="bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                 />
               </div>
 
-              <form onSubmit={handlePasswordEdit} className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Password</label>
-                <div className="flex gap-2">
+              <form onSubmit={handlePasswordEdit} className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Current Password</label>
                   <input 
                     type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="flex-1 bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors tracking-widest"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
+                    placeholder="Enter current password"
+                    required
                   />
-                  <button type="submit" className="px-6 bg-foreground text-background font-bold uppercase text-xs tracking-wider hover:bg-foreground/90 transition-colors">
-                    Update
-                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">New Password</label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input 
+                      type="password" 
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="flex-1 bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
+                      placeholder="Enter new password (min. 8 chars)"
+                      required
+                    />
+                    <button type="submit" className="px-6 py-3 sm:py-0 bg-foreground text-background font-bold uppercase text-xs tracking-wider hover:bg-foreground/90 transition-colors">
+                      Update
+                    </button>
+                  </div>
                 </div>
               </form>
 
