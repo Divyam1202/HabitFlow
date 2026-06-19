@@ -71,23 +71,23 @@ export default function TermsAndConditionsPage() {
     <div className="relative min-h-screen bg-background text-foreground/80 font-sans selection:bg-foreground selection:text-background pb-24">
       <UniverseBackground />
 
-      {/* Back Button */}
-      <motion.div 
-        className="fixed top-8 left-6 md:top-12 md:left-12 z-50"
-        initial={{ opacity: 0, x: -10 }} 
-        animate={{ opacity: 1, x: 0 }} 
-        transition={{ duration: 0.8 }}
-      >
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-xs font-bold transition-colors group"
-        >
-          <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
-        </button>
-      </motion.div>
-
       {/* Content wrapper */}
-      <div className="relative z-10 max-w-3xl mx-auto px-6 pt-32 md:pt-40">
+      <div className="relative z-10 max-w-3xl mx-auto px-6 pt-24 md:pt-32">
+        {/* Back Button */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, x: -10 }} 
+          animate={{ opacity: 1, x: 0 }} 
+          transition={{ duration: 0.8 }}
+        >
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-xs font-bold transition-colors group"
+          >
+            <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
+          </button>
+        </motion.div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
