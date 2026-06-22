@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">HabytFlow</string>
+    <string name="title_activity_main">HabytFlow</string>
+    <string name="package_name">com.habytflow.app</string>
+    <string name="custom_url_scheme">com.habytflow.app</string>
+</resources>

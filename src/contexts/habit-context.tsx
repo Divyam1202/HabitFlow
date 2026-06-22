@@ -18,24 +18,24 @@ export type ActivityState = {
 }
 
 export type HabitDef = { id: number; name: string; category: string; time: string; notification?: number | null; goal?: string; streak?: number; frequency?: number[]; }
-export type GridHabit = HabitDef & { days: {day: number; completed: boolean}[] }
+export type GridHabit = HabitDef & { days: { day: number; completed: boolean }[] }
 
 export type HabitContextType = {
   currentSystemDate: string;
   todayHabits: number[];
   toggleTodayHabit: (id: number) => void;
-  
+
   todayNutrition: NutritionState;
   updateNutrition: (updater: (prev: NutritionState) => NutritionState) => void;
-  
+
   todayActivity: ActivityState;
   updateActivity: (updater: (prev: ActivityState) => ActivityState) => void;
-  
+
   gridData: GridHabit[];
   toggleGridHabit: (habitId: number, dayNum: number) => void;
-  
+
   heatmapData: Array<{ id: number; count: number }>;
-  
+
   addHabit: (habit: Omit<HabitDef, 'id'>) => void;
   editHabit: (id: number, habit: Partial<HabitDef>) => void;
   deleteHabit: (id: number) => void;
@@ -56,7 +56,7 @@ export const useHabitContext = () => {
 const MOCK_HABITS: HabitDef[] = [
   { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 2, name: "Reading", category: "🧠 Growth", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 3, name: "Touch Grass", category: "🌳 Nature", time: "17:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 3, name: "Coding", category: "🧠 Growth", time: "17:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 4, name: "Skincare", category: "✨ Self-care", time: "22:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 5, name: "Digital Detox", category: "📱 Mindset", time: "20:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
 ]
@@ -103,14 +103,14 @@ const getLocalYYYYMMDD = () => {
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const { requireAuth, user, isLoading, isAuthenticated } = useAuth()
-  
+
   const [currentSystemDate, setCurrentSystemDate] = useState<string>(() => getLocalYYYYMMDD())
   const [todayHabits, setTodayHabits] = useState<number[]>([])
   const [todayNutrition, setTodayNutrition] = useState<NutritionState>(INITIAL_NUTRITION)
   const [todayActivity, setTodayActivity] = useState<ActivityState>(INITIAL_ACTIVITY)
-  
+
   const [gridData, setGridData] = useState<GridHabit[]>(SEED_GRID_DATA)
-  const [heatmapData, setHeatmapData] = useState<{id: number, count: number}[]>(SEED_HEATMAP)
+  const [heatmapData, setHeatmapData] = useState<{ id: number, count: number }[]>(SEED_HEATMAP)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   const getStorageKey = () => user?.id ? `habitflow_state_${user.id}` : 'habitflow_state'
@@ -121,7 +121,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     const loadState = async () => {
       let parsed = null;
-      
+
       if (isAuthenticated) {
         try {
           const res = await fetch('/api/user-state', { cache: 'no-store' });
@@ -140,7 +140,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         try {
           const saved = localStorage.getItem(getStorageKey())
           if (saved) parsed = JSON.parse(saved)
-        } catch(e) {}
+        } catch (e) { }
       }
 
       if (parsed) {
@@ -230,7 +230,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           body: JSON.stringify({ stateData: stateString })
         }).catch(e => console.error("Failed to sync remote state", e));
       }, 1500); // 1.5s debounce
-      
+
       return () => clearTimeout(timer);
     }
   }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted])
@@ -253,7 +253,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const nowStr = getLocalYYYYMMDD()
       if (nowStr !== currentSystemDate) {
         console.log(`[HabytFlow Engine] Rollover triggered: ${currentSystemDate} -> ${nowStr}`);
-        
+
         // 1. Archive: Append today's total ticks to heatmap
         const totalTicks = todayHabits.length
         setHeatmapData(prev => {
@@ -282,7 +282,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           ...prev, hydration: 0, calories: 0, protein: 0, carbs: 0
         }))
         setTodayActivity({ activeMetric: null, sportsLog: [], hrAverage: null })
-        
+
         // 4. Advance System Date
         setCurrentSystemDate(nowStr)
       }
@@ -291,7 +291,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     // Check immediately on focus/mount
     checkRollover()
     window.addEventListener('focus', checkRollover)
-    
+
     // Check every minute
     const interval = setInterval(checkRollover, 60000)
 
@@ -305,16 +305,16 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     requireAuth(() => {
       const isCompleting = !todayHabits.includes(id);
       setTodayHabits(prev => isCompleting ? [...prev, id] : prev.filter(x => x !== id))
-      
+
       if (isCompleting) {
         const habit = gridData.find(h => h.id === id);
         if (habit) {
           fetch('/api/telemetry', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              eventType: 'habit_completed', 
-              metadata: { habitName: habit.name, category: habit.category } 
+            body: JSON.stringify({
+              eventType: 'habit_completed',
+              metadata: { habitName: habit.name, category: habit.category }
             })
           }).catch(console.error)
         }
@@ -363,8 +363,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
-        currentSystemDate, todayHabits, todayNutrition, todayActivity, 
-        gridData: [...gridData, newHabit], 
+        currentSystemDate, todayHabits, todayNutrition, todayActivity,
+        gridData: [...gridData, newHabit],
         heatmapData
       };
 
@@ -384,9 +384,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       fetch('/api/telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          eventType: 'habit_created', 
-          metadata: { habitName: habit.name, category: habit.category } 
+        body: JSON.stringify({
+          eventType: 'habit_created',
+          metadata: { habitName: habit.name, category: habit.category }
         })
       }).catch(console.error)
     })
@@ -399,8 +399,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
-        currentSystemDate, todayHabits, todayNutrition, todayActivity, 
-        gridData: updatedGridData, 
+        currentSystemDate, todayHabits, todayNutrition, todayActivity,
+        gridData: updatedGridData,
         heatmapData
       };
 
@@ -423,14 +423,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     requireAuth(() => {
       const updatedGridData = gridData.filter(h => h.id !== id);
       const updatedTodayHabits = todayHabits.filter(x => x !== id);
-      
+
       setGridData(updatedGridData);
       setTodayHabits(updatedTodayHabits);
 
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
-        currentSystemDate, todayHabits: updatedTodayHabits, todayNutrition, todayActivity, 
-        gridData: updatedGridData, 
+        currentSystemDate, todayHabits: updatedTodayHabits, todayNutrition, todayActivity,
+        gridData: updatedGridData,
         heatmapData
       };
 
