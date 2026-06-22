@@ -34,12 +34,13 @@ export function PwaInstallButton() {
     const checkMobile = () => {
       return /android|iphone|ipad|ipod|windows phone/.test(userAgent)
     }
+    const isDev = process.env.NODE_ENV === 'development'
 
     if (checkIos()) {
       setIsIos(true)
       setIsInstallable(true)
-    } else if (checkMobile()) {
-      // Always show the install button on other mobile devices (Android) as a fallback
+    } else if (checkMobile() || isDev) {
+      // Always show the install button on mobile devices and on localhost for testing/debugging
       setIsInstallable(true)
     }
 
