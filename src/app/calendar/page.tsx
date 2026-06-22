@@ -52,8 +52,8 @@ export default function CalendarPage() {
         const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
         if (isScheduled) {
           scheduledCount++;
-          const dayData = habit.days.find(d => d.day === relativeDayNum);
-          if (dayData && dayData.completed) {
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (habit.days && habit.days[dayIndex]?.completed) {
             completedCount++;
           }
         }
