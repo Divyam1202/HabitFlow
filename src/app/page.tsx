@@ -115,6 +115,17 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, user?.id])
 
+  // Automatically register Capacitor Native Push if running on native app wrapper
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          requestAndStoreNotificationToken(user.id);
+        }
+      });
+    }
+  }, [isAuthenticated, user?.id])
+
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -143,7 +154,10 @@ export default function BrutalistDashboard() {
         const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
         if (isScheduled) {
           totalScheduled++;
-          if (habit.days.find(d => d.day === relativeDayNum)?.completed) completed++;
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (habit.days && habit.days[dayIndex]?.completed) {
+            completed++;
+          }
         }
       });
       rate = totalScheduled === 0 ? 0 : Math.round((completed / totalScheduled) * 100);

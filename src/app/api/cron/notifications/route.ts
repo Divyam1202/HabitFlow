@@ -82,10 +82,105 @@ export async function GET(request: Request) {
 
       const habits = parsed.gridData || [];
       const todayHabits = parsed.todayHabits || [];
+      const snoozedReminders = parsed.snoozedReminders || [];
       
       // Calculate current localized time for the user based on their stored timezone
       const userTimezone = user.timezone || 'Asia/Kolkata';
       const currentTimeHHMM = getCurrentTimeInTimezone(userTimezone);
+
+      // Process triggered snooze reminders
+      let snoozedUpdated = false;
+      const remainingSnoozes = [];
+
+      for (const snooze of snoozedReminders) {
+        const isCompleted = todayHabits.includes(snooze.habitId);
+        
+        if (snooze.triggerTime === currentTimeHHMM) {
+          snoozedUpdated = true;
+          if (!isCompleted) {
+            const habit = habits.find((h: any) => h.id === snooze.habitId);
+            if (habit) {
+              try {
+                const mappedCategory = mapCategoryToChannel(habit.category);
+                const message: any = {
+                  notification: {
+                    title: `Snoozed: ${habit.name}`,
+                    body: `Your 15-minute snooze is up. Let's get this done!`,
+                  },
+                  token: user.fcmToken,
+                  android: {
+                    priority: 'high',
+                    notification: {
+                      sound: 'default',
+                      channelId: mappedCategory,
+                      vibrateTimingsMillis: [0, 500, 500, 500],
+                      defaultVibrateTimings: false,
+                      defaultSound: true,
+                      clickAction: 'HABIT_ACTIONS'
+                    }
+                  },
+                  apns: {
+                    payload: {
+                      aps: {
+                        sound: 'default',
+                        category: 'HABIT_ACTIONS'
+                      }
+                    }
+                  },
+                  webpush: {
+                    headers: {
+                      Urgency: 'high'
+                    },
+                    notification: {
+                      requireInteraction: true,
+                      vibrate: [200, 100, 200, 100, 200],
+                      actions: [
+                        { action: 'complete', title: 'Complete ✓' },
+                        { action: 'snooze', title: 'Snooze 15m ⏳' },
+                        { action: 'skip', title: 'Skip ✗' }
+                      ],
+                      data: {
+                        habitId: String(habit.id),
+                        habitName: habit.name,
+                        category: mappedCategory,
+                        scheduledTime: habit.time,
+                        actionUrl: '/'
+                      }
+                    }
+                  }
+                };
+
+                await adminMessaging.send(message);
+                notificationsSent++;
+                console.log(`Successfully sent SNOOZED notification for habit: ${habit.name} to user: ${user.userId}`);
+
+                try {
+                  const deliveryEvent = new TelemetryEvent({
+                    eventType: 'notification_delivered',
+                    metadata: {
+                      habitName: habit.name,
+                      category: mappedCategory
+                    }
+                  });
+                  await deliveryEvent.save();
+                } catch (telemetryErr) {
+                  console.error('Failed to log snooze delivery telemetry:', telemetryErr);
+                }
+              } catch (pushErr) {
+                console.error(`Failed to send snoozed FCM push:`, pushErr);
+              }
+            }
+          }
+        } else {
+          remainingSnoozes.push(snooze);
+        }
+      }
+
+      if (snoozedUpdated) {
+        parsed.snoozedReminders = remainingSnoozes;
+        user.stateData = JSON.stringify(parsed);
+        await user.save();
+      }
 
       for (const habit of habits) {
         const isCompleted = todayHabits.includes(habit.id);
@@ -123,13 +218,15 @@ export async function GET(request: Request) {
                   channelId: mappedCategory,
                   vibrateTimingsMillis: [0, 500, 500, 500],
                   defaultVibrateTimings: false,
-                  defaultSound: true
+                  defaultSound: true,
+                  clickAction: 'HABIT_ACTIONS'
                 }
               },
               apns: {
                 payload: {
                   aps: {
-                    sound: 'default'
+                    sound: 'default',
+                    category: 'HABIT_ACTIONS'
                   }
                 }
               },

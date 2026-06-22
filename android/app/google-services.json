@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "384678892711",
+    "project_id": "habytflow-2026",
+    "storage_bucket": "habytflow-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:384678892711:android:9eaf526c7e7d258c247782",
+        "android_client_info": {
+          "package_name": "com.habytflow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6QPlUzTgHW-aiCDkBMMiVsWDUDePSWmM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
