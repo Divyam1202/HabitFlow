@@ -115,6 +115,16 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, user?.id])
 
+  // Automatically register Capacitor Native Push if running on native app wrapper
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          requestAndStoreNotificationToken(user.id);
+        }
+      });
+    }
+  }, [isAuthenticated, user?.id])
 
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
