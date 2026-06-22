@@ -36,8 +36,17 @@ export const requestAndStoreNotificationToken = async (userId: string) => {
       return;
     }
 
+    // Explicitly register the service worker for Firebase to prevent conflicts with Serwist PWA worker
+    let registration;
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+        scope: "/firebase-cloud-messaging-push-scope",
+      });
+    }
+
     const currentToken = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: registration,
     });
 
     if (currentToken) {

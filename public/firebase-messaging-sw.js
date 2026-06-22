@@ -16,9 +16,42 @@ const messaging = firebase.messaging();
 // Handle background notification triggers
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Do not call self.registration.showNotification here!
-  // Since our backend sends a "notification" payload with "webpush" Urgency: "high", 
-  // the browser natively handles displaying the loud notification automatically.
+
+  const notificationTitle = payload.data?.title || payload.notification?.title || 'HabytFlow Reminder';
+  const notificationOptions = {
+    body: payload.data?.body || payload.notification?.body || '',
+    icon: '/favicon.ico',
+    badge: '/icon-192x192.png',
+    vibrate: [200, 100, 200, 100, 200],
+    data: {
+      url: payload.data?.url || '/'
+    }
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Handle notification click redirects
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const urlToOpen = new URL(event.notification.data?.url || '/', self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // If a window client is already open, focus it
+      for (let i = 0; i < windowClients.length; i++) {
+        let client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Otherwise, open a new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });
 
 // Force immediate activation of the new service worker
