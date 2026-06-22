@@ -1,17 +1,40 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase as connectMongo } from '@/lib/db';
 import UserState from '@/models/UserState';
+import TelemetryEvent from '@/models/TelemetryEvent';
 import { adminMessaging } from '@/lib/firebase-admin';
 
-// Helper to get current time in IST (HH:mm)
-function getCurrentISTTimeHHMM(): string {
-  const options: Intl.DateTimeFormatOptions = { 
-    timeZone: 'Asia/Kolkata', 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    hour12: false 
-  };
-  return new Intl.DateTimeFormat('en-GB', options).format(new Date());
+// Helper to get current time in a specific timezone (HH:mm)
+function getCurrentTimeInTimezone(timezone: string): string {
+  try {
+    const options: Intl.DateTimeFormatOptions = { 
+      timeZone: timezone, 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    };
+    return new Intl.DateTimeFormat('en-GB', options).format(new Date());
+  } catch (e) {
+    // Fallback to UTC if timezone is invalid
+    const options: Intl.DateTimeFormatOptions = { 
+      timeZone: 'UTC', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: false 
+    };
+    return new Intl.DateTimeFormat('en-GB', options).format(new Date());
+  }
+}
+
+// Helper to map habit category to standard channels
+function mapCategoryToChannel(category: string): string {
+  const cat = category.toLowerCase();
+  if (cat.includes('health') || cat.includes('gym') || cat.includes('sport') || cat.includes('hydration') || cat.includes('diet') || cat.includes('water')) return 'health';
+  if (cat.includes('career') || cat.includes('building') || cat.includes('work') || cat.includes('project')) return 'career';
+  if (cat.includes('growth') || cat.includes('read') || cat.includes('learn') || cat.includes('code') || cat.includes('study')) return 'growth';
+  if (cat.includes('spiritual') || cat.includes('yoga') || cat.includes('meditat') || cat.includes('pray') || cat.includes('mindfulness')) return 'spiritual';
+  if (cat.includes('home') || cat.includes('laundry') || cat.includes('clean') || cat.includes('chore')) return 'home';
+  return 'growth'; // default
 }
 
 // Helper to calculate the notification target time based on the offset
@@ -44,9 +67,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, message: 'No users with FCM tokens found' });
     }
 
-    const currentTimeHHMM = getCurrentISTTimeHHMM();
-    console.log(`[Cron] Checking habits for time: ${currentTimeHHMM} IST`);
-
     let notificationsSent = 0;
 
     for (const user of users) {
@@ -61,29 +81,46 @@ export async function GET(request: Request) {
       }
 
       const habits = parsed.gridData || [];
+      const todayHabits = parsed.todayHabits || [];
+      
+      // Calculate current localized time for the user based on their stored timezone
+      const userTimezone = user.timezone || 'Asia/Kolkata';
+      const currentTimeHHMM = getCurrentTimeInTimezone(userTimezone);
 
       for (const habit of habits) {
+        const isCompleted = todayHabits.includes(habit.id);
+        
+        // Skip reminder if the habit is already completed today
+        if (isCompleted) continue;
+
         // Default to 0 offset (at time of event) if undefined or null
         const offset = (habit.notification === null || habit.notification === undefined) ? 0 : habit.notification;
 
+        // Smart re-reminders: Fire at T (Due offset), T + 15m, and T + 45m
         const targetTimeHHMM = calculateTargetTime(habit.time, offset);
+        const targetTimePlus15 = calculateTargetTime(habit.time, offset - 15);
+        const targetTimePlus45 = calculateTargetTime(habit.time, offset - 45);
 
-        // Fire if the calculated offset time perfectly matches the current time,
-        // OR if the exact time of the event perfectly matches the current time (double reminder)
-        // Note: If offset is 0, both are identical, so it safely evaluates to true and fires once.
-        if (targetTimeHHMM === currentTimeHHMM || habit.time === currentTimeHHMM) {
+        // Check if any of these match the current localized minute
+        const isDue = currentTimeHHMM === targetTimeHHMM;
+        const isReRemind1 = currentTimeHHMM === targetTimePlus15;
+        const isReRemind2 = currentTimeHHMM === targetTimePlus45;
+        const isExactTimeMatch = offset !== 0 && habit.time === currentTimeHHMM;
+
+        if (isDue || isReRemind1 || isReRemind2 || isExactTimeMatch) {
           try {
+            const mappedCategory = mapCategoryToChannel(habit.category);
             const message: any = {
               notification: {
-                title: 'HabytFlow Reminder',
-                body: `Time for your habit: ${habit.name}!`,
+                title: isReRemind1 ? `Reminder: ${habit.name}` : isReRemind2 ? `Last Call: ${habit.name}` : 'HabytFlow Reminder',
+                body: isReRemind1 || isReRemind2 ? `Protect your streak: Tap to mark this habit completed now.` : `Time for your habit: ${habit.name}!`,
               },
               token: user.fcmToken,
               android: {
                 priority: 'high',
                 notification: {
                   sound: 'default',
-                  channelId: 'default',
+                  channelId: mappedCategory,
                   vibrateTimingsMillis: [0, 500, 500, 500],
                   defaultVibrateTimings: false,
                   defaultSound: true
@@ -102,14 +139,40 @@ export async function GET(request: Request) {
                 },
                 notification: {
                   requireInteraction: true,
-                  vibrate: [200, 100, 200, 100, 200, 100, 200]
+                  vibrate: [200, 100, 200, 100, 200],
+                  actions: [
+                    { action: 'complete', title: 'Complete ✓' },
+                    { action: 'snooze', title: 'Snooze 15m ⏳' },
+                    { action: 'skip', title: 'Skip ✗' }
+                  ],
+                  data: {
+                    habitId: String(habit.id),
+                    habitName: habit.name,
+                    category: mappedCategory,
+                    scheduledTime: habit.time,
+                    actionUrl: '/'
+                  }
                 }
               }
             };
 
             await adminMessaging.send(message);
             notificationsSent++;
-            console.log(`Successfully sent notification for habit: ${habit.name} to user: ${user.userId}`);
+            console.log(`Successfully sent notification (Type: Due/Re-remind) for habit: ${habit.name} to user: ${user.userId} in timezone ${userTimezone}`);
+            
+            // Log telemetry event for delivery
+            try {
+              const deliveryEvent = new TelemetryEvent({
+                eventType: 'notification_delivered',
+                metadata: {
+                  habitName: habit.name,
+                  category: mappedCategory
+                }
+              });
+              await deliveryEvent.save();
+            } catch (telemetryErr) {
+              console.error('Failed to log delivery telemetry:', telemetryErr);
+            }
           } catch (error) {
             console.error(`Failed to send FCM to user ${user.userId}:`, error);
           }
@@ -119,7 +182,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      currentTime: currentTimeHHMM,
       notificationsSent 
     });
 

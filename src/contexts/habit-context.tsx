@@ -227,7 +227,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           keepalive: true,
-          body: JSON.stringify({ stateData: stateString })
+          body: JSON.stringify({ 
+            stateData: stateString,
+            timezone: typeof window !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') : 'Asia/Kolkata'
+          })
         }).catch(e => console.error("Failed to sync remote state", e));
       }, 1500); // 1.5s debounce
 
@@ -372,7 +375,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         fetch('/api/user-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stateData: JSON.stringify(stateToSave) })
+          body: JSON.stringify({ 
+            stateData: JSON.stringify(stateToSave),
+            timezone: typeof window !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') : 'Asia/Kolkata'
+          })
         }),
         {
           loading: 'Syncing habit securely...',
@@ -408,7 +414,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         fetch('/api/user-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stateData: JSON.stringify(stateToSave) })
+          body: JSON.stringify({ 
+            stateData: JSON.stringify(stateToSave),
+            timezone: typeof window !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') : 'Asia/Kolkata'
+          })
         }),
         {
           loading: 'Syncing edits securely...',
@@ -438,7 +447,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         fetch('/api/user-state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ stateData: JSON.stringify(stateToSave) })
+          body: JSON.stringify({ 
+            stateData: JSON.stringify(stateToSave),
+            timezone: typeof window !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') : 'Asia/Kolkata'
+          })
         }),
         {
           loading: 'Deleting habit...',
