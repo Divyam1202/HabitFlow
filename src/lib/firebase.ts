@@ -52,19 +52,6 @@ const registerNativePushNotifications = async (userId: string) => {
       }).catch(err => console.error(`Error creating channel ${channelId}:`, err));
     }
 
-    // Register action categories (complete, snooze, skip)
-    await PushNotifications.registerActionTypes({
-      types: [
-        {
-          id: 'HABIT_ACTIONS',
-          actions: [
-            { id: 'complete', title: 'Complete ✓', foreground: true },
-            { id: 'snooze', title: 'Snooze 15m ⏳', foreground: true },
-            { id: 'skip', title: 'Skip ✗', foreground: true }
-          ]
-        }
-      ]
-    }).catch(err => console.error("Error registering action categories:", err));
 
     // Request permissions
     let permStatus = await PushNotifications.checkPermissions();
