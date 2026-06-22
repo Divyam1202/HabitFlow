@@ -31,6 +31,17 @@ export default function BrutalistDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedWeek, setSelectedWeek] = useState<'all' | 1 | 2 | 3 | 4>('all')
   const [animatingCells, setAnimatingCells] = useState<Record<string, boolean>>({})
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+
+  useEffect(() => {
+    if (isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const dismissed = sessionStorage.getItem('habitflow_notif_prompt_dismissed')
+      if (!dismissed) {
+        const timer = setTimeout(() => setShowNotifPrompt(true), 3000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     const checkStagnant = () => {
@@ -420,6 +431,50 @@ export default function BrutalistDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Floating Brutalist Notification Banner */}
+        <AnimatePresence>
+          {showNotifPrompt && isMounted && isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-6 right-6 z-50 max-w-sm border-2 border-foreground bg-background p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-foreground text-background p-2">
+                  <Bell className="h-5 w-5 animate-bounce" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h4 className="font-bold uppercase tracking-wider text-xs text-foreground">STREAK PROTECTION REMINDER</h4>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Protect your progress! Allow push notifications to receive real-time habit reminders on this device.
+                  </p>
+                  <div className="flex gap-4 pt-1.5">
+                    <button
+                      onClick={() => {
+                        requestAndStoreNotificationToken(user?.id!)
+                        setShowNotifPrompt(false)
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
+                    >
+                      ENABLE REMINDERS &gt;
+                    </button>
+                    <button
+                      onClick={() => {
+                        sessionStorage.setItem('habitflow_notif_prompt_dismissed', 'true')
+                        setShowNotifPrompt(false)
+                      }}
+                      className="text-zinc-500 hover:text-foreground text-[10px] font-bold uppercase tracking-wider transition-colors"
+                    >
+                      Maybe Later
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </>
