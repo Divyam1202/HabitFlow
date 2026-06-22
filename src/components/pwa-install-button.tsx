@@ -13,7 +13,7 @@ import {
 
 export function PwaInstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
-  const [isInstallable, setIsInstallable] = useState(false)
+  const [isInstallable, setIsInstallable] = useState(true) // Always visible by default
   const [isIos, setIsIos] = useState(false)
   const [showIosDialog, setShowIosDialog] = useState(false)
   const [showAndroidDialog, setShowAndroidDialog] = useState(false)
@@ -31,23 +31,14 @@ export function PwaInstallButton() {
     const checkIos = () => {
       return /iphone|ipad|ipod/.test(userAgent) || (userAgent.includes("mac") && "ontouchend" in document)
     }
-    const checkMobile = () => {
-      return /android|iphone|ipad|ipod|windows phone/.test(userAgent)
-    }
-    const isDev = process.env.NODE_ENV === 'development'
 
     if (checkIos()) {
       setIsIos(true)
-      setIsInstallable(true)
-    } else if (checkMobile() || isDev) {
-      // Always show the install button on mobile devices and on localhost for testing/debugging
-      setIsInstallable(true)
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)
-      setIsInstallable(true)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -71,7 +62,7 @@ export function PwaInstallButton() {
       }
       setDeferredPrompt(null)
     } else {
-      // Fallback instruction dialog for Android/mobile browser if native prompt is blocked
+      // Fallback instruction dialog for Android/mobile/desktop browsers if native prompt is blocked/unavailable
       setShowAndroidDialog(true)
     }
   }
@@ -107,7 +98,7 @@ export function PwaInstallButton() {
         </DialogContent>
       </Dialog>
 
-      {/* Android/Mobile fallback Instructions */}
+      {/* Android/Desktop fallback Instructions */}
       <Dialog open={showAndroidDialog} onOpenChange={setShowAndroidDialog}>
         <DialogContent className="sm:max-w-md bg-zinc-950 border-zinc-900 text-white">
           <DialogHeader>

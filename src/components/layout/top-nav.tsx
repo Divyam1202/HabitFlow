@@ -141,7 +141,7 @@ export function TopNav() {
         )}
 
         {/* Sidebar Panel */}
-        <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col overflow-y-auto transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => {
               const isActive = pathname === link.href
