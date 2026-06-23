@@ -219,8 +219,7 @@ export default function BrutalistDashboard() {
     if (diffDaysForSelectedDay === 0) {
       return todayHabits.includes(habit.id);
     } else {
-      const relativeDayNum = (habit.days?.length || 30) + diffDaysForSelectedDay;
-      const dayIndex = relativeDayNum - 1;
+      const dayIndex = (habit.days?.length || 30) - 1 + diffDaysForSelectedDay;
       return habit.days ? !!habit.days[dayIndex]?.completed : false;
     }
   };
@@ -231,8 +230,14 @@ export default function BrutalistDashboard() {
     if (diffDaysForSelectedDay === 0) {
       toggleTodayHabit(habitId);
     } else {
-      const relativeDayNum = (gridData.find(h => h.id === habitId)?.days?.length || 30) + diffDaysForSelectedDay;
-      toggleGridHabit(habitId, relativeDayNum);
+      const habit = gridData.find(h => h.id === habitId);
+      if (habit && habit.days) {
+        const dayIndex = habit.days.length - 1 + diffDaysForSelectedDay;
+        if (dayIndex >= 0 && dayIndex < habit.days.length) {
+          const targetDayVal = habit.days[dayIndex].day;
+          toggleGridHabit(habitId, targetDayVal);
+        }
+      }
     }
   };
 
