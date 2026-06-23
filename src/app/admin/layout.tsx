@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Users, MessageSquare, Megaphone, BarChart3, Settings, Shield, ArrowLeft } from 'lucide-react'
+import { LayoutDashboard, Users, MessageSquare, Megaphone, BarChart3, Settings, Shield, ArrowLeft, ShieldAlert } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,6 +66,10 @@ export default async function AdminLayout({
           <Link href="/admin/settings" className="flex items-center gap-3 px-4 py-3 hover:bg-muted text-foreground transition-all">
             <Settings size={16} className="text-zinc-500" />
             Settings
+          </Link>
+          <Link href="/admin/debug" className="flex items-center gap-3 px-4 py-3 hover:bg-muted text-foreground transition-all">
+            <ShieldAlert size={16} className="text-zinc-500" />
+            Notif Debug
           </Link>
 
           {/* Super Admin Restricted Sections */}

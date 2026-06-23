@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, LogOut, Trash2, CheckCircle2 } from 'lucide-react'
+import { Download, LogOut, Trash2, CheckCircle2, Check, X, AlertTriangle, Activity, Bell } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
@@ -27,6 +27,64 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
+  
+  const [health, setHealth] = useState<{
+    fcmTokenRegistered: boolean
+    lastNotificationDelivered: boolean
+    timezone: string
+  } | null>(null)
+  const [swActive, setSwActive] = useState(false)
+  const [permissionState, setPermissionState] = useState<string>('default')
+  const [sendingTest, setSendingTest] = useState(false)
+
+  const checkNotifHealth = async () => {
+    try {
+      const res = await fetch('/api/notifications/health-check')
+      if (res.ok) {
+        const data = await res.json()
+        setHealth(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    if (typeof window !== 'undefined') {
+      if ('Notification' in window) {
+        setPermissionState(Notification.permission)
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          setSwActive(regs.length > 0)
+        })
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkNotifHealth()
+    }
+  }, [isAuthenticated])
+
+  const sendTestNotification = async () => {
+    setSendingTest(true)
+    try {
+      const res = await fetch('/api/notifications/test', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success('Test notification sent successfully!')
+      } else {
+        toast.error(data.error || 'Failed to send test notification', {
+          description: data.details || 'Check console/logs for more details.'
+        })
+      }
+      checkNotifHealth()
+    } catch (err: any) {
+      toast.error('Failed to send test notification: ' + err.message)
+    } finally {
+      setSendingTest(false)
+    }
+  }
 
   useEffect(() => {
     if (user) {
@@ -193,6 +251,101 @@ export default function SettingsPage() {
                   <option value="24h">24 Hour</option>
                   <option value="12h">12 Hour</option>
                 </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Push Notifications Diagnostics</h2>
+            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Activity size={18} className="text-zinc-500" />
+                    <div>
+                      <div className="font-bold text-foreground">Notifications Permission</div>
+                      <div className="text-sm text-zinc-500">Browser notification permission state.</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    {permissionState === 'granted' ? (
+                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Enabled ✅</span>
+                    ) : (
+                      <span className="text-red-500 flex items-center gap-1"><X size={14} /> Denied / Default ❌</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-border" />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Bell size={18} className="text-zinc-500" />
+                    <div>
+                      <div className="font-bold text-foreground">FCM Token Registered</div>
+                      <div className="text-sm text-zinc-500">Firebase Cloud Messaging database entry.</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    {health?.fcmTokenRegistered ? (
+                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Registered ✅</span>
+                    ) : (
+                      <span className="text-amber-500 flex items-center gap-1"><AlertTriangle size={14} /> Unregistered ⚠️</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-border" />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 size={18} className="text-zinc-500" />
+                    <div>
+                      <div className="font-bold text-foreground">Service Worker Status</div>
+                      <div className="text-sm text-zinc-500">PWA controller service worker verification.</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    {swActive ? (
+                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Active ✅</span>
+                    ) : (
+                      <span className="text-amber-500 flex items-center gap-1"><AlertTriangle size={14} /> Missing ⚠️</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-border" />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Activity size={18} className="text-zinc-500" />
+                    <div>
+                      <div className="font-bold text-foreground">Last Notification Delivery</div>
+                      <div className="text-sm text-zinc-500">Most recent push status in tracking database.</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
+                    {health?.lastNotificationDelivered ? (
+                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Succeeded ✅</span>
+                    ) : (
+                      <span className="text-zinc-500 flex items-center gap-1">No Delivery Log</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-xs text-zinc-500">
+                  Timezone: <span className="font-mono text-white">{health?.timezone || 'Loading...'}</span>
+                </div>
+                <button
+                  type="button"
+                  disabled={sendingTest}
+                  onClick={sendTestNotification}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black font-bold uppercase text-[10px] tracking-widest transition-colors rounded-[2px]"
+                >
+                  {sendingTest ? 'Sending Push...' : 'Send Test Notification'}
+                </button>
               </div>
             </div>
           </section>

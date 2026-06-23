@@ -3,6 +3,7 @@ import { connectToDatabase as connectMongo } from '@/lib/db';
 import UserState from '@/models/UserState';
 import TelemetryEvent from '@/models/TelemetryEvent';
 import Notification from '@/models/Notification';
+import NotificationLog from '@/models/NotificationLog';
 import { adminMessaging } from '@/lib/firebase-admin';
 
 // Helper to get current time in a specific timezone (HH:mm)
@@ -114,77 +115,193 @@ export async function GET(request: Request) {
 
         if (snooze.triggerTime === currentTimeHHMM) {
           snoozedUpdated = true;
-          if (!isCompleted) {
-            const habit = habits.find((h: any) => h.id === snooze.habitId);
-            if (habit) {
-              // Check category pref
-              const channel = mapCategoryToChannel(habit.category);
-              if (categoryPrefs[channel]?.enabled === false) continue;
+          const habit = habits.find((h: any) => h.id === snooze.habitId);
+          if (habit) {
+            const channel = mapCategoryToChannel(habit.category);
 
-              // Check habit-level push pref
-              if (habit.notifPrefs?.push === false) continue;
+            // Log: scheduled, evaluated, triggered
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: snooze.triggerTime,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'scheduled'
+            });
 
-              try {
-                const copy = buildNotificationCopy(habit, 'snooze');
-                const notifRecord = await Notification.create({
-                  userId: user.userId,
-                  habitId: String(habit.id),
-                  habitName: habit.name,
-                  category: channel,
-                  title: copy.title,
-                  body: copy.body,
-                  scheduledFor: now,
-                  status: 'delivered',
-                  retryCount: 0,
-                  deliveredAt: now,
-                });
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: snooze.triggerTime,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'evaluated'
+            });
 
-                const message: any = {
-                  notification: { title: copy.title, body: copy.body },
-                  token: user.fcmToken,
-                  android: {
-                    priority: 'high',
-                    notification: {
-                      sound: 'default',
-                      channelId: channel,
-                      vibrateTimingsMillis: [0, 500, 500, 500],
-                      defaultVibrateTimings: false,
-                      defaultSound: true,
-                      clickAction: 'HABIT_ACTIONS'
-                    }
-                  },
-                  apns: { payload: { aps: { sound: 'default', category: 'HABIT_ACTIONS' } } },
-                  webpush: {
-                    headers: { Urgency: 'high' },
-                    notification: {
-                      requireInteraction: true,
-                      vibrate: [200, 100, 200, 100, 200],
-                      actions: [
-                        { action: 'complete', title: 'Complete ✓' },
-                        { action: 'snooze', title: 'Snooze 15m ⏳' },
-                        { action: 'skip', title: 'Skip ✗' }
-                      ],
-                      data: {
-                        habitId: String(habit.id),
-                        habitName: habit.name,
-                        category: channel,
-                        scheduledTime: habit.time,
-                        notificationId: String(notifRecord._id),
-                        actionUrl: '/'
-                      }
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: snooze.triggerTime,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'triggered'
+            });
+
+            if (isCompleted) {
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'failed',
+                errorMessage: 'Habit Already Completed'
+              });
+              continue;
+            }
+
+            // Check category pref
+            if (categoryPrefs[channel]?.enabled === false) {
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'failed',
+                errorMessage: 'Category Preference Disabled'
+              });
+              continue;
+            }
+
+            // Check habit-level push pref
+            if (habit.notifPrefs?.push === false) {
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'failed',
+                errorMessage: 'Habit Push Preference Disabled'
+              });
+              continue;
+            }
+
+            if (!user.fcmToken) {
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'failed',
+                errorMessage: 'Missing FCM Token'
+              });
+              continue;
+            }
+
+            try {
+              const copy = buildNotificationCopy(habit, 'snooze');
+              const notifRecord = await Notification.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                category: channel,
+                title: copy.title,
+                body: copy.body,
+                scheduledFor: now,
+                status: 'delivered',
+                retryCount: 0,
+                deliveredAt: now,
+              });
+
+              // Log: sent
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                notificationId: String(notifRecord._id),
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'sent'
+              });
+
+              const message: any = {
+                notification: { title: copy.title, body: copy.body },
+                token: user.fcmToken,
+                android: {
+                  priority: 'high',
+                  notification: {
+                    sound: 'default',
+                    channelId: channel,
+                    vibrateTimingsMillis: [0, 500, 500, 500],
+                    defaultVibrateTimings: false,
+                    defaultSound: true,
+                    clickAction: 'HABIT_ACTIONS'
+                  }
+                },
+                apns: { payload: { aps: { sound: 'default', category: 'HABIT_ACTIONS' } } },
+                webpush: {
+                  headers: { Urgency: 'high' },
+                  notification: {
+                    requireInteraction: true,
+                    vibrate: [200, 100, 200, 100, 200],
+                    actions: [
+                      { action: 'complete', title: 'Complete ✓' },
+                      { action: 'snooze', title: 'Snooze 15m ⏳' },
+                      { action: 'skip', title: 'Skip ✗' }
+                    ],
+                    data: {
+                      habitId: String(habit.id),
+                      habitName: habit.name,
+                      category: channel,
+                      scheduledTime: habit.time,
+                      notificationId: String(notifRecord._id),
+                      actionUrl: '/'
                     }
                   }
-                };
+                }
+              };
 
-                await adminMessaging.send(message);
-                notificationsSent++;
+              await adminMessaging.send(message);
+              notificationsSent++;
 
-                try {
-                  await new TelemetryEvent({ eventType: 'notification_delivered', metadata: { habitName: habit.name, category: channel } }).save();
-                } catch { /* non-critical */ }
-              } catch (pushErr) {
-                console.error(`Failed to send snoozed FCM push:`, pushErr);
-              }
+              // Log: delivered
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                notificationId: String(notifRecord._id),
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'delivered'
+              });
+
+              try {
+                await new TelemetryEvent({ eventType: 'notification_delivered', metadata: { habitName: habit.name, category: channel } }).save();
+              } catch { /* non-critical */ }
+            } catch (pushErr: any) {
+              console.error(`Failed to send snoozed FCM push:`, pushErr);
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: snooze.triggerTime,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'failed',
+                errorMessage: `Firebase Send Failure: ${pushErr.message || pushErr}`
+              });
             }
           }
         } else {
@@ -201,14 +318,7 @@ export async function GET(request: Request) {
       // ── Process regular habits ────────────────────────────────────────
       for (const habit of habits) {
         const isCompleted = todayHabits.includes(habit.id);
-        if (isCompleted) continue;
-
-        // Check category pref
         const channel = mapCategoryToChannel(habit.category);
-        if (categoryPrefs[channel]?.enabled === false) continue;
-
-        // Check habit-level push pref
-        if (habit.notifPrefs?.push === false) continue;
 
         const offset = (habit.notification === null || habit.notification === undefined) ? 0 : habit.notification;
 
@@ -223,9 +333,111 @@ export async function GET(request: Request) {
 
         // Check retry pref — if retry disabled, only fire initial
         const retryEnabled = habit.notifPrefs?.retry !== false;
-        if ((isReRemind1 || isReRemind2) && !retryEnabled) continue;
 
         if (isDue || isReRemind1 || isReRemind2 || isExactMatch) {
+          // Log: scheduled, evaluated, triggered
+          await NotificationLog.create({
+            userId: user.userId,
+            habitId: String(habit.id),
+            habitName: habit.name,
+            scheduledTime: habit.time,
+            triggerTime: currentTimeHHMM,
+            timezone: userTimezone,
+            status: 'scheduled'
+          });
+
+          await NotificationLog.create({
+            userId: user.userId,
+            habitId: String(habit.id),
+            habitName: habit.name,
+            scheduledTime: habit.time,
+            triggerTime: currentTimeHHMM,
+            timezone: userTimezone,
+            status: 'evaluated'
+          });
+
+          await NotificationLog.create({
+            userId: user.userId,
+            habitId: String(habit.id),
+            habitName: habit.name,
+            scheduledTime: habit.time,
+            triggerTime: currentTimeHHMM,
+            timezone: userTimezone,
+            status: 'triggered'
+          });
+
+          if (isCompleted) {
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: 'Habit Already Completed'
+            });
+            continue;
+          }
+
+          if ((isReRemind1 || isReRemind2) && !retryEnabled) {
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: 'Retry Reminders Disabled'
+            });
+            continue;
+          }
+
+          // Check category pref
+          if (categoryPrefs[channel]?.enabled === false) {
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: 'Category Preference Disabled'
+            });
+            continue;
+          }
+
+          // Check habit-level push pref
+          if (habit.notifPrefs?.push === false) {
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: 'Habit Push Preference Disabled'
+            });
+            continue;
+          }
+
+          if (!user.fcmToken) {
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: 'Missing FCM Token'
+            });
+            continue;
+          }
+
           const retryCount = isReRemind2 ? 2 : isReRemind1 ? 1 : 0;
           const copyType = retryCount === 2 ? 'retry2' : retryCount === 1 ? 'retry1' : 'initial';
 
@@ -242,6 +454,18 @@ export async function GET(request: Request) {
               status: 'delivered',
               retryCount,
               deliveredAt: now,
+            });
+
+            // Log: sent
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              notificationId: String(notifRecord._id),
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'sent'
             });
 
             const message: any = {
@@ -285,11 +509,33 @@ export async function GET(request: Request) {
             notificationsSent++;
             console.log(`[Cron] Sent notification (${copyType}) for habit: ${habit.name} → user: ${user.userId} (${userTimezone})`);
 
+            // Log: delivered
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              notificationId: String(notifRecord._id),
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'delivered'
+            });
+
             try {
               await new TelemetryEvent({ eventType: 'notification_delivered', metadata: { habitName: habit.name, category: channel } }).save();
             } catch { /* non-critical */ }
-          } catch (error) {
+          } catch (error: any) {
             console.error(`Failed to send FCM to user ${user.userId}:`, error);
+            await NotificationLog.create({
+              userId: user.userId,
+              habitId: String(habit.id),
+              habitName: habit.name,
+              scheduledTime: habit.time,
+              triggerTime: currentTimeHHMM,
+              timezone: userTimezone,
+              status: 'failed',
+              errorMessage: `Firebase Send Failure: ${error.message || error}`
+            });
           }
         }
       }

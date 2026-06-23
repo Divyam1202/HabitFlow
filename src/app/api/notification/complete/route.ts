@@ -3,6 +3,7 @@ import { connectToDatabase } from '@/lib/db'
 import UserState from '@/models/UserState'
 import TelemetryEvent from '@/models/TelemetryEvent'
 import Notification from '@/models/Notification'
+import NotificationLog from '@/models/NotificationLog'
 import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -62,6 +63,25 @@ export async function POST(req: NextRequest) {
         { sort: { createdAt: -1 } }
       ).catch(() => { /* non-critical */ })
     }
+
+    const userTimezone = userState.timezone || 'Asia/Kolkata'
+    const currentTimeHHMM = new Intl.DateTimeFormat('en-GB', {
+      timeZone: userTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(new Date())
+
+    await NotificationLog.create({
+      userId: session.user.id,
+      habitId: String(habitId),
+      habitName: habitName || `Habit #${habitId}`,
+      notificationId: notificationId || undefined,
+      scheduledTime: currentTimeHHMM,
+      triggerTime: currentTimeHHMM,
+      timezone: userTimezone,
+      status: 'completed'
+    }).catch(err => console.error("Failed to write completed notif log:", err))
 
     const logData = { habitName: habitName || `Habit #${habitId}`, category: category || 'growth' }
     await new TelemetryEvent({ eventType: 'notification_completed', metadata: logData }).save()
