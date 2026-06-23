@@ -123,16 +123,8 @@ export default function BrutalistDashboard() {
           const title = payload.data?.title || payload.notification?.title || 'HabytFlow Reminder';
           const body = payload.data?.body || payload.notification?.body || '';
 
-          // Trigger the loud native OS Notification instead of a quiet toast
-          if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(title, {
-              body: body,
-              icon: '/favicon.ico',
-              requireInteraction: true
-            });
-          } else {
-            toast.info(`${title}: ${body}`);
-          }
+          // Show in-app toast for foreground notifications instead of spamming native OS popups
+          toast.info(`${title}: ${body}`);
         });
       });
       return () => {
