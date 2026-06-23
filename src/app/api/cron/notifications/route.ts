@@ -53,6 +53,21 @@ function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
   return `${targetHours}:${targetMinutes}`;
 }
 
+// Normalize time strings to compare numeric hours and minutes to avoid timezone format issues
+function parseHHMM(timeStr: string): { hours: number; minutes: number } | null {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return { hours: parts[0], minutes: parts[1] };
+}
+
+function timesMatch(timeA: string, timeB: string): boolean {
+  const parsedA = parseHHMM(timeA);
+  const parsedB = parseHHMM(timeB);
+  if (!parsedA || !parsedB) return false;
+  return parsedA.hours === parsedB.hours && parsedA.minutes === parsedB.minutes;
+}
+
 // Build personal, specific notification copy
 function buildNotificationCopy(habit: any, type: 'initial' | 'retry1' | 'retry2' | 'snooze'): { title: string; body: string } {
   const catChannel = mapCategoryToChannel(habit.category);
@@ -320,21 +335,37 @@ export async function GET(request: Request) {
         const isCompleted = todayHabits.includes(habit.id);
         const channel = mapCategoryToChannel(habit.category);
 
-        const offset = (habit.notification === null || habit.notification === undefined) ? 0 : habit.notification;
+        // Safely parse offset in case it is stored as string ("15 mins") or number
+        let offset = 0;
+        if (habit.notification !== null && habit.notification !== undefined) {
+          const parsedOffset = parseInt(String(habit.notification), 10);
+          if (!isNaN(parsedOffset)) {
+            offset = parsedOffset;
+          }
+        }
+
+        // Check habit frequency
+        const dateInUserTimezone = new Date(new Date().toLocaleString("en-US", { timeZone: userTimezone }));
+        const dayOfWeek = dateInUserTimezone.getDay();
+        const isScheduledToday = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
 
         const targetTimeHHMM  = calculateTargetTime(habit.time, offset);
         const targetTimePlus15 = calculateTargetTime(habit.time, offset - 15);
         const targetTimePlus45 = calculateTargetTime(habit.time, offset - 45);
 
-        const isDue          = currentTimeHHMM === targetTimeHHMM;
-        const isReRemind1    = currentTimeHHMM === targetTimePlus15;
-        const isReRemind2    = currentTimeHHMM === targetTimePlus45;
-        const isExactMatch   = offset !== 0 && habit.time === currentTimeHHMM;
+        const isDue          = timesMatch(currentTimeHHMM, targetTimeHHMM);
+        const isReRemind1    = timesMatch(currentTimeHHMM, targetTimePlus15);
+        const isReRemind2    = timesMatch(currentTimeHHMM, targetTimePlus45);
+        const isExactMatch   = offset !== 0 && timesMatch(habit.time, currentTimeHHMM);
 
         console.log(`[Cron Eval] User: ${user.userId} | Timezone: ${userTimezone} | Current Time: ${currentTimeHHMM}`);
-        console.log(`[Cron Eval] Habit: "${habit.name}" (ID: ${habit.id}) | Time: ${habit.time} | Offset: ${offset}m | Completed: ${isCompleted}`);
+        console.log(`[Cron Eval] Habit: "${habit.name}" (ID: ${habit.id}) | Time: ${habit.time} | Frequency: ${JSON.stringify(habit.frequency)} | Scheduled Today: ${isScheduledToday} | Completed: ${isCompleted}`);
         console.log(`[Cron Eval] Target times -> Due: ${targetTimeHHMM}, ReRemind1: ${targetTimePlus15}, ReRemind2: ${targetTimePlus45}`);
         console.log(`[Cron Eval] Match outcomes -> isDue: ${isDue}, isReRemind1: ${isReRemind1}, isReRemind2: ${isReRemind2}, isExactMatch: ${isExactMatch}`);
+
+        if (!isScheduledToday) {
+          continue;
+        }
 
         // Check retry pref — if retry disabled, only fire initial
         const retryEnabled = habit.notifPrefs?.retry !== false;
