@@ -95,6 +95,16 @@ export async function POST(req: NextRequest) {
 
     const message: any = {
       notification: { title, body },
+      data: {
+        title,
+        body,
+        habitId: String(habit.id),
+        habitName: String(habit.name),
+        category: String(channel),
+        scheduledTime: habit.time || 'Manual',
+        notificationId: String(notifRecord._id),
+        actionUrl: '/'
+      },
       token: userState.fcmToken,
       android: {
         priority: 'high',

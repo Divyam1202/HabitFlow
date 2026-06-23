@@ -3,7 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose'
 export type NotificationLogStatus =
   | 'scheduled'
   | 'evaluated'
-  | 'triggered'
+  | 'matched'
   | 'sent'
   | 'failed'
   | 'delivered'
@@ -40,7 +40,7 @@ const NotificationLogSchema: Schema = new Schema(
       enum: [
         'scheduled',
         'evaluated',
-        'triggered',
+        'matched',
         'sent',
         'failed',
         'delivered',

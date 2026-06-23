@@ -162,7 +162,7 @@ export async function GET(request: Request) {
               scheduledTime: snooze.triggerTime,
               triggerTime: currentTimeHHMM,
               timezone: userTimezone,
-              status: 'triggered'
+              status: 'matched'
             });
 
             if (isCompleted) {
@@ -252,6 +252,16 @@ export async function GET(request: Request) {
 
               const message: any = {
                 notification: { title: copy.title, body: copy.body },
+                data: {
+                  title: copy.title,
+                  body: copy.body,
+                  habitId: String(habit.id),
+                  habitName: String(habit.name),
+                  category: String(channel),
+                  scheduledTime: String(snooze.triggerTime),
+                  notificationId: String(notifRecord._id),
+                  actionUrl: '/'
+                },
                 token: user.fcmToken,
                 android: {
                   priority: 'high',
@@ -279,7 +289,7 @@ export async function GET(request: Request) {
                       habitId: String(habit.id),
                       habitName: habit.name,
                       category: channel,
-                      scheduledTime: habit.time,
+                      scheduledTime: snooze.triggerTime,
                       notificationId: String(notifRecord._id),
                       actionUrl: '/'
                     }
@@ -399,7 +409,7 @@ export async function GET(request: Request) {
             scheduledTime: habit.time,
             triggerTime: currentTimeHHMM,
             timezone: userTimezone,
-            status: 'triggered'
+            status: 'matched'
           });
 
           if (isCompleted) {
@@ -506,6 +516,16 @@ export async function GET(request: Request) {
 
             const message: any = {
               notification: { title: copy.title, body: copy.body },
+              data: {
+                title: copy.title,
+                body: copy.body,
+                habitId: String(habit.id),
+                habitName: String(habit.name),
+                category: String(channel),
+                scheduledTime: String(habit.time),
+                notificationId: String(notifRecord._id),
+                actionUrl: '/'
+              },
               token: user.fcmToken,
               android: {
                 priority: 'high',
