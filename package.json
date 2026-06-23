@@ -6,16 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "copy-apk": "node -e \"const fs = require('fs'); const src = 'android/app/build/outputs/apk/debug/app-debug.apk'; const dest = 'public/HabytFlow.apk'; if (fs.existsSync(src)) { fs.copyFileSync(src, dest); console.log('Successfully copied APK to public directory!'); } else { console.error('Error: app-debug.apk not found. Please build the APK in Android Studio first.'); process.exit(1); }\""
+    "lint": "eslint"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@better-auth/infra": "^0.2.14",
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
-    "@capacitor/push-notifications": "^8.1.1",
     "@hookform/resolvers": "^5.4.0",
     "@onesignal/node-onesignal": "^5.8.0",
     "@serwist/next": "^9.5.11",
@@ -47,7 +42,6 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
