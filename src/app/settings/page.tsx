@@ -388,7 +388,7 @@ export default function SettingsPage() {
                   <div className="text-zinc-500 text-xs uppercase tracking-wider text-center py-4">No habits configured. Go to Manage Habits to add one.</div>
                 ) : (
                   habits.map((habit) => (
-                    <div key={habit.id} className="flex items-center justify-between p-4 border border-border bg-background/50 rounded-[1px]">
+                    <div key={habit.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border bg-background/50 rounded-[1px] gap-3">
                       <div>
                         <div className="font-bold text-foreground">{habit.name}</div>
                         <div className="text-xs text-zinc-500 mt-1 uppercase tracking-widest">
@@ -399,7 +399,7 @@ export default function SettingsPage() {
                         type="button"
                         disabled={triggeringHabit === habit.id}
                         onClick={() => triggerHabitReminder(habit.id)}
-                        className="px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 text-white font-bold uppercase text-[9px] tracking-widest transition-colors rounded-[2px]"
+                        className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 text-white font-bold uppercase text-[9px] tracking-widest transition-colors rounded-[2px]"
                       >
                         {triggeringHabit === habit.id ? 'Sending...' : 'Send Habit Reminder Now'}
                       </button>

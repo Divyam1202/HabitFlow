@@ -38,6 +38,20 @@ function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
   return `${targetHours}:${targetMinutes}`;
 }
 
+function parseHHMM(timeStr: string): { hours: number; minutes: number } | null {
+  if (!timeStr) return null;
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return { hours: parts[0], minutes: parts[1] };
+}
+
+function timesMatch(timeA: string, timeB: string): boolean {
+  const parsedA = parseHHMM(timeA);
+  const parsedB = parseHHMM(timeB);
+  if (!parsedA || !parsedB) return false;
+  return parsedA.hours === parsedB.hours && parsedA.minutes === parsedB.minutes;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
@@ -64,8 +78,20 @@ export async function GET(req: NextRequest) {
       const habits = parsedState.gridData || [];
       const todayHabits = parsedState.todayHabits || [];
 
+      // Get current weekday in user's timezone
+      const dateInUserTimezone = new Date(new Date().toLocaleString("en-US", { timeZone: timezone }));
+      const dayOfWeek = dateInUserTimezone.getDay();
+
       const evaluatedHabits = habits.map((h: any) => {
-        const offset = (h.notification === null || h.notification === undefined) ? 0 : h.notification;
+        let offset = 0;
+        if (h.notification !== null && h.notification !== undefined) {
+          const parsedOffset = parseInt(String(h.notification), 10);
+          if (!isNaN(parsedOffset)) {
+            offset = parsedOffset;
+          }
+        }
+
+        const isScheduledToday = h.frequency ? h.frequency.includes(dayOfWeek) : true;
         const targetTimeHHMM = calculateTargetTime(h.time, offset);
         const targetTimePlus15 = calculateTargetTime(h.time, offset - 15);
         const targetTimePlus45 = calculateTargetTime(h.time, offset - 45);
@@ -81,10 +107,13 @@ export async function GET(req: NextRequest) {
           targetTimePlus45,
           currentTimeInTimezone,
           isCompleted: todayHabits.includes(h.id),
-          isDue: currentTimeInTimezone === targetTimeHHMM,
-          isReRemind1: currentTimeInTimezone === targetTimePlus15,
-          isReRemind2: currentTimeInTimezone === targetTimePlus45,
-          isExactMatch: offset !== 0 && h.time === currentTimeInTimezone,
+          isScheduledToday,
+          frequency: h.frequency || null,
+          dayOfWeek,
+          isDue: timesMatch(currentTimeInTimezone, targetTimeHHMM),
+          isReRemind1: timesMatch(currentTimeInTimezone, targetTimePlus15),
+          isReRemind2: timesMatch(currentTimeInTimezone, targetTimePlus45),
+          isExactMatch: offset !== 0 && timesMatch(h.time, currentTimeInTimezone),
         };
       });
 

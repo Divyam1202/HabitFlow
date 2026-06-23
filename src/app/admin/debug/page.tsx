@@ -91,6 +91,30 @@ export default function AdminDebugPage() {
             Snoozed
           </span>
         )
+      case 'scheduled':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase bg-zinc-500/10 text-zinc-400 rounded border border-zinc-500/20">
+            <Clock className="w-3.5 h-3.5" /> Scheduled
+          </span>
+        )
+      case 'evaluated':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase bg-indigo-500/10 text-indigo-400 rounded border border-indigo-500/20">
+            Evaluated
+          </span>
+        )
+      case 'matched':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase bg-pink-500/10 text-pink-400 rounded border border-pink-500/20">
+            Matched
+          </span>
+        )
+      case 'sent':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/20">
+            Sent
+          </span>
+        )
       default:
         return (
           <span className="flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-bold uppercase bg-zinc-500/10 text-zinc-400 rounded border border-zinc-500/20">

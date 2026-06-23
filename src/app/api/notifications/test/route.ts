@@ -115,6 +115,16 @@ export async function POST(req: NextRequest) {
           title: '🔔 Test Habit Notification',
           body: 'Your test push succeeded! System observability matches perfectly.'
         },
+        data: {
+          title: '🔔 Test Habit Notification',
+          body: 'Your test push succeeded! System observability matches perfectly.',
+          habitId: 'test-habit-id',
+          habitName: 'Test Habit Notification',
+          category: 'growth',
+          scheduledTime: timeHHMM,
+          notificationId: String(notifRecord._id),
+          actionUrl: '/'
+        },
         token: userState.fcmToken,
         android: {
           priority: 'high',
