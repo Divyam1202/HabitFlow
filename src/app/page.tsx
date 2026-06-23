@@ -157,10 +157,13 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, isMounted]);
 
-  // Automatically sync FCM token if permission was already granted
+  // Automatically sync FCM token if permission was already granted and not yet synced on this device
   useEffect(() => {
     if (isAuthenticated && user?.id && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      requestAndStoreNotificationToken(user.id)
+      const alreadySynced = localStorage.getItem(`fcm_token_synced_${user.id}`);
+      if (!alreadySynced) {
+        requestAndStoreNotificationToken(user.id);
+      }
     }
   }, [isAuthenticated, user?.id])
 
