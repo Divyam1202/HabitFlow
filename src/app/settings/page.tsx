@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Download, LogOut, Trash2, CheckCircle2, Check, X, AlertTriangle, Activity, Bell } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
+import { useHabitContext } from '@/contexts/habit-context'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { authClient } from '@/lib/auth-client'
@@ -36,6 +37,32 @@ export default function SettingsPage() {
   const [swActive, setSwActive] = useState(false)
   const [permissionState, setPermissionState] = useState<string>('default')
   const [sendingTest, setSendingTest] = useState(false)
+
+  const { gridData: habits } = useHabitContext()
+  const [triggeringHabit, setTriggeringHabit] = useState<number | null>(null)
+
+  const triggerHabitReminder = async (habitId: number) => {
+    setTriggeringHabit(habitId)
+    try {
+      const res = await fetch('/api/notifications/manual-habit-trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ habitId })
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success(`Reminder sent for habit: "${data.habitName || 'Habit'}"`)
+      } else {
+        toast.error(data.error || 'Failed to send reminder', {
+          description: data.details || 'Check console/logs for more details.'
+        })
+      }
+    } catch (e: any) {
+      toast.error('Error: ' + e.message)
+    } finally {
+      setTriggeringHabit(null)
+    }
+  }
 
   const checkNotifHealth = async () => {
     try {
@@ -346,6 +373,49 @@ export default function SettingsPage() {
                 >
                   {sendingTest ? 'Sending Push...' : 'Send Test Notification'}
                 </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Habit Reminder Diagnostics</h2>
+            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
+              <div className="text-sm text-zinc-400 leading-relaxed">
+                Manually trigger an immediate push notification using actual habit data to verify end-to-end delivery of individual habits.
+              </div>
+              <div className="space-y-4">
+                {habits.length === 0 ? (
+                  <div className="text-zinc-500 text-xs uppercase tracking-wider text-center py-4">No habits configured. Go to Manage Habits to add one.</div>
+                ) : (
+                  habits.map((habit) => (
+                    <div key={habit.id} className="flex items-center justify-between p-4 border border-border bg-background/50 rounded-[1px]">
+                      <div>
+                        <div className="font-bold text-foreground">{habit.name}</div>
+                        <div className="text-xs text-zinc-500 mt-1 uppercase tracking-widest">
+                          {habit.category} • {habit.time} • {habit.notification === 0 ? 'On Time' : `-${habit.notification}m`}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={triggeringHabit === habit.id}
+                        onClick={() => triggerHabitReminder(habit.id)}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 text-white font-bold uppercase text-[9px] tracking-widest transition-colors rounded-[2px]"
+                      >
+                        {triggeringHabit === habit.id ? 'Sending...' : 'Send Habit Reminder Now'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="pt-4 border-t border-border">
+                <a
+                  href="/api/debug/notifications"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-foreground transition-colors"
+                >
+                  View Live Matching Diagnostics Report (JSON) &gt;
+                </a>
               </div>
             </div>
           </section>

@@ -331,6 +331,11 @@ export async function GET(request: Request) {
         const isReRemind2    = currentTimeHHMM === targetTimePlus45;
         const isExactMatch   = offset !== 0 && habit.time === currentTimeHHMM;
 
+        console.log(`[Cron Eval] User: ${user.userId} | Timezone: ${userTimezone} | Current Time: ${currentTimeHHMM}`);
+        console.log(`[Cron Eval] Habit: "${habit.name}" (ID: ${habit.id}) | Time: ${habit.time} | Offset: ${offset}m | Completed: ${isCompleted}`);
+        console.log(`[Cron Eval] Target times -> Due: ${targetTimeHHMM}, ReRemind1: ${targetTimePlus15}, ReRemind2: ${targetTimePlus45}`);
+        console.log(`[Cron Eval] Match outcomes -> isDue: ${isDue}, isReRemind1: ${isReRemind1}, isReRemind2: ${isReRemind2}, isExactMatch: ${isExactMatch}`);
+
         // Check retry pref — if retry disabled, only fire initial
         const retryEnabled = habit.notifPrefs?.retry !== false;
 
