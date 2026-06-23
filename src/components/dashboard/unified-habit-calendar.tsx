@@ -51,8 +51,8 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
           }
         }
 
-        // Check if at least 90% of scheduled habits are completed
-        if (scheduledCount > 0 && (completedCount / scheduledCount) >= 0.9) {
+        // Check if all scheduled habits are completed
+        if (scheduledCount > 0 && completedCount === scheduledCount) {
           perfectCount++;
         }
       }
@@ -90,7 +90,7 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
       }
       const ratio = scheduledCount > 0 ? (completedCount / scheduledCount) : 0;
       return {
-        isDone: scheduledCount > 0 && ratio >= 0.9,
+        isDone: scheduledCount > 0 && completedCount === scheduledCount,
         ratio
       };
     }
