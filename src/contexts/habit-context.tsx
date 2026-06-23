@@ -56,7 +56,7 @@ export const useHabitContext = () => {
 const MOCK_HABITS: HabitDef[] = [
   { id: 1, name: "Gym", category: "🏋️ Health", time: "18:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 2, name: "Reading", category: "🧠 Growth", time: "21:30", frequency: [0, 1, 2, 3, 4, 5, 6] },
-  { id: 3, name: "Coding", category: "🧠 Growth", time: "17:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
+  { id: 3, name: "Touch Grass", category: "🌳 Nature", time: "17:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 4, name: "Skincare", category: "✨ Self-care", time: "22:00", frequency: [0, 1, 2, 3, 4, 5, 6] },
   { id: 5, name: "Digital Detox", category: "📱 Mindset", time: "20:00", frequency: [0, 1, 2, 3, 4, 5, 6] }
 ]
