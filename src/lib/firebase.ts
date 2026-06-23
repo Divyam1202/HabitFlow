@@ -36,12 +36,10 @@ export const requestAndStoreNotificationToken = async (userId: string) => {
       return;
     }
 
-    // Explicitly register the service worker for Firebase to prevent conflicts with Serwist PWA worker
+    // Retrieve the active PWA service worker registration to prevent conflicts
     let registration;
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
-        scope: "/firebase-cloud-messaging-push-scope",
-      });
+      registration = await navigator.serviceWorker.ready;
     }
 
     const currentToken = await getToken(messaging, {
