@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/db'
 import TelemetryEvent from '@/models/TelemetryEvent'
 import Notification from '@/models/Notification'
+import NotificationLog from '@/models/NotificationLog'
 import UserState from '@/models/UserState'
 import { auth } from '@/lib/auth'
 
@@ -53,14 +54,26 @@ export async function POST(req: NextRequest) {
       ).catch(() => {})
     }
 
+    const userState = await UserState.findOne({ userId: session.user.id })
+    const userTimezone = userState?.timezone || 'Asia/Kolkata'
+    const currentTime = getCurrentTimeInTimezone(userTimezone)
+
+    await NotificationLog.create({
+      userId: session.user.id,
+      habitId: String(habitId),
+      habitName: habitName || `Habit #${habitId}`,
+      notificationId: notificationId || undefined,
+      scheduledTime: currentTime,
+      triggerTime: currentTime,
+      timezone: userTimezone,
+      status: 'snoozed'
+    }).catch(err => console.error("Failed to write snoozed notif log:", err))
+
     // Store snooze trigger time in user stateData (for cron to pick up)
     if (duration !== 'tomorrow') {
-      const userState = await UserState.findOne({ userId: session.user.id })
       if (userState?.stateData) {
         try {
           const state = JSON.parse(userState.stateData)
-          const tz = userState.timezone || 'Asia/Kolkata'
-          const currentTime = getCurrentTimeInTimezone(tz)
           const triggerTime = addMinutesToHHMM(currentTime, snoozeMins)
           if (!state.snoozedReminders) state.snoozedReminders = []
           // Remove any existing snooze for this habit then add new
