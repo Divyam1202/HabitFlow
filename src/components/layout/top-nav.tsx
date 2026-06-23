@@ -51,8 +51,8 @@ export function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black text-white h-14 flex items-center">
-        <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between">
+      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black text-white md:h-14 flex flex-col justify-center">
+        <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between h-14">
 
           {/* Logo (All viewports) */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter z-50 relative font-panchang">
@@ -88,8 +88,8 @@ export function TopNav() {
           {/* Right Section (All viewports) */}
           <div className="flex items-center gap-4 z-50 relative">
             <div className="flex flex-col items-end justify-center gap-0.5">
-              <div className="hidden sm:block text-xs font-medium text-zinc-500 tracking-wider uppercase">
-                {mounted ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '...'}
+              <div className="text-[9px] md:text-xs font-semibold text-zinc-400 tracking-wider uppercase">
+                {mounted ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '...'}
               </div>
               {!isAuthenticated && mounted ? (
                 <button
@@ -112,21 +112,48 @@ export function TopNav() {
               )}
             </div>
             {mounted && (
-              <button onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} className="text-zinc-500 hover:text-white transition-colors">
+              <button onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} className="hidden md:block text-zinc-500 hover:text-white transition-colors">
                 {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
-
-            {/* Mobile Sidebar Toggle (max-width: 767px) */}
-            {!isAdminUser && !isAdminRoute && (
-              <button
-                className="md:hidden text-zinc-500 hover:text-white transition-colors"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-              </button>
-            )}
           </div>
+        </div>
+
+        {/* Mobile secondary row */}
+        <div className="md:hidden border-t border-zinc-900 bg-black text-white h-10 px-6 flex justify-end items-center gap-6">
+          {mounted && (
+            <button 
+              onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} 
+              className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
+            >
+              {activeTheme === 'dark' ? (
+                <>
+                  <Sun size={12} /> Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon size={12} /> Dark Mode
+                </>
+              )}
+            </button>
+          )}
+
+          {!isAdminUser && !isAdminRoute && (
+            <button
+              className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <>
+                  <X size={12} /> Close Menu
+                </>
+              ) : (
+                <>
+                  <Menu size={12} /> Menu
+                </>
+              )}
+            </button>
+          )}
         </div>
       </header>
 
