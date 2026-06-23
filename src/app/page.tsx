@@ -111,6 +111,29 @@ export default function BrutalistDashboard() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
+  // Cleanup legacy/duplicate service worker registrations to prevent Android system notifications
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || '';
+          if (scriptURL && (scriptURL.includes('firebase-messaging-sw.js') || !scriptURL.endsWith('/sw.js'))) {
+            console.log('Unregistering legacy/conflicting service worker:', scriptURL);
+            reg.unregister().then((success) => {
+              if (success) {
+                console.log('Successfully unregistered legacy service worker:', scriptURL);
+              }
+            }).catch(err => {
+              console.error('Failed to unregister legacy service worker:', scriptURL, err);
+            });
+          }
+        }
+      }).catch(err => {
+        console.error('Error getting service worker registrations:', err);
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated && isMounted) {
       let active = true;
