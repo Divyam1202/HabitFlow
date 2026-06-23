@@ -51,8 +51,8 @@ export function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black text-white md:h-14 flex flex-col justify-center">
-        <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between h-14">
+      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black text-white h-14 flex items-center">
+        <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between">
 
           {/* Logo (All viewports) */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter z-50 relative font-panchang">
@@ -116,44 +116,17 @@ export function TopNav() {
                 {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
+
+            {/* Mobile Sidebar Toggle (max-width: 767px) - Beside date and signin/signout */}
+            {!isAdminUser && !isAdminRoute && (
+              <button
+                className="md:hidden text-zinc-400 hover:text-white transition-colors p-1"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            )}
           </div>
-        </div>
-
-        {/* Mobile secondary row */}
-        <div className="md:hidden border-t border-zinc-900 bg-black text-white h-10 px-6 flex justify-end items-center gap-6">
-          {mounted && (
-            <button 
-              onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} 
-              className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
-            >
-              {activeTheme === 'dark' ? (
-                <>
-                  <Sun size={12} /> Light Mode
-                </>
-              ) : (
-                <>
-                  <Moon size={12} /> Dark Mode
-                </>
-              )}
-            </button>
-          )}
-
-          {!isAdminUser && !isAdminRoute && (
-            <button
-              className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <>
-                  <X size={12} /> Close Menu
-                </>
-              ) : (
-                <>
-                  <Menu size={12} /> Menu
-                </>
-              )}
-            </button>
-          )}
         </div>
       </header>
 
@@ -169,6 +142,21 @@ export function TopNav() {
 
         {/* Sidebar Panel */}
         <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col overflow-y-auto transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          {/* Light Mode / Dark Mode Toggle Shifted Above Dashboard in Sidebar */}
+          <div className="mb-6 border-b border-zinc-900 pb-4">
+            {mounted && (
+              <button 
+                onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} 
+                className="w-full flex items-center justify-between p-3 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors rounded-[2px]"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  {activeTheme === 'dark' ? "Light Mode" : "Dark Mode"}
+                </span>
+                {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
+            )}
+          </div>
+
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => {
               const isActive = pathname === link.href
