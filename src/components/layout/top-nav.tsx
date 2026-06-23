@@ -174,8 +174,15 @@ export function TopNav() {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-zinc-900 pt-6">
+          <div className="mt-auto border-t border-zinc-900 pt-6 space-y-3">
             <PwaInstallButton />
+            <a
+              href="/HabytFlow.apk"
+              download="HabytFlow.apk"
+              className="w-full py-2.5 px-4 bg-green-500 hover:bg-green-400 text-black font-bold uppercase tracking-widest text-[10px] text-center block transition-colors rounded-[2px]"
+            >
+              Download Android App (.APK)
+            </a>
           </div>
         </div>
       </>
