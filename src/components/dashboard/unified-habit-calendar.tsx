@@ -3,13 +3,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
-import { GridHabit } from '@/contexts/habit-context';
+import { GridHabit, useHabitContext } from '@/contexts/habit-context';
 
 interface UnifiedHabitCalendarProps {
   gridData: GridHabit[];
+  selectedDay: number;
+  onSelectDay: (day: number) => void;
 }
 
-export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) => {
+export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: UnifiedHabitCalendarProps) => {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -42,15 +44,15 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
           const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
           if (isScheduled) {
             scheduledCount++;
-            const dayData = habit.days.find(d => d.day === relativeDayNum);
-            if (dayData && dayData.completed) {
+            const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+            if (habit.days && habit.days[dayIndex]?.completed) {
               completedCount++;
             }
           }
         }
 
-        // Check if at least 90% of scheduled habits are completed
-        if (scheduledCount > 0 && (completedCount / scheduledCount) >= 0.9) {
+        // Check if all scheduled habits are completed
+        if (scheduledCount > 0 && completedCount === scheduledCount) {
           perfectCount++;
         }
       }
@@ -80,20 +82,30 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
         const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
         if (isScheduled) {
           scheduledCount++;
-          const dayData = habit.days.find(d => d.day === relativeDayNum);
-          if (dayData && dayData.completed) {
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (habit.days && habit.days[dayIndex]?.completed) {
             completedCount++;
           }
         }
       }
       const ratio = scheduledCount > 0 ? (completedCount / scheduledCount) : 0;
       return {
-        isDone: scheduledCount > 0 && ratio >= 0.9,
+        isDone: scheduledCount > 0 && completedCount === scheduledCount,
         ratio
       };
     }
     return { isDone: false, ratio: 0 }; // Future or past outside 30 day window
   };
+
+  const diffDaysVal = (actualCalendarDay: number) => {
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
+    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
+    return Math.round(diffTime / (1000 * 3600 * 24));
+  };
+
+
 
   // Generate today string
   const today = new Date();
@@ -131,20 +143,26 @@ export const UnifiedHabitCalendar = ({ gridData }: UnifiedHabitCalendarProps) =>
           const dateForDay = new Date(currentYear, currentMonth, day);
           const actualDayOfMonth = day;
 
+          const isClickable = diffDaysVal(day) === 0 || diffDaysVal(day) === -1;
+
+          const isSelected = day === selectedDay;
+
           return (
             <motion.div
               key={day}
               initial={false}
               animate={isDone ? { scale: [0.5, 1] } : { scale: 1 }}
               transition={{ duration: 0.5, type: "spring", bounce: 0.6 }}
+              onClick={() => isClickable && onSelectDay(day)}
               className={`
                 relative h-7 min-[400px]:h-8 md:h-10 w-full rounded-md flex items-center justify-center text-[10px] md:text-sm font-semibold select-none overflow-hidden
                 transition-all duration-300 ease-out
+                ${isClickable ? 'cursor-pointer active:scale-95' : 'opacity-40 cursor-not-allowed'}
                 ${isDone 
-                  ? `bg-green-500 text-black shadow-lg shadow-green-500/20` // Perfect Day: Modern Green
-                  : 'bg-background text-zinc-550 border border-border/30 hover:bg-muted' // Missed Day: Soft grey
+                  ? `bg-green-500 text-black shadow-lg shadow-green-500/20 hover:bg-green-400` // Perfect Day: Modern Green
+                  : 'bg-background text-zinc-555 border border-border/30 hover:bg-muted hover:border-foreground/35' // Missed Day: Soft grey
                 }
-                ${isToday && !isDone ? 'ring-2 ring-zinc-500 ring-offset-2 ring-offset-background' : ''}
+                ${isSelected ? 'ring-2 ring-zinc-550 ring-offset-2 ring-offset-background scale-105 z-10' : ''}
               `}
               title={`${dateForDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} ${isDone ? '(Perfect Day)' : `(Completion: ${Math.round(ratio * 100)}%)`}`}
             >

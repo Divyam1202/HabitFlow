@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 
 export default function CalendarPage() {
-  const { gridData, heatmapData } = useHabitContext()
+  const { gridData, heatmapData, toggleGridHabit, toggleTodayHabit } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const [calendarDate, setCalendarDate] = useState(new Date())
@@ -52,8 +52,8 @@ export default function CalendarPage() {
         const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
         if (isScheduled) {
           scheduledCount++;
-          const dayData = habit.days.find(d => d.day === relativeDayNum);
-          if (dayData && dayData.completed) {
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (habit.days && habit.days[dayIndex]?.completed) {
             completedCount++;
           }
         }
@@ -70,6 +70,62 @@ export default function CalendarPage() {
     }
     
     return null;
+  };
+
+  const diffDaysVal = (actualCalendarDay: number) => {
+    const today = new Date();
+    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
+    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
+    return Math.round(diffTime / (1000 * 3600 * 24));
+  };
+
+  const handleDayClick = (actualCalendarDay: number) => {
+    if (gridData.length === 0) return;
+    
+    const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
+    const todayObj = new Date();
+    const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
+    
+    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+    
+    if (diffDays <= 0 && diffDays >= -29) {
+      const relativeDayNum = (gridData[0]?.days?.length || 30) + diffDays;
+      const dayOfWeek = dateForThisDay.getDay();
+      const isToday = diffDays === 0;
+
+      let allCompleted = true;
+      const scheduledHabits = [];
+
+      for (const habit of gridData) {
+        const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
+        if (isScheduled) {
+          scheduledHabits.push(habit);
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (!habit.days || !habit.days[dayIndex]?.completed) {
+            allCompleted = false;
+          }
+        }
+      }
+
+      if (scheduledHabits.length === 0) return;
+
+      const targetState = !allCompleted;
+
+      for (const habit of scheduledHabits) {
+        const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+        const isCompleted = habit.days ? habit.days[dayIndex]?.completed : false;
+        if (isCompleted !== targetState) {
+          if (isToday) {
+            toggleTodayHabit(habit.id);
+          } else {
+            toggleGridHabit(habit.id, relativeDayNum);
+          }
+        }
+      }
+    }
   };
 
   const getColorClass = (ratio: number | null) => {
@@ -176,10 +232,14 @@ export default function CalendarPage() {
               cellContent = <div className="text-sm opacity-50">{displayDay}</div>
             }
             
+            const isClickable = isCurrentMonth && diffDaysVal(day) <= 0 && diffDaysVal(day) >= -29;
+            const extraStyles = isClickable ? 'cursor-pointer active:scale-95 hover:opacity-90' : '';
+
             return (
               <div 
                 key={idx} 
-                className={`min-h-[120px] p-4 border-r border-b border-border last:border-r-0 transition-colors duration-200 ${outerClass}`}
+                onClick={() => isClickable && handleDayClick(day)}
+                className={`min-h-[120px] p-4 border-r border-b border-border last:border-r-0 transition-all duration-200 ${outerClass} ${extraStyles}`}
               >
                 {cellContent}
               </div>

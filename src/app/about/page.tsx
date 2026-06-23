@@ -29,8 +29,8 @@ const LinkedInIcon = () => (
 const DeveloperMarquee = () => {
   return (
     <div className="relative w-full overflow-hidden whitespace-nowrap py-6 select-none my-4">
-      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
       <motion.div
         className="inline-flex gap-16 whitespace-nowrap"
         animate={{ x: [0, "-50%"] }}
@@ -47,7 +47,7 @@ const DeveloperMarquee = () => {
               <span
                 key={idx}
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-zinc-500/10 dark:text-zinc-800/20 font-panchang tracking-[0.2em] uppercase leading-none"
+                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-zinc-800/20 font-panchang tracking-[0.2em] uppercase leading-none"
               >
                 DEVELOPER
               </span>
@@ -90,7 +90,7 @@ const DeveloperCard = () => {
       animate={{ rotateX, rotateY }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       style={{ transformStyle: "preserve-3d", perspective: 1000 }}
-      className="relative w-80 bg-card border border-border rounded-xl p-8 flex flex-col items-start select-none cursor-pointer group shadow-xl text-card-foreground"
+      className="relative w-80 bg-zinc-950/80 border border-zinc-900 rounded-xl p-8 flex flex-col items-start select-none cursor-pointer group shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
     >
       {/* Glow background */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
@@ -98,20 +98,20 @@ const DeveloperCard = () => {
       <div style={{ transform: "translateZ(50px)" }} className="w-full space-y-6">
         <div className="text-left">
           <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Architect & Creator</p>
-          <h4 className="text-foreground text-2xl font-panchang tracking-tight font-extrabold">Divyam Chandak</h4>
+          <h4 className="text-white text-2xl font-panchang tracking-tight font-extrabold">Divyam Chandak</h4>
         </div>
 
-        <div className="flex justify-between items-center w-full border-t border-border pt-6">
+        <div className="flex justify-between items-center w-full border-t border-zinc-900 pt-6">
           <div className="text-left">
-            <p className="text-[9px] font-mono text-zinc-650 uppercase tracking-wider mb-0.5">Established</p>
-            <p className="text-foreground/80 text-xs font-semibold">June 2027</p>
+            <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-wider mb-0.5">Established</p>
+            <p className="text-zinc-300 text-xs font-semibold">June 2027</p>
           </div>
 
           <a
             href="https://www.linkedin.com/in/divyam-chandak/"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-[10px] font-bold transition-colors group/link text-left"
+            className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-[10px] font-bold transition-colors group/link text-left"
           >
             <LinkedInIcon />
             <span>LinkedIn</span>
@@ -148,15 +148,15 @@ const UniverseBackground = () => {
   }, [])
 
   if (!mounted) {
-    return <div className="fixed inset-0 z-0 bg-background" />
+    return <div className="fixed inset-0 z-0 bg-[#050505]" />
   }
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-background">
+    <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050505]">
       {stars.map((star) => (
         <motion.div
           key={star.id}
-          className="absolute bg-foreground rounded-full"
+          className="absolute bg-white rounded-full"
           style={{
             left: `${star.x}%`,
             top: `${star.y}%`,
@@ -165,7 +165,7 @@ const UniverseBackground = () => {
             opacity: 0.1
           }}
           animate={{
-            opacity: [0.05, 0.4, 0.05],
+            opacity: [0.1, 0.8, 0.1],
             scale: [1, 1.5, 1]
           }}
           transition={{
@@ -176,7 +176,7 @@ const UniverseBackground = () => {
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505]" />
     </div>
   )
 }
@@ -230,7 +230,7 @@ export default function AboutPage() {
   return (
     <div
       ref={scrollContainerRef}
-      className="relative min-h-screen overflow-x-hidden scroll-smooth bg-background text-foreground"
+      className="relative min-h-screen overflow-x-hidden scroll-smooth bg-[#050505]"
     >
       <UniverseBackground />
 
@@ -243,7 +243,7 @@ export default function AboutPage() {
       >
         <button
           onClick={() => router.push('/')}
-          className="flex items-center gap-2 text-zinc-500 hover:text-foreground uppercase tracking-widest text-xs font-bold transition-colors group"
+          className="flex items-center gap-2 text-zinc-500 hover:text-white uppercase tracking-widest text-xs font-bold transition-colors group"
         >
           <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> Back
         </button>
@@ -254,7 +254,7 @@ export default function AboutPage() {
         <div className="flex flex-col items-center gap-4">
           <h1
             style={{ fontVariationSettings: '"wdth" 150, "wght" 900', perspective: "1000px" }}
-            className="text-[4rem] sm:text-7xl md:text-9xl text-foreground font-panchang leading-none tracking-tighter flex justify-center overflow-visible w-full"
+            className="text-[1.75rem] xs:text-[2.5rem] sm:text-5xl md:text-7xl lg:text-8xl text-white font-panchang leading-none tracking-tighter flex justify-center overflow-visible w-full"
           >
             {"HabytFlow".split("").map((char, i) => (
               <motion.span
@@ -269,7 +269,7 @@ export default function AboutPage() {
             ))}
           </h1>
 
-          <div className="text-xs md:text-sm font-panchang tracking-[0.4em] uppercase flex justify-center flex-wrap mt-2 w-full">
+          <div className="text-[8px] xs:text-[10px] sm:text-xs font-panchang tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] uppercase flex justify-center flex-wrap mt-2 w-full">
             {"CONSISTENCY IN MOTION".split("").map((char, i) => (
               <motion.span
                 key={i}
@@ -313,14 +313,14 @@ export default function AboutPage() {
         <div className="w-full flex flex-col relative z-10">
           
           {/* Section: The Engine (Core Features) */}
-          <div className="w-full flex flex-col items-center justify-center py-16 px-6 select-none border-t border-border/30">
+          <div className="w-full flex flex-col items-center justify-center py-16 px-6 select-none border-t border-zinc-900/30">
             <div className="max-w-4xl w-full">
               <p className="text-xs font-panchang tracking-[0.3em] text-zinc-500 font-bold uppercase mb-4 text-center">
                 The Engine
               </p>
               <h2
                 style={{ fontVariationSettings: '"wdth" 130, "wght" 800' }}
-                className="text-2xl sm:text-4xl text-foreground font-panchang tracking-tight mb-12 text-center"
+                className="text-2xl sm:text-4xl text-white font-panchang tracking-tight mb-12 text-center"
               >
                 Core Features
               </h2>
@@ -334,8 +334,8 @@ export default function AboutPage() {
                   { title: "Reminders & Alerts", desc: "Stay accountable with push notifications and automated transaction emails." },
                   { title: "Data Ownership", desc: "Export details or permanently delete your account directly from the settings." },
                 ].map((feature, i) => (
-                  <div key={i} className="bg-card border border-border rounded-lg p-6 hover:border-foreground transition-colors duration-200 text-card-foreground">
-                    <h4 className="text-foreground font-sans font-bold text-base mb-2">{feature.title}</h4>
+                  <div key={i} className="bg-zinc-950/40 border border-zinc-900/50 rounded-lg p-6 hover:border-zinc-800 transition-colors duration-200">
+                    <h4 className="text-white font-sans font-bold text-base mb-2">{feature.title}</h4>
                     <p className="text-zinc-500 text-sm font-sans leading-relaxed">{feature.desc}</p>
                   </div>
                 ))}
@@ -344,9 +344,9 @@ export default function AboutPage() {
           </div>
 
           {/* Merged Manifesto Section */}
-          <div className="w-full flex flex-col items-center justify-center py-12 px-6 select-none border-t border-border/30">
-            <div className="max-w-2xl mx-auto w-full space-y-6 text-zinc-600 dark:text-zinc-400 text-left leading-relaxed text-sm md:text-base font-sans">
-              <p className="text-foreground font-extrabold text-base md:text-lg uppercase tracking-wider text-center">
+          <div className="w-full flex flex-col items-center justify-center py-12 px-6 select-none border-t border-zinc-900/30">
+            <div className="max-w-2xl mx-auto w-full space-y-6 text-zinc-400 text-left leading-relaxed text-sm md:text-base font-sans">
+              <p className="text-white font-extrabold text-base md:text-lg uppercase tracking-wider text-center">
                 THE GAP IS IN THE EXECUTION.
               </p>
               <p>
@@ -356,13 +356,13 @@ export default function AboutPage() {
                 Most people already know what they need to do.
               </p>
               <p>
-                <strong className="text-foreground font-semibold">HabytFlow was born from that realization.</strong>
+                <strong className="text-white font-semibold">HabytFlow was born from that realization.</strong>
               </p>
               <p>
                 I wasn't looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
               </p>
               <p className="py-2 text-center">
-                <span className="text-sm md:text-base text-foreground font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
+                <span className="text-sm md:text-base text-white font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
                   A system that measured actions, not intentions.
                 </span>
               </p>
@@ -378,14 +378,14 @@ export default function AboutPage() {
               <p>
                 Today, HabytFlow is more than a habit tracker.
               </p>
-              <div className="pl-4 border-l border-border space-y-2 py-1 italic">
+              <div className="pl-4 border-l border-zinc-800 space-y-2 py-1 italic">
                 <p>It's a system for accountability.</p>
                 <p>A record of consistency.</p>
                 <p>A reminder that progress isn't created by what we intend to do, but by what we repeatedly choose to do.</p>
               </div>
               
               <div className="pt-4 text-center">
-                <strong className="text-foreground text-base sm:text-lg font-bold block leading-relaxed font-sans">
+                <strong className="text-white text-base sm:text-lg font-bold block leading-relaxed font-sans">
                   Because lasting results are rarely achieved by a single breakthrough.
                   <br />
                   They are forged by what you do repeatedly.
@@ -396,20 +396,20 @@ export default function AboutPage() {
 
           {/* Section 5 (Action Grid) */}
           <CinematicBlock containerRef={scrollContainerRef}>
-            <div className="flex flex-col md:flex-row justify-center items-center gap-12 w-full">
+            <div className="flex flex-row justify-center items-center gap-2 xs:gap-4 sm:gap-8 md:gap-12 w-full">
               {['Define.', 'Execute.', 'Elevate.'].map((phrase, i) => (
                 <div
                   key={phrase}
                   className="text-center flex items-center justify-center py-8 select-none relative"
                 >
                   <motion.div
-                    className="absolute inset-0 bg-foreground/5 blur-2xl rounded-full pointer-events-none"
+                    className="absolute inset-0 bg-white/5 blur-2xl rounded-full pointer-events-none"
                     animate={{ opacity: [0.05, 0.3, 0.05], scale: [0.9, 1.1, 0.9] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: i * 0.8 }}
                   />
                   <span
                     style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                    className="relative z-10 font-panchang text-xl md:text-2xl text-foreground uppercase dark:drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                    className="relative z-10 font-panchang text-xs xs:text-base sm:text-lg md:text-2xl text-white uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]"
                   >
                     {phrase}
                   </span>
@@ -418,14 +418,14 @@ export default function AboutPage() {
             </div>
           </CinematicBlock>
           {/* Section 5.5 (Developer Note Section) */}
-          <div className="relative w-full flex flex-col items-center justify-center py-16 px-6 select-none overflow-hidden border-y border-border/30 border-t">
+          <div className="relative w-full flex flex-col items-center justify-center py-16 px-6 select-none overflow-hidden border-y border-zinc-900/30 border-t">
             {/* Grid mesh background */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
             
             <div className="relative z-10 max-w-4xl w-full flex flex-col items-center text-center gap-8">
               <h2
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                className="text-lg sm:text-2xl md:text-3xl lg:text-4xl text-foreground font-panchang tracking-wider uppercase whitespace-nowrap"
+                className="text-xs xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase text-center sm:whitespace-nowrap"
               >
                 WE'RE JUST GETTING STARTED.
               </h2>
@@ -439,7 +439,7 @@ export default function AboutPage() {
               
               <button
                 onClick={() => setNoteOpen(true)}
-                className="px-6 py-3 bg-card border border-border text-foreground font-mono text-xs md:text-sm font-bold tracking-widest uppercase rounded-none hover:bg-foreground hover:text-background hover:border-foreground active:scale-95 transition-all duration-200 mt-4"
+                className="px-6 py-3 bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono text-xs md:text-sm font-bold tracking-widest uppercase rounded-none hover:bg-zinc-100 hover:text-black hover:border-zinc-100 active:scale-95 transition-all duration-200 shadow-[0_0_20px_rgba(255,255,255,0.02)] mt-4"
               >
                 [ A NOTE FROM THE DEVELOPER ]
               </button>
@@ -449,7 +449,7 @@ export default function AboutPage() {
           {/* Modal Popup for Developer Note */}
           <AnimatePresence>
             {noteOpen && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md">
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-md">
                 {/* Click outside to close */}
                 <div className="absolute inset-0" onClick={() => setNoteOpen(false)} />
                 
@@ -458,12 +458,12 @@ export default function AboutPage() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
                   transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                  className="relative max-w-2xl w-full max-h-[90vh] md:max-h-[85vh] bg-card border border-border rounded-xl p-6 md:p-10 shadow-2xl z-10 select-text flex flex-col overflow-hidden text-card-foreground"
+                  className="relative max-w-2xl w-full max-h-[90vh] md:max-h-[85vh] bg-zinc-950 border border-zinc-900 rounded-xl p-6 md:p-10 shadow-[0_50px_100px_rgba(0,0,0,0.9)] z-10 select-text flex flex-col overflow-hidden"
                 >
                   {/* Close Cross Button */}
                   <button
                     onClick={() => setNoteOpen(false)}
-                    className="absolute top-5 right-5 p-2 rounded-full border border-border text-zinc-500 hover:text-foreground hover:border-foreground hover:bg-muted transition-all duration-200 z-50"
+                    className="absolute top-5 right-5 p-2 rounded-full border border-zinc-900 text-zinc-500 hover:text-white hover:border-zinc-800 hover:bg-zinc-900/50 transition-all duration-200 z-50"
                     aria-label="Close Note"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -472,10 +472,10 @@ export default function AboutPage() {
                   </button>
 
                   <div className="flex-1 flex flex-col overflow-hidden mt-4 text-left">
-                    <div className="space-y-1 pb-4 border-b border-border">
+                    <div className="space-y-1 pb-4 border-b border-zinc-900">
                       <h2 
                         style={{ fontVariationSettings: '"wdth" 140, "wght" 900' }}
-                        className="text-foreground text-xl md:text-3xl font-panchang tracking-tight font-extrabold uppercase pr-8"
+                        className="text-white text-xl md:text-3xl font-panchang tracking-tight font-extrabold uppercase pr-8"
                       >
                         A NOTE FROM THE ARCHITECT
                       </h2>
@@ -485,11 +485,11 @@ export default function AboutPage() {
                     </div>
 
                     {/* Scrollable container for the letter text */}
-                    <div className="flex-1 overflow-y-auto py-6 pr-2 space-y-4 text-zinc-500 dark:text-zinc-400 font-sans text-sm md:text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                    <div className="flex-1 overflow-y-auto py-6 pr-2 space-y-4 text-zinc-400 font-sans text-sm md:text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
                       <p>
                         Every habit completed, every streak maintained, and every commitment honored represents something larger than a number on a screen.
                       </p>
-                      <p className="text-foreground font-medium italic">
+                      <p className="text-white font-medium italic">
                         It represents a promise kept.
                       </p>
                       <p>
@@ -504,15 +504,15 @@ export default function AboutPage() {
                       <p>
                         Thank you for trusting HabytFlow to be part of your journey.
                       </p>
-                      <p className="text-foreground font-semibold pt-2">
+                      <p className="text-white font-semibold pt-2">
                         Keep showing up.
                       </p>
                     </div>
 
-                    <div className="pt-4 border-t border-border flex justify-between items-baseline text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                    <div className="pt-4 border-t border-zinc-900 flex justify-between items-baseline text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
                       <div>
-                        <p className="text-foreground font-bold text-xs">— Divyam Chandak</p>
-                        <p className="text-[9px] text-zinc-600 font-semibold mt-0.5">Founder & Developer</p>
+                        <p className="text-white font-bold text-xs">— Divyam Chandak</p>
+                        <p className="text-[9px] text-zinc-650 font-semibold mt-0.5">Founder & Developer</p>
                       </div>
                       <span>June 2027</span>
                     </div>
@@ -527,22 +527,22 @@ export default function AboutPage() {
             <div className="flex flex-col items-center gap-4 w-full mx-auto text-center select-none">
               {/* Copyright with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
-                <div className="h-px bg-border flex-grow max-w-[80px]" />
-                <span className="text-zinc-650 dark:text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">
+                <div className="h-px bg-zinc-800 flex-grow max-w-[80px]" />
+                <span className="text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">
                   © 2026 HabytFlow. All Rights Reserved.
                 </span>
-                <div className="h-px bg-border flex-grow max-w-[80px]" />
+                <div className="h-px bg-zinc-800 flex-grow max-w-[80px]" />
               </div>
 
               {/* Links with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
-                <div className="h-px bg-border flex-grow max-w-[60px]" />
+                <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
                 <div className="flex items-center gap-4 text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest font-black whitespace-nowrap">
-                  <Link href="/about/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                  <Link href="/about/terms" className="hover:text-foreground transition-colors">Terms of Conditions</Link>
+                  <Link href="/about/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                  <span className="text-zinc-700">·</span>
+                  <Link href="/about/terms" className="hover:text-white transition-colors">Terms of Conditions</Link>
                 </div>
-                <div className="h-px bg-border flex-grow max-w-[60px]" />
+                <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
               </div>
             </div>
           </div>

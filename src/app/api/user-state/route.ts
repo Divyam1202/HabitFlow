@@ -16,10 +16,10 @@ export async function GET(req: NextRequest) {
     const userState = await UserState.findOne({ userId: session.user.id })
     
     if (!userState) {
-      return NextResponse.json({ stateData: null })
+      return NextResponse.json({ stateData: null, timezone: null })
     }
     
-    return NextResponse.json({ stateData: userState.stateData })
+    return NextResponse.json({ stateData: userState.stateData, timezone: userState.timezone || 'Asia/Kolkata' })
   } catch (error) {
     console.error('Error fetching user state:', error)
     return NextResponse.json({ error: 'Failed to fetch user state' }, { status: 500 })
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { stateData } = await req.json()
+    const { stateData, timezone } = await req.json()
 
     if (!stateData) {
       return NextResponse.json({ error: 'stateData is required' }, { status: 400 })
@@ -41,10 +41,15 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase()
     
+    const updateFields: any = { stateData }
+    if (timezone) {
+      updateFields.timezone = timezone
+    }
+
     // Upsert the user state
     await UserState.findOneAndUpdate(
       { userId: session.user.id },
-      { stateData },
+      { $set: updateFields },
       { upsert: true, returnDocument: 'after' }
     )
 

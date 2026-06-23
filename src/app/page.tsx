@@ -25,12 +25,57 @@ import { toast } from 'sonner'
 
 export default function BrutalistDashboard() {
   const { timeFormat } = useSettings()
-  const { gridData, todayHabits, toggleTodayHabit, toggleGridHabit, heatmapData, isMounted, isInitialized, initializeJourney } = useHabitContext()
+  const { 
+    gridData, 
+    todayHabits, 
+    toggleTodayHabit, 
+    toggleGridHabit, 
+    heatmapData, 
+    isMounted, 
+    isInitialized, 
+    initializeJourney,
+    currentSystemDate
+  } = useHabitContext()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [selectedWeek, setSelectedWeek] = useState<'all' | 1 | 2 | 3 | 4>('all')
   const [animatingCells, setAnimatingCells] = useState<Record<string, boolean>>({})
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
+
+  const todayDay = new Date().getDate()
+  const [selectedDay, setSelectedDay] = useState<number>(todayDay)
+
+  useEffect(() => {
+    if (isMounted) {
+      setSelectedDay(new Date().getDate())
+    }
+  }, [currentSystemDate, isMounted])
+
+  // Self-repair to clear the glitchy completions on June 10 caused by the previous index mismatch
+  useEffect(() => {
+    if (isMounted && gridData.length > 0) {
+      const repairedKey = 'habitflow_glitch_repaired_jun10';
+      if (!localStorage.getItem(repairedKey)) {
+        gridData.forEach(h => {
+          if (h.days && h.days[16]?.completed) {
+            toggleGridHabit(h.id, h.days[16].day);
+          }
+        });
+        localStorage.setItem(repairedKey, 'true');
+      }
+    }
+  }, [isMounted, gridData, toggleGridHabit])
+
+  useEffect(() => {
+    if (isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const dismissed = sessionStorage.getItem('habitflow_notif_prompt_dismissed')
+      if (!dismissed) {
+        const timer = setTimeout(() => setShowNotifPrompt(true), 3000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     const checkStagnant = () => {
@@ -104,6 +149,17 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, user?.id])
 
+  // Automatically register Capacitor Native Push if running on native app wrapper
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      import('@capacitor/core').then(({ Capacitor }) => {
+        if (Capacitor.isNativePlatform()) {
+          requestAndStoreNotificationToken(user.id);
+        }
+      });
+    }
+  }, [isAuthenticated, user?.id])
+
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -132,7 +188,10 @@ export default function BrutalistDashboard() {
         const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
         if (isScheduled) {
           totalScheduled++;
-          if (habit.days.find(d => d.day === relativeDayNum)?.completed) completed++;
+          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
+          if (habit.days && habit.days[dayIndex]?.completed) {
+            completed++;
+          }
         }
       });
       rate = totalScheduled === 0 ? 0 : Math.round((completed / totalScheduled) * 100);
@@ -155,6 +214,50 @@ export default function BrutalistDashboard() {
     });
 
 
+
+  // Selected day time-travel date calculations
+  const dateForSelectedDay = new Date(currentYear, currentMonth, selectedDay);
+  const dayOfWeekForSelectedDay = dateForSelectedDay.getDay();
+  const isSelectedDayToday = selectedDay === todayDay;
+
+  const todayObj = new Date();
+  const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+  const targetMidnight = new Date(currentYear, currentMonth, selectedDay);
+  const diffTimeForSelectedDay = targetMidnight.getTime() - todayMidnight.getTime();
+  const diffDaysForSelectedDay = Math.round(diffTimeForSelectedDay / (1000 * 3600 * 24));
+
+  const scheduledHabitsForSelectedDay = gridData.filter(habit =>
+    habit.frequency ? habit.frequency.includes(dayOfWeekForSelectedDay) : true
+  );
+
+  const getIsCompleted = (habit: typeof gridData[0]) => {
+    if (diffDaysForSelectedDay === 0) {
+      return todayHabits.includes(habit.id);
+    } else {
+      const dayIndex = (habit.days?.length || 30) - 1 + diffDaysForSelectedDay;
+      return habit.days ? !!habit.days[dayIndex]?.completed : false;
+    }
+  };
+
+  const handleToggleHabit = (habitId: number) => {
+    if (diffDaysForSelectedDay !== 0 && diffDaysForSelectedDay !== -1) return;
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+    if (diffDaysForSelectedDay === 0) {
+      toggleTodayHabit(habitId);
+    } else {
+      const habit = gridData.find(h => h.id === habitId);
+      if (habit && habit.days) {
+        const dayIndex = habit.days.length - 1 + diffDaysForSelectedDay;
+        if (dayIndex >= 0 && dayIndex < habit.days.length) {
+          const targetDayVal = habit.days[dayIndex].day;
+          toggleGridHabit(habitId, targetDayVal);
+        }
+      }
+    }
+  };
+
+  // Selected date string, e.g. "Jun 23"
+  const selectedDateStr = dateForSelectedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   const toggleDay = (habitId: number, dayNum: number) => {
     const key = `${habitId}-${dayNum}`
@@ -212,13 +315,25 @@ export default function BrutalistDashboard() {
           </div>
         )}
 
-        {/* Section B: Today's Action Items */}
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-foreground text-xl font-bold uppercase tracking-widest hidden md:block">Today's Action Items</h2>
-          {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+        {/* Section B: Action Items */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <h2 className="text-foreground text-base md:text-xl font-bold uppercase tracking-widest">
+              {isSelectedDayToday ? "Today's Action Items" : `Action Items for ${selectedDateStr}`}
+            </h2>
+            {!isSelectedDayToday && (
+              <button
+                onClick={() => setSelectedDay(todayDay)}
+                className="flex items-center gap-1 border border-border bg-card text-foreground px-2 py-1 text-[9px] md:text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors rounded-[2px]"
+              >
+                Back to Today
+              </button>
+            )}
+          </div>
+          {isSelectedDayToday && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
             <button
               onClick={() => requestAndStoreNotificationToken(user?.id!)}
-              className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse"
+              className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse self-start sm:self-auto"
             >
               <Bell size={14} /> Enable Notifications
             </button>
@@ -234,14 +349,14 @@ export default function BrutalistDashboard() {
               </button>
             </div>
           )}
-          {gridData.length > 0 && gridData.filter(h => h.frequency ? h.frequency.includes(new Date().getDay()) : true).length === 0 && (
+          {gridData.length > 0 && scheduledHabitsForSelectedDay.length === 0 && (
             <div className="col-span-full border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
               <h3 className="text-foreground text-lg font-bold uppercase tracking-widest mb-2">Rest Day</h3>
-              <p className="text-zinc-500 text-sm">You have no habits scheduled for today.</p>
+              <p className="text-zinc-500 text-sm">You have no habits scheduled for this day.</p>
             </div>
           )}
-          {gridData.filter(habit => habit.frequency ? habit.frequency.includes(new Date().getDay()) : true).map(habit => {
-            const isCompleted = todayHabits.includes(habit.id);
+          {scheduledHabitsForSelectedDay.map(habit => {
+            const isCompleted = getIsCompleted(habit);
 
             const BRUTALIST_COLORS = [
               "bg-[#ef4444] text-white border-[#ef4444]", // Red
@@ -257,16 +372,13 @@ export default function BrutalistDashboard() {
             let colorClass = BRUTALIST_COLORS[habit.id % BRUTALIST_COLORS.length];
 
             if (isCompleted) {
-              colorClass = "bg-muted text-zinc-550 border-border opacity-50 grayscale";
+              colorClass = "bg-muted text-zinc-555 border-border opacity-50 grayscale";
             }
 
             return (
               <button
                 key={habit.id}
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
-                  toggleTodayHabit(habit.id);
-                }}
+                onClick={() => handleToggleHabit(habit.id)}
                 className={`p-3 md:p-4 flex flex-col justify-between min-h-[80px] md:min-h-[100px] border rounded-[1px] transition-all duration-300 transform active:scale-95 text-left ${colorClass}`}
               >
                 <div className="flex justify-between items-start w-full">
@@ -313,7 +425,11 @@ export default function BrutalistDashboard() {
               <p className="text-zinc-500 text-sm mb-6">Add habits to see your 30-day trends.</p>
             </div>
           ) : (
-            <UnifiedHabitCalendar gridData={gridData} />
+            <UnifiedHabitCalendar 
+              gridData={gridData} 
+              selectedDay={selectedDay}
+              onSelectDay={setSelectedDay}
+            />
           )}
         </div>
 
@@ -420,6 +536,50 @@ export default function BrutalistDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Floating Brutalist Notification Banner */}
+        <AnimatePresence>
+          {showNotifPrompt && isMounted && isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-6 right-6 z-50 max-w-sm border-2 border-foreground bg-background p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+            >
+              <div className="flex items-start gap-4">
+                <div className="bg-foreground text-background p-2">
+                  <Bell className="h-5 w-5 animate-bounce" />
+                </div>
+                <div className="space-y-2 flex-1">
+                  <h4 className="font-bold uppercase tracking-wider text-xs text-foreground">STREAK PROTECTION REMINDER</h4>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    Protect your progress! Allow push notifications to receive real-time habit reminders on this device.
+                  </p>
+                  <div className="flex gap-4 pt-1.5">
+                    <button
+                      onClick={() => {
+                        requestAndStoreNotificationToken(user?.id!)
+                        setShowNotifPrompt(false)
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
+                    >
+                      ENABLE REMINDERS &gt;
+                    </button>
+                    <button
+                      onClick={() => {
+                        sessionStorage.setItem('habitflow_notif_prompt_dismissed', 'true')
+                        setShowNotifPrompt(false)
+                      }}
+                      className="text-zinc-500 hover:text-foreground text-[10px] font-bold uppercase tracking-wider transition-colors"
+                    >
+                      Maybe Later
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
       </div>
     </>

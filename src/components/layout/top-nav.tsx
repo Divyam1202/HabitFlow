@@ -88,8 +88,8 @@ export function TopNav() {
           {/* Right Section (All viewports) */}
           <div className="flex items-center gap-4 z-50 relative">
             <div className="flex flex-col items-end justify-center gap-0.5">
-              <div className="hidden sm:block text-xs font-medium text-zinc-500 tracking-wider uppercase">
-                {mounted ? new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '...'}
+              <div className="text-[9px] md:text-xs font-semibold text-zinc-400 tracking-wider uppercase">
+                {mounted ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '...'}
               </div>
               {!isAuthenticated && mounted ? (
                 <button
@@ -112,15 +112,15 @@ export function TopNav() {
               )}
             </div>
             {mounted && (
-              <button onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} className="text-zinc-500 hover:text-white transition-colors">
+              <button onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} className="hidden md:block text-zinc-500 hover:text-white transition-colors">
                 {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
               </button>
             )}
 
-            {/* Mobile Sidebar Toggle (max-width: 767px) */}
+            {/* Mobile Sidebar Toggle (max-width: 767px) - Beside date and signin/signout */}
             {!isAdminUser && !isAdminRoute && (
               <button
-                className="md:hidden text-zinc-500 hover:text-white transition-colors"
+                className="md:hidden text-zinc-400 hover:text-white transition-colors p-1"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -141,7 +141,22 @@ export function TopNav() {
         )}
 
         {/* Sidebar Panel */}
-        <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className={`md:hidden fixed inset-y-0 left-0 z-40 w-64 bg-black border-r border-zinc-900 pt-20 px-6 pb-6 flex flex-col overflow-y-auto transform transition-transform duration-300 ease-in-out ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          {/* Light Mode / Dark Mode Toggle Shifted Above Dashboard in Sidebar */}
+          <div className="mb-6 border-b border-zinc-900 pb-4">
+            {mounted && (
+              <button 
+                onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')} 
+                className="w-full flex items-center justify-between p-3 border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-white hover:border-zinc-700 transition-colors rounded-[2px]"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-widest">
+                  {activeTheme === 'dark' ? "Light Mode" : "Dark Mode"}
+                </span>
+                {activeTheme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              </button>
+            )}
+          </div>
+
           <nav className="flex flex-col gap-2">
             {navLinks.map((link) => {
               const isActive = pathname === link.href
@@ -159,8 +174,15 @@ export function TopNav() {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-zinc-900 pt-6">
+          <div className="mt-auto border-t border-zinc-900 pt-6 space-y-3">
             <PwaInstallButton />
+            <a
+              href="/HabytFlow.apk"
+              download="HabytFlow.apk"
+              className="w-full py-2.5 px-4 bg-green-500 hover:bg-green-400 text-black font-bold uppercase tracking-widest text-[10px] text-center block transition-colors rounded-[2px]"
+            >
+              Download Android App (.APK)
+            </a>
           </div>
         </div>
       </>
