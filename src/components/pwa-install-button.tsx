@@ -77,7 +77,7 @@ export function PwaInstallButton() {
         onClick={handleInstallClick}
       >
         <Download className="h-4 w-4" />
-        Install App
+        Install HabytFlow
       </Button>
 
       {/* iOS Installation Instructions */}
