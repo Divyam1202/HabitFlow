@@ -54,6 +54,9 @@ export const requestAndStoreNotificationToken = async (userId: string) => {
         body: JSON.stringify({ userId, token: currentToken }),
       });
       console.log("FCM registration token synced successfully.");
+      if (typeof window !== "undefined") {
+        localStorage.setItem(`fcm_token_synced_${userId}`, "true");
+      }
     } else {
       console.warn("No registration token available. Check your VAPID key configurations.");
     }
