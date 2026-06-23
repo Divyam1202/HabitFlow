@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "copy-apk": "node -e \"const fs = require('fs'); const src = 'android/app/build/outputs/apk/debug/app-debug.apk'; const dest = 'public/HabytFlow.apk'; if (fs.existsSync(src)) { fs.copyFileSync(src, dest); console.log('Successfully copied APK to public directory!'); } else { console.error('Error: app-debug.apk not found. Please build the APK in Android Studio first.'); process.exit(1); }\""
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
