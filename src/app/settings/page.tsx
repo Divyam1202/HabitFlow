@@ -33,6 +33,15 @@ export default function SettingsPage() {
     fcmTokenRegistered: boolean
     lastNotificationDelivered: boolean
     timezone: string
+    usersDiagnostics?: Array<{
+      userId: string
+      hasFcmToken: boolean
+      tokenLength: number
+      timezone: string
+      lastTokenRefresh: string
+    }>
+    lastNotificationSentTime?: string | null
+    lastNotificationDeliveredTime?: string | null
   } | null>(null)
   const [swActive, setSwActive] = useState(false)
   const [permissionState, setPermissionState] = useState<string>('default')
@@ -373,6 +382,86 @@ export default function SettingsPage() {
                 >
                   {sendingTest ? 'Sending Push...' : 'Send Test Notification'}
                 </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Notification Debug</h2>
+            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="border border-border p-4 bg-background/35">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">FCM Token Status</div>
+                  <div className="text-sm font-bold text-foreground mt-1">
+                    {health?.fcmTokenRegistered ? (
+                      <span className="text-emerald-500">Active / Registered ✅</span>
+                    ) : (
+                      <span className="text-red-500">Unregistered ❌</span>
+                    )}
+                  </div>
+                </div>
+                <div className="border border-border p-4 bg-background/35">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Last Notification Sent</div>
+                  <div className="text-sm font-bold text-foreground mt-1">
+                    {health?.lastNotificationSentTime ? (
+                      <span className="font-mono text-xs">{new Date(health.lastNotificationSentTime).toLocaleString()}</span>
+                    ) : (
+                      <span className="text-zinc-500">No Logs</span>
+                    )}
+                  </div>
+                </div>
+                <div className="border border-border p-4 bg-background/35">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Last Notification Delivered</div>
+                  <div className="text-sm font-bold text-foreground mt-1">
+                    {health?.lastNotificationDeliveredTime ? (
+                      <span className="font-mono text-xs text-emerald-500">{new Date(health.lastNotificationDeliveredTime).toLocaleString()}</span>
+                    ) : (
+                      <span className="text-zinc-500">No Logs</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px w-full bg-border" />
+
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">All Registered Users Status</h3>
+                <div className="overflow-x-auto border border-border">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-background border-b border-border font-bold uppercase tracking-widest text-[9px] text-zinc-500">
+                        <th className="p-3">User ID</th>
+                        <th className="p-3">FCM Token Status</th>
+                        <th className="p-3">Timezone</th>
+                        <th className="p-3">Last Token Refresh</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {health?.usersDiagnostics && health.usersDiagnostics.length > 0 ? (
+                        health.usersDiagnostics.map((u) => (
+                          <tr key={u.userId} className="border-b border-border bg-background/10 hover:bg-background/20 transition-colors">
+                            <td className="p-3 font-mono">{u.userId}</td>
+                            <td className="p-3">
+                              {u.hasFcmToken ? (
+                                <span className="text-emerald-500 font-semibold">Yes ({u.tokenLength} chars)</span>
+                              ) : (
+                                <span className="text-zinc-500 font-medium">No Token</span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono">{u.timezone}</td>
+                            <td className="p-3 text-zinc-400">
+                              {u.lastTokenRefresh ? new Date(u.lastTokenRefresh).toLocaleString() : 'Never'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="p-4 text-center text-zinc-500">No users found.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </section>
