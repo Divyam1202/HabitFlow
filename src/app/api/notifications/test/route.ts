@@ -186,6 +186,30 @@ export async function POST(req: NextRequest) {
         errorMessage: `Firebase Send Failure: ${sendErr.message || sendErr}`
       })
 
+      if (
+        sendErr.code === 'messaging/registration-token-not-registered' ||
+        sendErr.code === 'messaging/invalid-registration-token' ||
+        sendErr.code === 'messaging/invalid-argument' ||
+        (sendErr.httpResponse && (sendErr.httpResponse.status === 404 || sendErr.httpResponse.status === 400))
+      ) {
+        console.log(`[Test Trigger] Stale FCM token detected for user ${userId}. Unsetting in database.`);
+        try {
+          await UserState.updateOne(
+            { userId },
+            {
+              $unset: { fcmToken: "" },
+              $set: {
+                notificationStatus: "invalid_token",
+                lastNotificationFailure: new Date(),
+                lastNotificationFailureReason: sendErr.code || "messaging/registration-token-not-registered"
+              }
+            }
+          );
+        } catch (dbErr) {
+          console.error("Failed to unset token on test failure:", dbErr);
+        }
+      }
+
       return NextResponse.json({
         success: false,
         error: 'Firebase Send Failure',

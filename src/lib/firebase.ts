@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getMessaging, getToken, Messaging } from "firebase/messaging";
+import { getMessaging, getToken, deleteToken, Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,7 +25,7 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
   }
 };
 
-export const requestAndStoreNotificationToken = async (userId: string) => {
+export const requestAndStoreNotificationToken = async (userId: string, forceRefresh = false) => {
   try {
     const messaging = await getFirebaseMessaging();
     if (!messaging) return;
@@ -42,6 +42,15 @@ export const requestAndStoreNotificationToken = async (userId: string) => {
       registration = await navigator.serviceWorker.ready;
     }
 
+    if (forceRefresh) {
+      try {
+        await deleteToken(messaging);
+        console.log("[FCM Refresh] Old token invalidated.");
+      } catch (err) {
+        console.warn("Failed to delete stale FCM token:", err);
+      }
+    }
+
     const currentToken = await getToken(messaging, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: registration,
@@ -53,7 +62,7 @@ export const requestAndStoreNotificationToken = async (userId: string) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, token: currentToken }),
       });
-      console.log("FCM registration token synced successfully.");
+      console.log("[FCM Refresh] New token registered.");
       if (typeof window !== "undefined") {
         localStorage.setItem(`fcm_token_synced_${userId}`, "true");
       }

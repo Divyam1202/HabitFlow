@@ -19,6 +19,7 @@ function mapCategoryToChannel(category: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  let userId = '';
   try {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session || !session.user) {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing habitId' }, { status: 400 });
     }
 
-    const userId = session.user.id;
+    userId = session.user.id;
     await connectToDatabase();
 
     const userState = await UserState.findOne({ userId });
@@ -162,6 +163,29 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Manual habit trigger error:', error);
+    if (
+      error.code === 'messaging/registration-token-not-registered' ||
+      error.code === 'messaging/invalid-registration-token' ||
+      error.code === 'messaging/invalid-argument' ||
+      (error.httpResponse && (error.httpResponse.status === 404 || error.httpResponse.status === 400))
+    ) {
+      console.log(`[Manual Trigger] Stale FCM token detected for user ${userId}. Unsetting in database.`);
+      try {
+        await UserState.updateOne(
+          { userId },
+          {
+            $unset: { fcmToken: "" },
+            $set: {
+              notificationStatus: "invalid_token",
+              lastNotificationFailure: new Date(),
+              lastNotificationFailureReason: error.code || "messaging/registration-token-not-registered"
+            }
+          }
+        );
+      } catch (dbErr) {
+        console.error("Failed to unset token on manual failure:", dbErr);
+      }
+    }
     return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
   }
 }

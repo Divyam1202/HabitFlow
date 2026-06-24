@@ -111,6 +111,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  console.log('[Cron Started]');
   try {
     await connectMongo();
 
@@ -123,6 +124,7 @@ export async function GET(request: Request) {
     const now = new Date();
 
     for (const user of users) {
+      console.log(`[User Processed] User ID: ${user.userId}`);
       if (!user.stateData) continue;
 
       let parsed: any = {};
@@ -152,6 +154,8 @@ export async function GET(request: Request) {
           snoozedUpdated = true;
           const habit = habits.find((h: any) => h.id === snooze.habitId);
           if (habit) {
+            console.log(`[Habit Evaluated] Habit: "${habit.name}" (ID: ${habit.id}) (Snoozed)`);
+            console.log(`[Match Found] Habit: "${habit.name}" (ID: ${habit.id}) matching snooze for user ${user.userId}`);
             const channel = mapCategoryToChannel(habit.category);
 
             // Log: scheduled, evaluated, triggered
@@ -317,7 +321,9 @@ export async function GET(request: Request) {
                 }
               };
 
-              await adminMessaging.send(message);
+              console.log(`[FCM Send Attempted] Message: ${JSON.stringify(message)}`);
+              const fcmResponse = await adminMessaging.send(message);
+              console.log(`[FCM Send Success] Message ID: ${fcmResponse}`);
               notificationsSent++;
 
               // Log: delivered
@@ -337,6 +343,7 @@ export async function GET(request: Request) {
               } catch { /* non-critical */ }
             } catch (pushErr: any) {
               console.error(`Failed to send snoozed FCM push:`, pushErr);
+              console.log(`[FCM Send Failed] Error: ${pushErr.message || pushErr}`);
               await NotificationLog.create({
                 userId: user.userId,
                 habitId: String(habit.id),
@@ -347,6 +354,26 @@ export async function GET(request: Request) {
                 status: 'failed',
                 errorMessage: `Firebase Send Failure: ${pushErr.message || pushErr}`
               });
+
+              if (
+                pushErr.code === 'messaging/registration-token-not-registered' ||
+                pushErr.code === 'messaging/invalid-registration-token' ||
+                pushErr.code === 'messaging/invalid-argument' ||
+                (pushErr.httpResponse && (pushErr.httpResponse.status === 404 || pushErr.httpResponse.status === 400))
+              ) {
+                console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
+                await UserState.updateOne(
+                  { userId: user.userId },
+                  {
+                    $unset: { fcmToken: "" },
+                    $set: {
+                      notificationStatus: "invalid_token",
+                      lastNotificationFailure: new Date(),
+                      lastNotificationFailureReason: pushErr.code || "messaging/registration-token-not-registered"
+                    }
+                  }
+                );
+              }
             }
           }
         } else {
@@ -372,6 +399,7 @@ export async function GET(request: Request) {
 
       // ── Process regular habits ────────────────────────────────────────
       for (const habit of habits) {
+        console.log(`[Habit Evaluated] Habit: "${habit.name}" (ID: ${habit.id})`);
         const isCompleted = todayHabits.includes(habit.id);
         const channel = mapCategoryToChannel(habit.category);
 
@@ -461,6 +489,7 @@ export async function GET(request: Request) {
         }
 
         if (triggerMatched) {
+          console.log(`[Match Found] Habit: "${habit.name}" (ID: ${habit.id}) matching type ${copyType} for user ${user.userId}`);
           // Log: scheduled, evaluated, triggered
           await NotificationLog.create({
             userId: user.userId,
@@ -638,7 +667,9 @@ export async function GET(request: Request) {
               }
             };
 
-            await adminMessaging.send(message);
+            console.log(`[FCM Send Attempted] Message: ${JSON.stringify(message)}`);
+            const fcmResponse = await adminMessaging.send(message);
+            console.log(`[FCM Send Success] Message ID: ${fcmResponse}`);
             notificationsSent++;
             console.log(`[Cron] Sent notification (${copyType}) for habit: ${habit.name} → user: ${user.userId} (${userTimezone})`);
 
@@ -659,6 +690,7 @@ export async function GET(request: Request) {
             } catch { /* non-critical */ }
           } catch (error: any) {
             console.error(`Failed to send FCM to user ${user.userId}:`, error);
+            console.log(`[FCM Send Failed] Error: ${error.message || error}`);
             await NotificationLog.create({
               userId: user.userId,
               habitId: String(habit.id),
@@ -669,6 +701,26 @@ export async function GET(request: Request) {
               status: 'failed',
               errorMessage: `Firebase Send Failure: ${error.message || error}`
             });
+
+            if (
+              error.code === 'messaging/registration-token-not-registered' ||
+              error.code === 'messaging/invalid-registration-token' ||
+              error.code === 'messaging/invalid-argument' ||
+              (error.httpResponse && (error.httpResponse.status === 404 || error.httpResponse.status === 400))
+            ) {
+              console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
+              await UserState.updateOne(
+                { userId: user.userId },
+                {
+                  $unset: { fcmToken: "" },
+                  $set: {
+                    notificationStatus: "invalid_token",
+                    lastNotificationFailure: new Date(),
+                    lastNotificationFailureReason: error.code || "messaging/registration-token-not-registered"
+                  }
+                }
+              );
+            }
           }
         }
       }

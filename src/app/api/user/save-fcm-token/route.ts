@@ -28,10 +28,16 @@ export async function POST(request: Request) {
       { $unset: { fcmToken: "" } }
     );
 
-    // Update the user state with the FCM token
+    // Update the user state with the FCM token and reset state metadata
     await UserState.findOneAndUpdate(
       { userId },
-      { $set: { fcmToken: token } },
+      {
+        $set: {
+          fcmToken: token,
+          notificationStatus: 'active',
+          lastTokenRefreshAt: new Date()
+        }
+      },
       { new: true, upsert: true }
     );
 
