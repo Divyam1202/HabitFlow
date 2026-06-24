@@ -354,6 +354,26 @@ export async function GET(request: Request) {
                 status: 'failed',
                 errorMessage: `Firebase Send Failure: ${pushErr.message || pushErr}`
               });
+
+              if (
+                pushErr.code === 'messaging/registration-token-not-registered' ||
+                pushErr.code === 'messaging/invalid-registration-token' ||
+                pushErr.code === 'messaging/invalid-argument' ||
+                (pushErr.httpResponse && (pushErr.httpResponse.status === 404 || pushErr.httpResponse.status === 400))
+              ) {
+                console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
+                await UserState.updateOne(
+                  { userId: user.userId },
+                  {
+                    $unset: { fcmToken: "" },
+                    $set: {
+                      notificationStatus: "invalid_token",
+                      lastNotificationFailure: new Date(),
+                      lastNotificationFailureReason: pushErr.code || "messaging/registration-token-not-registered"
+                    }
+                  }
+                );
+              }
             }
           }
         } else {
@@ -681,6 +701,26 @@ export async function GET(request: Request) {
               status: 'failed',
               errorMessage: `Firebase Send Failure: ${error.message || error}`
             });
+
+            if (
+              error.code === 'messaging/registration-token-not-registered' ||
+              error.code === 'messaging/invalid-registration-token' ||
+              error.code === 'messaging/invalid-argument' ||
+              (error.httpResponse && (error.httpResponse.status === 404 || error.httpResponse.status === 400))
+            ) {
+              console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
+              await UserState.updateOne(
+                { userId: user.userId },
+                {
+                  $unset: { fcmToken: "" },
+                  $set: {
+                    notificationStatus: "invalid_token",
+                    lastNotificationFailure: new Date(),
+                    lastNotificationFailureReason: error.code || "messaging/registration-token-not-registered"
+                  }
+                }
+              );
+            }
           }
         }
       }

@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, LogOut, Trash2, CheckCircle2, Check, X, AlertTriangle, Activity, Bell } from 'lucide-react'
+import { Download, Trash2, CheckCircle2 } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
-import { useHabitContext } from '@/contexts/habit-context'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { authClient } from '@/lib/auth-client'
 import { toast } from 'sonner'
+import { requestAndStoreNotificationToken } from '@/lib/firebase'
 
 export default function SettingsPage() {
   const { timeFormat, updateTimeFormat } = useSettings()
@@ -26,52 +26,11 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
-  
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
-  
-  const [health, setHealth] = useState<{
-    fcmTokenRegistered: boolean
-    lastNotificationDelivered: boolean
-    timezone: string
-    usersDiagnostics?: Array<{
-      userId: string
-      hasFcmToken: boolean
-      tokenLength: number
-      timezone: string
-      lastTokenRefresh: string
-    }>
-    lastNotificationSentTime?: string | null
-    lastNotificationDeliveredTime?: string | null
-  } | null>(null)
-  const [swActive, setSwActive] = useState(false)
+
+  // Notification auto-repair state — not displayed, runs silently
+  const [health, setHealth] = useState<{ notificationStatus?: string } | null>(null)
   const [permissionState, setPermissionState] = useState<string>('default')
-  const [sendingTest, setSendingTest] = useState(false)
-
-  const { gridData: habits } = useHabitContext()
-  const [triggeringHabit, setTriggeringHabit] = useState<number | null>(null)
-
-  const triggerHabitReminder = async (habitId: number) => {
-    setTriggeringHabit(habitId)
-    try {
-      const res = await fetch('/api/notifications/manual-habit-trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ habitId })
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        toast.success(`Reminder sent for habit: "${data.habitName || 'Habit'}"`)
-      } else {
-        toast.error(data.error || 'Failed to send reminder', {
-          description: data.details || 'Check console/logs for more details.'
-        })
-      }
-    } catch (e: any) {
-      toast.error('Error: ' + e.message)
-    } finally {
-      setTriggeringHabit(null)
-    }
-  }
 
   const checkNotifHealth = async () => {
     try {
@@ -83,49 +42,30 @@ export default function SettingsPage() {
     } catch (e) {
       console.error(e)
     }
-
-    if (typeof window !== 'undefined') {
-      if ('Notification' in window) {
-        setPermissionState(Notification.permission)
-      }
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          setSwActive(regs.length > 0)
-        })
-      }
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPermissionState(Notification.permission)
     }
   }
 
+  // Silently fetch health on mount so the repair effect can evaluate
   useEffect(() => {
     if (isAuthenticated) {
       checkNotifHealth()
     }
   }, [isAuthenticated])
 
-  const sendTestNotification = async () => {
-    setSendingTest(true)
-    try {
-      const res = await fetch('/api/notifications/test', { method: 'POST' })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        toast.success('Test notification sent successfully!')
-      } else {
-        toast.error(data.error || 'Failed to send test notification', {
-          description: data.details || 'Check console/logs for more details.'
-        })
-      }
-      checkNotifHealth()
-    } catch (err: any) {
-      toast.error('Failed to send test notification: ' + err.message)
-    } finally {
-      setSendingTest(false)
+  // Auto-repair: if token is invalid and permission is granted, force-refresh silently
+  useEffect(() => {
+    if (isAuthenticated && user?.id && permissionState === 'granted' && health?.notificationStatus === 'invalid_token') {
+      console.log('[FCM] Stale token detected — silently refreshing...')
+      requestAndStoreNotificationToken(user.id, true).then(() => checkNotifHealth())
     }
-  }
+  }, [health?.notificationStatus, permissionState, isAuthenticated, user?.id])
 
   useEffect(() => {
     if (user) {
-      setUsername(user.name || 'divyam_1202')
-      setEmail(user.email || 'divyam@example.com')
+      setUsername(user.name || '')
+      setEmail(user.email || '')
     }
   }, [user])
 
@@ -164,9 +104,7 @@ export default function SettingsPage() {
       setSyncPhase('success')
       setCurrentPassword('')
       setNewPassword('')
-      setTimeout(() => {
-        setSyncPhase('idle')
-      }, 1500)
+      setTimeout(() => setSyncPhase('idle'), 1500)
     }
   }
 
@@ -180,7 +118,8 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-8">
-          
+
+          {/* Account */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Account</h2>
             <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
@@ -240,6 +179,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Preferences */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Preferences</h2>
             <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
@@ -291,224 +231,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Push Notifications Diagnostics</h2>
-            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Activity size={18} className="text-zinc-500" />
-                    <div>
-                      <div className="font-bold text-foreground">Notifications Permission</div>
-                      <div className="text-sm text-zinc-500">Browser notification permission state.</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                    {permissionState === 'granted' ? (
-                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Enabled ✅</span>
-                    ) : (
-                      <span className="text-red-500 flex items-center gap-1"><X size={14} /> Denied / Default ❌</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-px w-full bg-border" />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bell size={18} className="text-zinc-500" />
-                    <div>
-                      <div className="font-bold text-foreground">FCM Token Registered</div>
-                      <div className="text-sm text-zinc-500">Firebase Cloud Messaging database entry.</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                    {health?.fcmTokenRegistered ? (
-                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Registered ✅</span>
-                    ) : (
-                      <span className="text-amber-500 flex items-center gap-1"><AlertTriangle size={14} /> Unregistered ⚠️</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-px w-full bg-border" />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle2 size={18} className="text-zinc-500" />
-                    <div>
-                      <div className="font-bold text-foreground">Service Worker Status</div>
-                      <div className="text-sm text-zinc-500">PWA controller service worker verification.</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                    {swActive ? (
-                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Active ✅</span>
-                    ) : (
-                      <span className="text-amber-500 flex items-center gap-1"><AlertTriangle size={14} /> Missing ⚠️</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-px w-full bg-border" />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Activity size={18} className="text-zinc-500" />
-                    <div>
-                      <div className="font-bold text-foreground">Last Notification Delivery</div>
-                      <div className="text-sm text-zinc-500">Most recent push status in tracking database.</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider">
-                    {health?.lastNotificationDelivered ? (
-                      <span className="text-emerald-500 flex items-center gap-1"><Check size={14} /> Succeeded ✅</span>
-                    ) : (
-                      <span className="text-zinc-500 flex items-center gap-1">No Delivery Log</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="text-xs text-zinc-500">
-                  Timezone: <span className="font-mono text-white">{health?.timezone || 'Loading...'}</span>
-                </div>
-                <button
-                  type="button"
-                  disabled={sendingTest}
-                  onClick={sendTestNotification}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 text-black font-bold uppercase text-[10px] tracking-widest transition-colors rounded-[2px]"
-                >
-                  {sendingTest ? 'Sending Push...' : 'Send Test Notification'}
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Notification Debug</h2>
-            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="border border-border p-4 bg-background/35">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">FCM Token Status</div>
-                  <div className="text-sm font-bold text-foreground mt-1">
-                    {health?.fcmTokenRegistered ? (
-                      <span className="text-emerald-500">Active / Registered ✅</span>
-                    ) : (
-                      <span className="text-red-500">Unregistered ❌</span>
-                    )}
-                  </div>
-                </div>
-                <div className="border border-border p-4 bg-background/35">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Last Notification Sent</div>
-                  <div className="text-sm font-bold text-foreground mt-1">
-                    {health?.lastNotificationSentTime ? (
-                      <span className="font-mono text-xs">{new Date(health.lastNotificationSentTime).toLocaleString()}</span>
-                    ) : (
-                      <span className="text-zinc-500">No Logs</span>
-                    )}
-                  </div>
-                </div>
-                <div className="border border-border p-4 bg-background/35">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Last Notification Delivered</div>
-                  <div className="text-sm font-bold text-foreground mt-1">
-                    {health?.lastNotificationDeliveredTime ? (
-                      <span className="font-mono text-xs text-emerald-500">{new Date(health.lastNotificationDeliveredTime).toLocaleString()}</span>
-                    ) : (
-                      <span className="text-zinc-500">No Logs</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="h-px w-full bg-border" />
-
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3">All Registered Users Status</h3>
-                <div className="overflow-x-auto border border-border">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-background border-b border-border font-bold uppercase tracking-widest text-[9px] text-zinc-500">
-                        <th className="p-3">User ID</th>
-                        <th className="p-3">FCM Token Status</th>
-                        <th className="p-3">Timezone</th>
-                        <th className="p-3">Last Token Refresh</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {health?.usersDiagnostics && health.usersDiagnostics.length > 0 ? (
-                        health.usersDiagnostics.map((u) => (
-                          <tr key={u.userId} className="border-b border-border bg-background/10 hover:bg-background/20 transition-colors">
-                            <td className="p-3 font-mono">{u.userId}</td>
-                            <td className="p-3">
-                              {u.hasFcmToken ? (
-                                <span className="text-emerald-500 font-semibold">Yes ({u.tokenLength} chars)</span>
-                              ) : (
-                                <span className="text-zinc-500 font-medium">No Token</span>
-                              )}
-                            </td>
-                            <td className="p-3 font-mono">{u.timezone}</td>
-                            <td className="p-3 text-zinc-400">
-                              {u.lastTokenRefresh ? new Date(u.lastTokenRefresh).toLocaleString() : 'Never'}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={4} className="p-4 text-center text-zinc-500">No users found.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Habit Reminder Diagnostics</h2>
-            <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
-              <div className="text-sm text-zinc-400 leading-relaxed">
-                Manually trigger an immediate push notification using actual habit data to verify end-to-end delivery of individual habits.
-              </div>
-              <div className="space-y-4">
-                {habits.length === 0 ? (
-                  <div className="text-zinc-500 text-xs uppercase tracking-wider text-center py-4">No habits configured. Go to Manage Habits to add one.</div>
-                ) : (
-                  habits.map((habit) => (
-                    <div key={habit.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-border bg-background/50 rounded-[1px] gap-3">
-                      <div>
-                        <div className="font-bold text-foreground">{habit.name}</div>
-                        <div className="text-xs text-zinc-500 mt-1 uppercase tracking-widest">
-                          {habit.category} • {habit.time} • {habit.notification === 0 ? 'On Time' : `-${habit.notification}m`}
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        disabled={triggeringHabit === habit.id}
-                        onClick={() => triggerHabitReminder(habit.id)}
-                        className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:bg-zinc-800 text-white font-bold uppercase text-[9px] tracking-widest transition-colors rounded-[2px]"
-                      >
-                        {triggeringHabit === habit.id ? 'Sending...' : 'Send Habit Reminder Now'}
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="pt-4 border-t border-border">
-                <a
-                  href="/api/debug/notifications"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-foreground transition-colors"
-                >
-                  View Live Matching Diagnostics Report (JSON) &gt;
-                </a>
-              </div>
-            </div>
-          </section>
-
+          {/* Data Management */}
           <section className="space-y-4">
             <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Data Management</h2>
             <div className="border border-border bg-card p-6 flex flex-col gap-4 text-card-foreground">
@@ -539,7 +262,6 @@ export default function SettingsPage() {
         <div className={`flex flex-col items-center gap-6 transition-all duration-500 transform ${syncPhase !== 'idle' ? 'scale-100 translate-y-0' : 'scale-90 translate-y-4'}`}>
           
           <div className="relative w-24 h-24 flex items-center justify-center">
-            {/* Background Track */}
             <svg className="absolute inset-0 w-full h-full transform -rotate-90">
               <circle 
                 cx="48" cy="48" r="44" 
@@ -548,7 +270,6 @@ export default function SettingsPage() {
                 fill="transparent" 
                 className="text-zinc-900" 
               />
-              {/* Animated Green Loading Ring */}
               <circle 
                 cx="48" cy="48" r="44" 
                 stroke="currentColor" 
@@ -561,7 +282,6 @@ export default function SettingsPage() {
               />
             </svg>
 
-            {/* The Tick */}
             <CheckCircle2 
               size={48} 
               strokeWidth={3} 

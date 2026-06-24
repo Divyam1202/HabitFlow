@@ -4,6 +4,7 @@ export type NotificationLogStatus =
   | 'scheduled'
   | 'evaluated'
   | 'matched'
+  | 'triggered'
   | 'sent'
   | 'failed'
   | 'delivered'
@@ -41,6 +42,7 @@ const NotificationLogSchema: Schema = new Schema(
         'scheduled',
         'evaluated',
         'matched',
+        'triggered',
         'sent',
         'failed',
         'delivered',

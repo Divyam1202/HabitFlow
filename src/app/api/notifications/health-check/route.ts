@@ -27,22 +27,21 @@ export async function GET(req: NextRequest) {
 
     const lastNotificationDelivered = lastNotif ? lastNotif.status !== 'expired' : false
 
-    // Fetch all users diagnostics
-    const allUsers = await UserState.find({}).lean()
-    const usersDiagnostics = allUsers.map((u: any) => ({
-      userId: u.userId,
-      hasFcmToken: !!u.fcmToken,
-      tokenLength: u.fcmToken ? u.fcmToken.length : 0,
-      timezone: u.timezone || 'Asia/Kolkata',
-      lastTokenRefresh: u.updatedAt || u.createdAt
-    }))
+    // Own notification state only — never expose other users
+    const ownDiagnostic = userState ? [{
+      userId: userState.userId,
+      hasFcmToken: !!userState.fcmToken,
+      tokenLength: userState.fcmToken ? userState.fcmToken.length : 0,
+      timezone: userState.timezone || 'Asia/Kolkata',
+      lastTokenRefresh: (userState as any).lastTokenRefreshAt || (userState as any).updatedAt || (userState as any).createdAt
+    }] : []
 
-    // Fetch latest sent and delivered logs globally or for the user
-    const lastSentLog = await NotificationLog.findOne({ status: { $in: ['sent', 'delivered'] } })
+    // Fetch latest sent and delivered logs for this user only
+    const lastSentLog = await NotificationLog.findOne({ userId, status: { $in: ['sent', 'delivered'] } })
       .sort({ createdAt: -1 })
       .lean()
 
-    const lastDeliveredLog = await NotificationLog.findOne({ status: 'delivered' })
+    const lastDeliveredLog = await NotificationLog.findOne({ userId, status: 'delivered' })
       .sort({ createdAt: -1 })
       .lean()
 
@@ -51,7 +50,8 @@ export async function GET(req: NextRequest) {
       fcmTokenRegistered,
       lastNotificationDelivered,
       timezone: userState?.timezone || 'UTC',
-      usersDiagnostics,
+      notificationStatus: userState?.notificationStatus || 'active',
+      usersDiagnostics: ownDiagnostic,
       lastNotificationSentTime: lastSentLog ? lastSentLog.createdAt : null,
       lastNotificationDeliveredTime: lastDeliveredLog ? lastDeliveredLog.createdAt : null
     })
