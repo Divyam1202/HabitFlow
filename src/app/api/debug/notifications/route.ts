@@ -24,6 +24,26 @@ function getCurrentTimeInTimezone(timezone: string): string {
   }
 }
 
+// Convert HH:MM time string to minutes from midnight (0 to 1439)
+function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return -1;
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return -1;
+  return parts[0] * 60 + parts[1];
+}
+
+// Normalize minutes to [0, 1439] range
+function normalizeMinutes(m: number): number {
+  return (m % 1440 + 1440) % 1440;
+}
+
+// Check if current minutes is within [targetMinutes, targetMinutes + windowSize] with midnight wrap-around
+function isTimeInWindow(current: number, target: number, windowSize = 15): boolean {
+  if (target === -1) return false;
+  const diff = (current - target + 1440) % 1440;
+  return diff >= 0 && diff < windowSize;
+}
+
 function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
   if (!timeHHMM) return '';
   const [hours, minutes] = timeHHMM.split(':').map(Number);
@@ -92,9 +112,49 @@ export async function GET(req: NextRequest) {
         }
 
         const isScheduledToday = h.frequency ? h.frequency.includes(dayOfWeek) : true;
-        const targetTimeHHMM = calculateTargetTime(h.time, offset);
-        const targetTimePlus15 = calculateTargetTime(h.time, offset - 15);
-        const targetTimePlus45 = calculateTargetTime(h.time, offset - 45);
+
+        const currentMinutes = timeToMinutes(currentTimeInTimezone);
+        const habitMinutes = timeToMinutes(h.time);
+        
+        let isDue = false;
+        let isExactMatch = false;
+        let isReRemind1 = false;
+        let isReRemind2 = false;
+
+        let initialTarget = -1;
+        let exactTarget = -1;
+        let retry1Target = -1;
+        let retry2Target = -1;
+
+        if (currentMinutes !== -1 && habitMinutes !== -1) {
+          const retryEnabled = h.notifPrefs?.retry !== false;
+
+          // Target times in minutes
+          const initialTargetRaw = habitMinutes - offset;
+          const exactTargetRaw = offset > 0 ? habitMinutes : -1;
+          const retry1TargetRaw = retryEnabled ? (habitMinutes - offset + 15) : -1;
+          const retry2TargetRaw = retryEnabled ? (habitMinutes - offset + 45) : -1;
+
+          // Normalized to [0, 1439]
+          initialTarget = normalizeMinutes(initialTargetRaw);
+          exactTarget = exactTargetRaw !== -1 ? normalizeMinutes(exactTargetRaw) : -1;
+          retry1Target = retry1TargetRaw !== -1 ? normalizeMinutes(retry1TargetRaw) : -1;
+          retry2Target = retry2TargetRaw !== -1 ? normalizeMinutes(retry2TargetRaw) : -1;
+
+          // Resolve overlaps
+          if (exactTarget === retry1Target) {
+            exactTarget = -1;
+          }
+          if (exactTarget === retry2Target) {
+            exactTarget = -1;
+          }
+
+          // Window matching (15 minutes window size)
+          isDue = isTimeInWindow(currentMinutes, initialTarget, 15);
+          isExactMatch = exactTarget !== -1 && isTimeInWindow(currentMinutes, exactTarget, 15);
+          isReRemind1 = retry1Target !== -1 && isTimeInWindow(currentMinutes, retry1Target, 15);
+          isReRemind2 = retry2Target !== -1 && isTimeInWindow(currentMinutes, retry2Target, 15);
+        }
 
         return {
           id: h.id,
@@ -102,18 +162,19 @@ export async function GET(req: NextRequest) {
           category: h.category,
           time: h.time,
           offsetMinutes: offset,
-          targetTimeHHMM,
-          targetTimePlus15,
-          targetTimePlus45,
+          targetMinutes: initialTarget,
+          exactMinutes: exactTarget,
+          retry1Minutes: retry1Target,
+          retry2Minutes: retry2Target,
           currentTimeInTimezone,
           isCompleted: todayHabits.includes(h.id),
           isScheduledToday,
           frequency: h.frequency || null,
           dayOfWeek,
-          isDue: timesMatch(currentTimeInTimezone, targetTimeHHMM),
-          isReRemind1: timesMatch(currentTimeInTimezone, targetTimePlus15),
-          isReRemind2: timesMatch(currentTimeInTimezone, targetTimePlus45),
-          isExactMatch: offset !== 0 && timesMatch(h.time, currentTimeInTimezone),
+          isDue,
+          isReRemind1,
+          isReRemind2,
+          isExactMatch,
         };
       });
 

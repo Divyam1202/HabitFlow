@@ -11,9 +11,6 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@better-auth/infra": "^0.2.14",
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
     "@hookform/resolvers": "^5.4.0",
     "@onesignal/node-onesignal": "^5.8.0",
     "@serwist/next": "^9.5.11",
@@ -45,7 +42,6 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",

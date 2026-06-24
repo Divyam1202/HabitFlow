@@ -27,6 +27,26 @@ function getCurrentTimeInTimezone(timezone: string): string {
   }
 }
 
+// Convert HH:MM time string to minutes from midnight (0 to 1439)
+function timeToMinutes(timeStr: string): number {
+  if (!timeStr) return -1;
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return -1;
+  return parts[0] * 60 + parts[1];
+}
+
+// Normalize minutes to [0, 1439] range
+function normalizeMinutes(m: number): number {
+  return (m % 1440 + 1440) % 1440;
+}
+
+// Check if current minutes is within [targetMinutes, targetMinutes + windowSize] with midnight wrap-around
+function isTimeInWindow(current: number, target: number, windowSize = 15): boolean {
+  if (target === -1) return false;
+  const diff = (current - target + 1440) % 1440;
+  return diff >= 0 && diff < windowSize;
+}
+
 // Helper to map habit category to standard channels
 function mapCategoryToChannel(category: string): string {
   const cat = category.toLowerCase();
@@ -340,6 +360,16 @@ export async function GET(request: Request) {
         await user.save();
       }
 
+      // Query notifications sent to this user in the last 36 hours to cover timezone diffs
+      const windowStart = new Date(now.getTime() - 36 * 60 * 60 * 1000);
+      const sentNotifications = await Notification.find({
+        userId: user.userId,
+        createdAt: { $gte: windowStart }
+      }).lean();
+
+      // Get current date string in user's timezone (YYYY-MM-DD)
+      const userDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date());
+
       // ── Process regular habits ────────────────────────────────────────
       for (const habit of habits) {
         const isCompleted = todayHabits.includes(habit.id);
@@ -359,28 +389,78 @@ export async function GET(request: Request) {
         const dayOfWeek = dateInUserTimezone.getDay();
         const isScheduledToday = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
 
-        const targetTimeHHMM  = calculateTargetTime(habit.time, offset);
-        const targetTimePlus15 = calculateTargetTime(habit.time, offset - 15);
-        const targetTimePlus45 = calculateTargetTime(habit.time, offset - 45);
-
-        const isDue          = timesMatch(currentTimeHHMM, targetTimeHHMM);
-        const isReRemind1    = timesMatch(currentTimeHHMM, targetTimePlus15);
-        const isReRemind2    = timesMatch(currentTimeHHMM, targetTimePlus45);
-        const isExactMatch   = offset !== 0 && timesMatch(habit.time, currentTimeHHMM);
-
-        console.log(`[Cron Eval] User: ${user.userId} | Timezone: ${userTimezone} | Current Time: ${currentTimeHHMM}`);
-        console.log(`[Cron Eval] Habit: "${habit.name}" (ID: ${habit.id}) | Time: ${habit.time} | Frequency: ${JSON.stringify(habit.frequency)} | Scheduled Today: ${isScheduledToday} | Completed: ${isCompleted}`);
-        console.log(`[Cron Eval] Target times -> Due: ${targetTimeHHMM}, ReRemind1: ${targetTimePlus15}, ReRemind2: ${targetTimePlus45}`);
-        console.log(`[Cron Eval] Match outcomes -> isDue: ${isDue}, isReRemind1: ${isReRemind1}, isReRemind2: ${isReRemind2}, isExactMatch: ${isExactMatch}`);
-
         if (!isScheduledToday) {
           continue;
         }
 
-        // Check retry pref — if retry disabled, only fire initial
+        const currentMinutes = timeToMinutes(currentTimeHHMM);
+        const habitMinutes = timeToMinutes(habit.time);
+        if (currentMinutes === -1 || habitMinutes === -1) continue;
+
         const retryEnabled = habit.notifPrefs?.retry !== false;
 
-        if (isDue || isReRemind1 || isReRemind2 || isExactMatch) {
+        // Target times in minutes
+        const initialTargetRaw = habitMinutes - offset;
+        const exactTargetRaw = offset > 0 ? habitMinutes : -1;
+        const retry1TargetRaw = retryEnabled ? (habitMinutes - offset + 15) : -1;
+        const retry2TargetRaw = retryEnabled ? (habitMinutes - offset + 45) : -1;
+
+        // Normalized to [0, 1439]
+        const initialTarget = normalizeMinutes(initialTargetRaw);
+        let exactTarget = exactTargetRaw !== -1 ? normalizeMinutes(exactTargetRaw) : -1;
+        let retry1Target = retry1TargetRaw !== -1 ? normalizeMinutes(retry1TargetRaw) : -1;
+        let retry2Target = retry2TargetRaw !== -1 ? normalizeMinutes(retry2TargetRaw) : -1;
+
+        // Resolve overlaps
+        if (exactTarget === retry1Target) {
+          exactTarget = -1; // Let retry1 handle it
+        }
+        if (exactTarget === retry2Target) {
+          exactTarget = -1; // Let retry2 handle it
+        }
+
+        // Window matching (15 minutes window size)
+        const isDue = isTimeInWindow(currentMinutes, initialTarget, 15);
+        const isExactMatch = exactTarget !== -1 && isTimeInWindow(currentMinutes, exactTarget, 15);
+        const isReRemind1 = retry1Target !== -1 && isTimeInWindow(currentMinutes, retry1Target, 15);
+        const isReRemind2 = retry2Target !== -1 && isTimeInWindow(currentMinutes, retry2Target, 15);
+
+        const habitSentNotifs = sentNotifications.filter(n => String(n.habitId) === String(habit.id));
+        const hasBeenSentToday = (expectedRetryCount: number) => {
+          return habitSentNotifs.some(n => {
+            const nDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(new Date(n.createdAt));
+            return nDateStr === userDateStr && n.retryCount === expectedRetryCount;
+          });
+        };
+
+        console.log(`[Cron Eval] User: ${user.userId} | Timezone: ${userTimezone} | Current Time: ${currentTimeHHMM}`);
+        console.log(`[Cron Eval] Habit: "${habit.name}" (ID: ${habit.id}) | Time: ${habit.time} | Frequency: ${JSON.stringify(habit.frequency)} | Scheduled Today: ${isScheduledToday} | Completed: ${isCompleted}`);
+        console.log(`[Cron Eval] Target times -> Due: ${initialTarget}, Exact: ${exactTarget}, ReRemind1: ${retry1Target}, ReRemind2: ${retry2Target}`);
+        console.log(`[Cron Eval] Match outcomes -> isDue: ${isDue}, isExactMatch: ${isExactMatch}, isReRemind1: ${isReRemind1}, isReRemind2: ${isReRemind2}`);
+
+        let triggerMatched = false;
+        let retryCount = 0;
+        let copyType: 'initial' | 'retry1' | 'retry2' = 'initial';
+
+        if (isDue && !hasBeenSentToday(0)) {
+          triggerMatched = true;
+          retryCount = 0;
+          copyType = 'initial';
+        } else if (isExactMatch && !hasBeenSentToday(3)) {
+          triggerMatched = true;
+          retryCount = 3;
+          copyType = 'initial';
+        } else if (isReRemind1 && !hasBeenSentToday(1)) {
+          triggerMatched = true;
+          retryCount = 1;
+          copyType = 'retry1';
+        } else if (isReRemind2 && !hasBeenSentToday(2)) {
+          triggerMatched = true;
+          retryCount = 2;
+          copyType = 'retry2';
+        }
+
+        if (triggerMatched) {
           // Log: scheduled, evaluated, triggered
           await NotificationLog.create({
             userId: user.userId,
@@ -426,7 +506,7 @@ export async function GET(request: Request) {
             continue;
           }
 
-          if ((isReRemind1 || isReRemind2) && !retryEnabled) {
+          if ((copyType === 'retry1' || copyType === 'retry2') && !retryEnabled) {
             await NotificationLog.create({
               userId: user.userId,
               habitId: String(habit.id),
@@ -483,9 +563,6 @@ export async function GET(request: Request) {
             });
             continue;
           }
-
-          const retryCount = isReRemind2 ? 2 : isReRemind1 ? 1 : 0;
-          const copyType = retryCount === 2 ? 'retry2' : retryCount === 1 ? 'retry1' : 'initial';
 
           try {
             const copy = buildNotificationCopy(habit, copyType);

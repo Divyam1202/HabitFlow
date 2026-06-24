@@ -67,15 +67,8 @@ export default function BrutalistDashboard() {
     }
   }, [isMounted, gridData, toggleGridHabit])
 
-  useEffect(() => {
-    if (isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      const dismissed = sessionStorage.getItem('habitflow_notif_prompt_dismissed')
-      if (!dismissed) {
-        const timer = setTimeout(() => setShowNotifPrompt(true), 3000)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [isAuthenticated])
+  // Do not show the notification prompt banner automatically when PWA opens
+  // Users can still click 'Enable Notifications' manually when completing a habit.
 
   useEffect(() => {
     const checkStagnant = () => {
