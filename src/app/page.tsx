@@ -150,15 +150,35 @@ export default function BrutalistDashboard() {
     }
   }, [isAuthenticated, isMounted]);
 
-  // Automatically sync FCM token if permission was already granted and not yet synced on this device
+  // Automatically sync FCM token if permission was already granted to keep the token fresh in the database on launch
   useEffect(() => {
     if (isAuthenticated && user?.id && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      const alreadySynced = localStorage.getItem(`fcm_token_synced_${user.id}`);
-      if (!alreadySynced) {
-        requestAndStoreNotificationToken(user.id);
-      }
+      requestAndStoreNotificationToken(user.id);
     }
   }, [isAuthenticated, user?.id])
+
+  // Listen for Service Worker updates to prompt users to reload and use the latest PWA version
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const handleControllerChange = () => {
+        toast.info("A new version of HabytFlow is available!", {
+          description: "Tap 'Reload' to update and use the latest features.",
+          duration: Infinity,
+          action: {
+            label: "Reload",
+            onClick: () => {
+              window.location.reload();
+            }
+          }
+        });
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
+    }
+  }, []);
 
   // Completion Trend Data (Mapped to current calendar month)
   const currentMonth = new Date().getMonth();
