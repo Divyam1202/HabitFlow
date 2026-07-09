@@ -39,6 +39,8 @@ export default function BrutalistDashboard() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [clientReady, setClientReady] = useState(false)
+  const [notificationPermission, setNotificationPermission] = useState<'default' | 'denied' | 'granted' | 'unsupported'>('unsupported')
   const [selectedWeek, setSelectedWeek] = useState<'all' | 1 | 2 | 3 | 4>('all')
   const [animatingCells, setAnimatingCells] = useState<Record<string, boolean>>({})
   const [showNotifPrompt, setShowNotifPrompt] = useState(false)
@@ -51,6 +53,13 @@ export default function BrutalistDashboard() {
       setSelectedDay(new Date().getDate())
     }
   }, [currentSystemDate, isMounted])
+
+  useEffect(() => {
+    setClientReady(true)
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission)
+    }
+  }, [])
 
   // Self-repair to clear the glitchy completions on June 10 caused by the previous index mismatch
   useEffect(() => {
@@ -104,29 +113,6 @@ export default function BrutalistDashboard() {
     return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  // Cleanup legacy/duplicate service worker registrations to prevent Android system notifications
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const reg of registrations) {
-          const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || '';
-          if (scriptURL && (scriptURL.includes('firebase-messaging-sw.js') || !scriptURL.endsWith('/sw.js'))) {
-            console.log('Unregistering legacy/conflicting service worker:', scriptURL);
-            reg.unregister().then((success) => {
-              if (success) {
-                console.log('Successfully unregistered legacy service worker:', scriptURL);
-              }
-            }).catch(err => {
-              console.error('Failed to unregister legacy service worker:', scriptURL, err);
-            });
-          }
-        }
-      }).catch(err => {
-        console.error('Error getting service worker registrations:', err);
-      });
-    }
-  }, []);
-
   useEffect(() => {
     if (isAuthenticated && isMounted) {
       let active = true;
@@ -149,13 +135,6 @@ export default function BrutalistDashboard() {
       }
     }
   }, [isAuthenticated, isMounted]);
-
-  // Automatically sync FCM token if permission was already granted to keep the token fresh in the database on launch
-  useEffect(() => {
-    if (isAuthenticated && user?.id && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      requestAndStoreNotificationToken(user.id);
-    }
-  }, [isAuthenticated, user?.id])
 
   // Listen for Service Worker updates to prompt users to reload and use the latest PWA version
   useEffect(() => {
@@ -313,7 +292,7 @@ export default function BrutalistDashboard() {
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
 
-      <div className={`max-w-[1000px] mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
+      <div className={`max-w-250 mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
 
         {/* Initialization Banner */}
         {!isInitialized && (
@@ -344,13 +323,13 @@ export default function BrutalistDashboard() {
             {!isSelectedDayToday && (
               <button
                 onClick={() => setSelectedDay(todayDay)}
-                className="flex items-center gap-1 border border-border bg-card text-foreground px-2 py-1 text-[9px] md:text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors rounded-[2px]"
+                className="flex items-center gap-1 border border-border bg-card text-foreground px-2 py-1 text-[9px] md:text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors rounded-xs"
               >
                 Back to Today
               </button>
             )}
           </div>
-          {isSelectedDayToday && typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+          {clientReady && isSelectedDayToday && isAuthenticated && notificationPermission === 'default' && (
             <button
               onClick={() => requestAndStoreNotificationToken(user?.id!)}
               className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse self-start sm:self-auto"
@@ -399,7 +378,7 @@ export default function BrutalistDashboard() {
               <button
                 key={habit.id}
                 onClick={() => handleToggleHabit(habit.id)}
-                className={`p-3 md:p-4 flex flex-col justify-between min-h-[80px] md:min-h-[100px] border rounded-[1px] transition-all duration-300 transform active:scale-95 text-left ${colorClass}`}
+                className={`p-3 md:p-4 flex flex-col justify-between min-h-20 md:min-h-25 border rounded-[1px] transition-all duration-300 transform active:scale-95 text-left ${colorClass}`}
               >
                 <div className="flex justify-between items-start w-full">
                   <span className="text-[11px] md:text-xs font-black uppercase tracking-widest opacity-80">{habit.category}</span>
@@ -472,7 +451,7 @@ export default function BrutalistDashboard() {
               </div>
             </div>
             <div className="w-full overflow-x-auto pb-2">
-              <div className="h-40 min-w-[600px] w-full -ml-2">
+              <div className="h-40 min-w-150 w-full -ml-2">
                 <DynamicResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={filteredCompletionRate} margin={{ top: 5, right: 15, left: -15, bottom: 0 }}>
                     <XAxis
@@ -524,7 +503,7 @@ export default function BrutalistDashboard() {
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground">Yearly Matrix</h3>
           </div>
           <div className="flex items-start gap-3 min-w-max">
-            <div className="flex flex-col justify-between text-[8px] text-zinc-650 uppercase tracking-widest h-[76px] pt-[14px] pb-1 pr-1">
+            <div className="flex flex-col justify-between text-[8px] text-zinc-650 uppercase tracking-widest h-19 pt-3.5 pb-1 pr-1">
               <span>Mon</span>
               <span>Wed</span>
               <span>Fri</span>
@@ -534,7 +513,7 @@ export default function BrutalistDashboard() {
                 <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
                 <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
               </div>
-              <div className="grid grid-rows-7 grid-flow-col gap-[2px]">
+              <div className="grid grid-rows-7 grid-flow-col gap-0.5">
                 {heatmapData.map((day, index) => {
                   const daysAgo = heatmapData.length - 1 - index;
                   const d = new Date();
@@ -559,7 +538,7 @@ export default function BrutalistDashboard() {
 
         {/* Floating Brutalist Notification Banner */}
         <AnimatePresence>
-          {showNotifPrompt && isMounted && isAuthenticated && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+          {showNotifPrompt && clientReady && isMounted && isAuthenticated && notificationPermission === 'default' && (
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

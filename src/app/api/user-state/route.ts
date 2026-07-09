@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { connectToDatabase } from '@/lib/db'
 import UserState from '@/models/UserState'
 import { auth } from '@/lib/auth'
+import { dualWriteHabitSchedules } from '@/lib/dual-write-schedule'
 
 export async function GET(req: NextRequest) {
   try {
@@ -51,6 +52,16 @@ export async function POST(req: NextRequest) {
       { userId: session.user.id },
       { $set: updateFields },
       { upsert: true, returnDocument: 'after' }
+    )
+
+    // Phase 1 (Strangler Fig migration): shadow dual-write into the
+    // normalized HabitSchedule collection. Non-blocking to correctness —
+    // wrapped internally so it can never fail this request or corrupt
+    // the legacy stateData save above, which remains authoritative.
+    await dualWriteHabitSchedules(
+      session.user.id,
+      stateData,
+      updateFields.timezone || 'Asia/Kolkata'
     )
 
     return NextResponse.json({ success: true })
