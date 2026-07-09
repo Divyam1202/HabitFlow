@@ -6,6 +6,18 @@ interface CanvasLoaderProps {
   onComplete: () => void
 }
 
+interface Particle {
+  origX: number
+  origY: number
+  origZ: number
+  expX: number
+  expY: number
+  expZ: number
+  tx: number
+  ty: number
+  color: string
+}
+
 export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [fading, setFading] = useState(false)
@@ -32,7 +44,7 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
     window.addEventListener('resize', resize)
 
     const PARTICLE_COUNT = 2000
-    const particles: any[] = []
+    const particles: Particle[] = []
 
     const phi = Math.PI * (3 - Math.sqrt(5))
     for (let i = 0; i < PARTICLE_COUNT; i++) {
@@ -177,12 +189,12 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
         }
 
         // Apply 3D Rotation Matrix
-        let tx = x * cosY - z * sinY
+        const tx = x * cosY - z * sinY
         let tz = x * sinY + z * cosY
         x = tx
         z = tz
 
-        let ty = y * cosX - z * sinX
+        const ty = y * cosX - z * sinX
         tz = y * sinX + z * cosX
         y = ty
         z = tz
@@ -218,7 +230,7 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
   }, [onComplete])
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-black transition-opacity duration-500 pointer-events-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-100 bg-black transition-opacity duration-500 pointer-events-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
       <canvas ref={canvasRef} className="w-full h-full block" />
     </div>
   )

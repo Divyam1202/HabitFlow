@@ -1,0 +1,23 @@
+name: notification-cron-v2
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Hit v2 cron endpoint
+        run: |
+          STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/notifications-v2")
+          echo "HTTP $STATUS"
+          cat /tmp/resp.json
+          if [ "$STATUS" -ne 200 ]; then
+            echo "v2 cron trigger failed"
+            exit 1
+          fi

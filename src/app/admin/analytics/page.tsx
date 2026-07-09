@@ -1,6 +1,7 @@
 import { connectToDatabase } from '@/lib/db'
 import mongoose from 'mongoose'
-import Habit from '@/models/Habit'
+import Habit from '@/models/Habit' // NOTE: dead model, see admin/page.tsx comment. habits.history below is meaningless.
+import HabitSchedule from '@/models/HabitSchedule'
 import TelemetryEvent from '@/models/TelemetryEvent'
 import { Activity, UserPlus, Flame, Heart } from 'lucide-react'
 
@@ -32,7 +33,7 @@ export default async function AdminAnalyticsPage() {
   const mauCount = Math.max(mau.length, signupsMonthly) || 1
 
   // --- HABIT METRICS & RETENTION ---
-  const totalHabits = await Habit.countDocuments()
+  const totalHabits = await HabitSchedule.countDocuments({ active: true })
   const habits = await Habit.find({}, 'history').lean()
 
   let completionsCount = 0

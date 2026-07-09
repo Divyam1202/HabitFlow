@@ -30,10 +30,14 @@ export const requestAndStoreNotificationToken = async (userId: string, forceRefr
     const messaging = await getFirebaseMessaging();
     if (!messaging) return;
 
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      console.warn("Notification permission denied by user.");
-      return;
+    // Only request permission if not already granted — calling requestPermission()
+    // on an already-granted PWA triggers Chrome's "Open in browser" banner on every launch
+    if (Notification.permission !== 'granted') {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        console.warn("Notification permission denied by user.");
+        return;
+      }
     }
 
     // Retrieve the active PWA service worker registration to prevent conflicts
