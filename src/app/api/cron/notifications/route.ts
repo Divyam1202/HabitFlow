@@ -5,6 +5,7 @@ import TelemetryEvent from '@/models/TelemetryEvent';
 import Notification from '@/models/Notification';
 import NotificationLog from '@/models/NotificationLog';
 import { adminMessaging } from '@/lib/firebase-admin';
+import { isCanaryUser } from '@/lib/canary';
 
 // Helper to get current time in a specific timezone (HH:mm)
 function getCurrentTimeInTimezone(timezone: string): string {
@@ -130,6 +131,15 @@ export async function GET(request: Request) {
 
     for (const user of users) {
       console.log(`[User Processed] User ID: ${user.userId}`);
+
+      // Phase 3 (Strangler Fig): canary users are served exclusively by
+      // /api/cron/notifications-v2. Skipping here prevents double-send.
+      // CANARY_PERCENT=0 (default) makes this a no-op for everyone.
+      if (isCanaryUser(user.userId)) {
+        console.log(`[Cron v1] Skipping canary user ${user.userId} — served by v2`);
+        continue;
+      }
+
       if (!user.stateData) continue;
 
       let parsed: any = {};

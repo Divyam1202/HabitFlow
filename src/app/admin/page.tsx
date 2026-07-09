@@ -3,6 +3,12 @@ import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import mongoose from 'mongoose'
+import HabitSchedule from '@/models/HabitSchedule'
+// NOTE: src/models/Habit.ts is dead — no live code path ever writes to it.
+// totalCompletions/streak stats below still read from it and are therefore
+// meaningless (near-zero) in production. Needs a real fix reading from
+// UserState.stateData across all users — separate piece of work, not
+// part of the notification migration. Tracked, not solved, here.
 import Habit from '@/models/Habit'
 import Feedback from '@/models/Feedback'
 import AuditLog from '@/models/AuditLog'
@@ -37,7 +43,7 @@ export default async function AdminDashboardPage() {
   })
   const activeUsersCount = Math.max(activeSessionsToday, newUsersToday) || 1
 
-  const totalHabits = await Habit.countDocuments()
+  const totalHabits = await HabitSchedule.countDocuments({ active: true })
 
   // Compute completions from habits history maps
   const allHabits = await Habit.find({}, 'history').lean()
