@@ -68,7 +68,6 @@ export function MonthlyCalendar({ habits, notes }: MonthlyCalendarProps) {
             return (
               <div
                 key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
                 className={`border-b border-r p-2 cursor-pointer transition-colors hover:bg-muted/50 overflow-hidden ${isToday ? 'bg-indigo-50/50 dark:bg-indigo-950/20' : ''}`}
               >
                 <div className="flex justify-between items-start mb-1">

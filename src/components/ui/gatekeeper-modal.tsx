@@ -9,7 +9,8 @@ import { checkUsernameAvailability } from '@/actions/auth-actions'
 export function GatekeeperModal() {
   const { showGatekeeper, setShowGatekeeper, onAuthSuccess, isAuthenticated } = useAuth()
   
-  const [isLogin, setIsLogin] = useState(true)
+  type AuthMode = "login" | "signup" | "forgot" | "forgot-success";
+  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -25,17 +26,17 @@ export function GatekeeperModal() {
   const [isAuthenticatedScreen, setIsAuthenticatedScreen] = useState(false)
 
   useEffect(() => {
-    if (isLogin || username.length < 6) {
-      setIsUsernameAvailable(null)
-      return
-    }
+    if (mode !== "signup" || username.length < 6) {
+      setIsUsernameAvailable(null);
+      return;
+  }
 
     setCheckingUsername(true)
     const timeoutId = setTimeout(async () => {
       try {
         const available = await checkUsernameAvailability(username)
         setIsUsernameAvailable(available)
-      } catch (err) {
+      } catch {
         setIsUsernameAvailable(null)
       } finally {
         setCheckingUsername(false)
@@ -43,7 +44,7 @@ export function GatekeeperModal() {
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [username, isLogin])
+  }, [username, mode])
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +52,7 @@ export function GatekeeperModal() {
     setLoading(true)
 
     try {
-      const { data, error } = await authClient.emailOtp.verifyEmail({
+      const { error } = await authClient.emailOtp.verifyEmail({
         email,
         otp
       })
@@ -63,8 +64,8 @@ export function GatekeeperModal() {
         onAuthSuccess()
         window.location.reload()
       }, 1500)
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP.')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Invalid OTP.')
     } finally {
       setLoading(false)
     }
@@ -77,7 +78,7 @@ export function GatekeeperModal() {
     setLoading(true)
 
     try {
-      if (isLogin) {
+      if (mode === "login") {
         const { error } = await authClient.signIn.email({
           email,
           password,
@@ -107,7 +108,7 @@ export function GatekeeperModal() {
         }
         
         const generatedUsername = username || email.split('@')[0]
-        const { data, error } = await authClient.signUp.email({
+        const { error } = await authClient.signUp.email({
           email,
           password,
           name: generatedUsername,
@@ -141,12 +142,56 @@ export function GatekeeperModal() {
         setSuccessMessage('Email has been sent, check OTP!')
         setShowOtpInput(true)
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed.')
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Authentication failed.')
     } finally {
       setLoading(false)
     }
   }
+
+  const handleForgotPassword = async (
+    e: React.FormEvent
+  ) => {
+    e.preventDefault();
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const { error } = await authClient.requestPasswordReset({
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setMode("forgot-success");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to send reset link."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const heading = {
+    login: "ACCESS RESTRICTED",
+    signup: "JOIN HABYTFLOW",
+    forgot: "FORGOT PASSWORD",
+    "forgot-success": "CHECK YOUR EMAIL",
+  }[mode];
+
+  const subtitle = {
+    login: "Authentication Required",
+    signup: "Create your account",
+    forgot: "Reset your account access",
+    "forgot-success": "Password reset instructions sent",
+  }[mode];
 
   if (!showGatekeeper) return null
 
@@ -182,31 +227,34 @@ export function GatekeeperModal() {
           </div>
         ) : (
           <>
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tighter text-foreground font-panchang">
-                {isLogin ? 'ACCESS RESTRICTED' : 'Join HabytFLow'}
-              </h2>
-              <p className="text-zinc-555 text-xs uppercase tracking-widest font-bold">
-                Authentication Required
-              </p>
-            </div>
+           <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold tracking-tighter text-foreground font-panchang">
+              {heading}
+            </h2>
 
-            {!showOtpInput && (
+            <p className="text-zinc-555 text-xs uppercase tracking-widest font-bold">
+              {subtitle}
+            </p>
+          </div>
+
+            {!showOtpInput && (  
+              mode !== "forgot" &&
+              mode !== "forgot-success" && (
               <div className="flex border-b border-border">
                 <button
-                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${isLogin ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  onClick={() => { setIsLogin(true); setError(''); }}
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${mode === "login" ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  onClick={() => { setMode("login"); setError(''); }}
                 >
                   Log In
                 </button>
                 <button
-                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${!isLogin ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  onClick={() => { setIsLogin(false); setError(''); }}
+                  className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${mode === "signup" ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  onClick={() => { setMode("signup"); setError(''); }}
                 >
                   Sign Up
                 </button>
               </div>
-            )}
+            ))}
 
             {error && (
               <div className="p-3 bg-red-950/20 border border-red-500/50 text-red-600 dark:text-red-500 text-xs font-bold uppercase tracking-widest text-center">
@@ -242,6 +290,86 @@ export function GatekeeperModal() {
                   {loading ? 'Verifying...' : 'Verify OTP & Authenticate'}
                 </button>
               </form>
+              ) : mode === "forgot" ? (
+              /* Forgot Password */
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-4">
+
+                  <div className="space-y-1">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                          Email
+                      </label>
+
+                      <input
+                          type="email"
+                          required
+                          value={email}
+                          onChange={(e)=>setEmail(e.target.value)}
+                          autoComplete="email"
+                          spellCheck={false}
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground"
+                      />
+                  </div>
+
+                  <p className="text-xs text-zinc-500 leading-relaxed">
+                      Enter your registered email address.
+                      We&apos;ll send a secure password reset link.
+                  </p>
+
+                  <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full mt-2 bg-foreground text-background font-black uppercase tracking-widest py-3 text-xs"
+                  >
+                      {loading ? "Sending..." : "Send Reset Link"}
+                  </button>
+
+                  <button
+                      type="button"
+                      onClick={()=>{
+                          setMode("login");
+                          setError("");
+                          setSuccessMessage("");
+                      }}
+                      className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-foreground"
+                  >
+                      ← Back to Login
+                  </button>
+
+              </form>
+
+          ) : mode === "forgot-success" ? (
+
+              /* Success Screen */
+
+              <div className="flex flex-col items-center gap-5 text-center py-6">
+                  <CheckCircle
+                      size={60}
+                      className="text-green-500"
+                  />
+                  <div>
+                      <h3 className="font-black uppercase tracking-widest"> CHECK YOUR EMAIL </h3>
+                      <p className="text-sm text-zinc-500 mt-3"> If an account exists, We&apos;ve sent a password reset link. </p>
+                      <p className="text-xs text-zinc-600 mt-2"> This link expires in 5 minutes. </p>
+                  </div>
+                  <button
+                      className="w-full bg-foreground text-background py-3 font-black uppercase tracking-widest text-xs"
+                  >
+                      Resend Link
+                  </button>
+                  <button
+                      onClick={()=>{
+                          setMode("login");
+                          setError("");
+                          setEmail("");
+                      }}
+                      className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-foreground"
+                  >
+                      ← Back to Login
+                  </button>
+
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 
@@ -258,7 +386,7 @@ export function GatekeeperModal() {
                   />
                 </div>
 
-                {!isLogin && (
+                {mode === "signup" && (
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
                       <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Username</label>
@@ -292,13 +420,27 @@ export function GatekeeperModal() {
                     className="w-full bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
                   />
                 </div>
-
+                {mode === "login" && (
+                  <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode("forgot");
+                      setError("");
+                      setSuccessMessage("");
+                    }}
+                    className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 hover:text-foreground transition-colors"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+                )}
                 <button 
                   type="submit" 
-                  disabled={loading || (!isLogin && (username.length < 6 || isUsernameAvailable === false))}
+                  disabled={loading || (mode === "signup" && (username.length < 6 || isUsernameAvailable === false))}
                   className="w-full mt-2 bg-foreground text-background font-black uppercase tracking-widest py-3 text-xs hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Processing...' : isLogin ? 'Authenticate' : 'Create Account'}
+                  {loading ? 'Processing...' : mode === "login" ? 'Authenticate' : 'Create Account'}
                 </button>
               </form>
             )}
