@@ -105,8 +105,6 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
     return Math.round(diffTime / (1000 * 3600 * 24));
   };
 
-
-
   // Generate today string
   const today = new Date();
   const todayString = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -128,7 +126,8 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
             Today: {todayString}
           </span>
           <span className="text-[10px] md:text-xs text-zinc-555 font-medium text-right">
-            {perfectDaysCount}/{daysInMonth} Days
+            {/* {perfectDaysCount}/{daysInMonth} Days */}
+            {todayDay}/{daysInMonth} Days
           </span>
         </div>
       </div>
