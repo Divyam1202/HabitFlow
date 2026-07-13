@@ -584,7 +584,7 @@ export default function BrutalistDashboard() {
                   }
                   return (
                     <div
-                      key={day.id}
+                      key={day.date.toISOString()}
                       title={`${day.count} completions`}
                       className={[
                         "w-3.5 h-3.5 rounded-[1px] transition-all duration-150 hover:scale-110",

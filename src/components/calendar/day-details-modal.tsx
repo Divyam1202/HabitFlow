@@ -8,12 +8,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { saveDayNote } from '@/actions/note-actions'
 
+interface Habit {
+  id: string | number
+  name: string
+  color?: string
+}
+
 interface DayDetailsModalProps {
   date: Date | null
   isOpen: boolean
   onClose: () => void
-  completedHabits: any[]
-  missedHabits: any[]
+  completedHabits: Habit[]
+  missedHabits: Habit[]
   initialNote: string
 }
 
@@ -35,7 +41,7 @@ export function DayDetailsModal({ date, isOpen, onClose, completedHabits, missed
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>{format(date, 'MMMM d, yyyy')}</DialogTitle>
         </DialogHeader>
@@ -52,7 +58,7 @@ export function DayDetailsModal({ date, isOpen, onClose, completedHabits, missed
               <ul className="space-y-1">
                 {completedHabits.map(h => (
                   <li key={h.id} className="text-sm flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${h.color}`} />
+                    <div className={`w-2 h-2 rounded-full ${h.color ?? 'bg-green-500'}`}/>
                     {h.name}
                   </li>
                 ))}
@@ -64,7 +70,7 @@ export function DayDetailsModal({ date, isOpen, onClose, completedHabits, missed
               <ul className="space-y-1">
                 {missedHabits.map(h => (
                   <li key={h.id} className="text-sm flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${h.color}`} />
+                    <div className={`w-2 h-2 rounded-full ${h.color ?? 'bg-green-500'}`}/>
                     {h.name}
                   </li>
                 ))}
@@ -79,7 +85,7 @@ export function DayDetailsModal({ date, isOpen, onClose, completedHabits, missed
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="How did your day go?"
-              className="min-h-[100px]"
+              className="min-h-25"
             />
             <div className="flex justify-end pt-2 flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
               <Button onClick={handleSaveNote} disabled={saving || note === initialNote}>

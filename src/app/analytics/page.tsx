@@ -54,7 +54,6 @@ export default function AnalyticsPage() {
       });
     }, [heatmapData, gridData]);
 
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/')
@@ -191,8 +190,35 @@ export default function AnalyticsPage() {
   // logged yet. Walk backward from today; if today is empty, start
   // from yesterday instead, so an in-progress day doesn't wipe a
   // real streak the user is still in the middle of.
+  const effectiveHeatmap = [...heatmapData];
+
+  effectiveHeatmap[effectiveHeatmap.length - 1] = {
+    ...effectiveHeatmap[effectiveHeatmap.length - 1],
+    count: heatmapData[heatmapData.length - 1]?.count ?? 0,
+  };
+
   let currentStreak = 0;
-  const todayHasActivity = (heatmapData[heatmapData.length - 1]?.count || 0) > 0;
+
+  let lastCompletedIndex = -1;
+
+  for (let i = heatmapData.length - 1; i >= 0; i--) {
+    if (heatmapData[i].count > 0) {
+      lastCompletedIndex = i;
+      break;
+    }
+  }
+
+  if (lastCompletedIndex !== -1) {
+    for (let i = lastCompletedIndex; i >= 0; i--) {
+      if (heatmapData[i].count > 0) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+  }
+
+  const todayHasActivity = (heatmapData[heatmapData.length - 1]?.count ?? 0) > 0;
   const streakStartIndex = todayHasActivity ? heatmapData.length - 1 : heatmapData.length - 2;
   for (let i = streakStartIndex; i >= 0; i--) {
     if (heatmapData[i].count > 0) {
@@ -203,12 +229,16 @@ export default function AnalyticsPage() {
   }
 
   // Calculate current operating state based on current streak
-  let currentOperatingState = 'INITIATION';
-  if (currentStreak > 21) {
-    currentOperatingState = 'AUTOMATED';
-  } else if (currentStreak > 0) {
-    currentOperatingState = 'MOMENTUM';
-  }
+  let currentOperatingState = "INITIATION";
+
+  if (currentStreak >= 90)
+    currentOperatingState = "MASTERED";
+  else if (currentStreak >= 30)
+    currentOperatingState = "AUTOMATED";
+  else if (currentStreak >= 7)
+    currentOperatingState = "MOMENTUM";
+  else if (currentStreak >= 1)
+    currentOperatingState = "INITIATION";
 
   const pieDataRaw = gridData
   .map(habit => ({

@@ -6,9 +6,26 @@ import { startOfMonth, endOfMonth, eachDayOfInterval, format, isSameDay, getDay 
 import { DayDetailsModal } from './day-details-modal'
 import { MonthSelector } from '@/components/habits/month-selector'
 
+interface HabitEntry {
+  date: Date | string
+  completed: boolean
+}
+
+interface Habit {
+  id: string | number
+  name: string
+  color: string
+  entries: HabitEntry[]
+}
+
+interface Note {
+  date: Date | string
+  note: string
+}
+
 interface MonthlyCalendarProps {
-  habits: any[]
-  notes: any[]
+  habits: Habit[]
+  notes: Note[]
 }
 
 export function MonthlyCalendar({ habits, notes }: MonthlyCalendarProps) {
@@ -27,7 +44,7 @@ export function MonthlyCalendar({ habits, notes }: MonthlyCalendarProps) {
     const dateStr = date.toISOString().split('T')[0]
 
     const completed = habits.filter(h =>
-      h.entries.some((e: any) => {
+      h.entries.some((e: HabitEntry) => {
         const eDateStr = e.date instanceof Date ? e.date.toISOString().split('T')[0] : new Date(e.date).toISOString().split('T')[0]
         return eDateStr === dateStr && e.completed
       })

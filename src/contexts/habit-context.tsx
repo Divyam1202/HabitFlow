@@ -301,7 +301,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const totalTicks = todayHabits.length
         setHeatmapData(prev => {
           const newMap = [...prev.slice(1)] // shift 1 day off
-          newMap.push({date: getLocalYYYYMMDD(), count: totalTicks })
+          newMap.push({ date: currentSystemDate, count: totalTicks, }) // append today
           return newMap
         })
 
@@ -346,21 +346,22 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const toggleTodayHabit = (id: number) => {
     requireAuth(() => {
       const isCompleting = !todayHabits.includes(id);
+
       setTodayHabits(prev => {
-        const updated = isCompleting
-          ? [...prev, id]
-          : prev.filter(x => x !== id);
+        const updated =
+          isCompleting
+            ? [...prev, id]
+            : prev.filter(x => x !== id);
 
-        // Update today's heatmap immediately
-        setHeatmapData(old => {
-          const copy = [...old];
+        setHeatmapData(prevHeatmap => {
+          const heatmap = [...prevHeatmap];
 
-          copy[copy.length - 1] = {
-            ...copy[copy.length - 1],
+          heatmap[heatmap.length - 1] = {
+            ...heatmap[heatmap.length - 1],
             count: updated.length,
           };
 
-          return copy;
+          return heatmap;
         });
 
         return updated;
