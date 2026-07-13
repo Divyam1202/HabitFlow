@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 
 export default function CalendarPage() {
-  const { gridData, heatmapData, toggleGridHabit, toggleTodayHabit } = useHabitContext()
+  const { gridData, heatmapData } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const [calendarDate, setCalendarDate] = useState(new Date())
@@ -43,7 +43,7 @@ export default function CalendarPage() {
     
     // Within 30 days window: compute detailed ratio from gridData
     if (diffDays <= 0 && diffDays >= -29) {
-      const relativeDayNum = 30 + diffDays;
+      // const relativeDayNum = 30 + diffDays;
       let completedCount = 0;
       let scheduledCount = 0;
       const dayOfWeek = dateForThisDay.getDay();
@@ -72,61 +72,6 @@ export default function CalendarPage() {
     return null;
   };
 
-  const diffDaysVal = (actualCalendarDay: number) => {
-    const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    return Math.round(diffTime / (1000 * 3600 * 24));
-  };
-
-  const handleDayClick = (actualCalendarDay: number) => {
-    if (gridData.length === 0) return;
-    
-    const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-    const todayObj = new Date();
-    const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
-    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-    
-    if (diffDays <= 0 && diffDays >= -29) {
-      const relativeDayNum = (gridData[0]?.days?.length || 30) + diffDays;
-      const dayOfWeek = dateForThisDay.getDay();
-      const isToday = diffDays === 0;
-
-      let allCompleted = true;
-      const scheduledHabits = [];
-
-      for (const habit of gridData) {
-        const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
-        if (isScheduled) {
-          scheduledHabits.push(habit);
-          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-          if (!habit.days || !habit.days[dayIndex]?.completed) {
-            allCompleted = false;
-          }
-        }
-      }
-
-      if (scheduledHabits.length === 0) return;
-
-      const targetState = !allCompleted;
-
-      for (const habit of scheduledHabits) {
-        const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-        const isCompleted = habit.days ? habit.days[dayIndex]?.completed : false;
-        if (isCompleted !== targetState) {
-          if (isToday) {
-            toggleTodayHabit(habit.id);
-          } else {
-            toggleGridHabit(habit.id, relativeDayNum);
-          }
-        }
-      }
-    }
-  };
 
   const getColorClass = (ratio: number | null) => {
     if (ratio === null) return 'text-zinc-500 dark:text-zinc-400 bg-transparent border-border' // No data
@@ -139,7 +84,7 @@ export default function CalendarPage() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
           Authenticating...
         </div>
@@ -148,7 +93,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="max-w-[1000px] mx-auto px-6 pt-12 pb-24 space-y-8 text-foreground">
+    <div className="max-w-250 mx-auto px-6 pt-12 pb-24 space-y-8 text-foreground">
       
       {/* Calendar View Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-border pb-4">
@@ -166,7 +111,7 @@ export default function CalendarPage() {
               const [y, m] = e.target.value.split('-').map(Number)
               setCalendarDate(new Date(y, m, 1))
             }}
-            className="text-[10px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground px-2.5 py-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono"
+            className="text-[10px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground px-2.5 py-1 outline-none cursor-pointer rounded-xs transition-all duration-150 font-mono"
           >
             {(() => {
               const options = []
@@ -232,14 +177,11 @@ export default function CalendarPage() {
               cellContent = <div className="text-sm opacity-50">{displayDay}</div>
             }
             
-            const isClickable = isCurrentMonth && diffDaysVal(day) <= 0 && diffDaysVal(day) >= -29;
-            const extraStyles = isClickable ? 'cursor-pointer active:scale-95 hover:opacity-90' : '';
 
             return (
               <div 
                 key={idx} 
-                onClick={() => isClickable && handleDayClick(day)}
-                className={`min-h-[120px] p-4 border-r border-b border-border last:border-r-0 transition-all duration-200 ${outerClass} ${extraStyles}`}
+                className={`min-h-30 p-4 border-r border-b border-border last:border-r-0 transition-all duration-200 ${outerClass}`}
               >
                 {cellContent}
               </div>
