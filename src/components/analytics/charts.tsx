@@ -10,14 +10,25 @@ const DynamicResponsiveContainer = dynamic(
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { format, subDays, eachMonthOfInterval, subMonths } from 'date-fns'
 
+interface HabitEntry {
+  date: Date | string
+  completed: boolean
+}
+
+interface Habit {
+  id: string | number
+  name: string
+  entries: HabitEntry[]
+}
+
 interface ChartsProps {
-  habits: any[]
+  habits: Habit[]
 }
 
 const COLORS = ['#10b981', '#6366f1', '#f43f5e', '#f59e0b', '#0ea5e9', '#8b5cf6', '#d946ef', '#14b8a6']
 
 export function AnalyticsCharts({ habits }: ChartsProps) {
-  const allEntries = habits.flatMap((h: any) => h.entries)
+  const allEntries = habits.flatMap((h) => h.entries)
 
   // 1. Habit Completion Trend (Last 14 days)
   const last14Days = Array.from({ length: 14 }).map((_, i) => {
@@ -28,7 +39,7 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
 
   const trendData = last14Days.map(day => {
     const dateStr = day.toISOString().split('T')[0]
-    const completedCount = allEntries.filter((e: any) => {
+    const completedCount = allEntries.filter((e) => {
       const eDateStr = e.date instanceof Date ? e.date.toISOString().split('T')[0] : new Date(e.date).toISOString().split('T')[0]
       return eDateStr === dateStr && e.completed
     }).length
@@ -39,10 +50,10 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
   })
 
   // 2. Habit Distribution (Total completions per habit)
-  const distributionData = habits.map((h: any) => {
+  const distributionData = habits.map((h) => {
     return {
       name: h.name,
-      value: h.entries.filter((e: any) => e.completed).length,
+      value: h.entries.filter((e) => e.completed).length,
     }
   }).filter(d => d.value > 0)
 
@@ -54,7 +65,7 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
 
   const monthlyData = last6Months.map(month => {
     const monthStr = format(month, 'yyyy-MM')
-    const completedCount = allEntries.filter((e: any) => {
+    const completedCount = allEntries.filter((e) => {
       const eDate = e.date instanceof Date ? e.date : new Date(e.date)
       return format(eDate, 'yyyy-MM') === monthStr && e.completed
     }).length
@@ -71,7 +82,7 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
           <CardTitle>Habit Completion Trend (Last 14 Days)</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="h-75 w-full">
             <DynamicResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -92,7 +103,7 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
           <CardTitle>Habit Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="h-75 w-full">
             {distributionData.length > 0 ? (
               <DynamicResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -127,7 +138,7 @@ export function AnalyticsCharts({ habits }: ChartsProps) {
           <CardTitle>Monthly Progress</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="h-75 w-full">
             <DynamicResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />

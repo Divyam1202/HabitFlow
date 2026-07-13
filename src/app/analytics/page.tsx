@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { LineChart, Line, BarChart, Bar, YAxis, XAxis, Tooltip, PieChart, Pie, Cell } from 'recharts'
 import { useAuth } from '@/contexts/auth-context'
@@ -11,90 +11,55 @@ const DynamicResponsiveContainer = dynamic(
   { ssr: false }
 )
 import { useHabitContext } from '@/contexts/habit-context'
-import { Flame, Check, Rocket } from 'lucide-react'
 
-// --- Components ---
-function AnimatedNumber({ value, start }: { value: number, start: boolean }) {
-  const [displayValue, setDisplayValue] = React.useState(0)
-
-  React.useEffect(() => {
-    if (!start) return
-    let startTimestamp: number | null = null
-    const duration = 2000 // 2 seconds
-    let frameId: number
-    const animate = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1)
-      const easeOut = 1 - Math.pow(1 - progress, 3)
-      setDisplayValue(Math.floor(easeOut * value))
-      if (progress < 1) frameId = requestAnimationFrame(animate)
-    }
-    frameId = requestAnimationFrame(animate)
-    return () => cancelAnimationFrame(frameId)
-  }, [value, start])
-
-  return <>{displayValue}</>
-}
-
-const MOCK_MONTHLY_DATA = [
-  { month: 'Jan', rate: 45 },
-  { month: 'Feb', rate: 52 },
-  { month: 'Mar', rate: 68 },
-  { month: 'Apr', rate: 74 },
-  { month: 'May', rate: 82 },
-  { month: 'Jun', rate: 85 }
-]
-
-const FAKE_REPORTS = [
-  {
-    id: 'jun-2026',
-    date: 'June 2026',
-    completionRate: 94,
-    activeDays: 28,
-    bestHabit: 'Reading (100%)',
-    worstHabit: 'No Spend (60%)',
-    longestLapse: '2 Days',
-    highestFrictionDay: 'Sunday',
-    systemDecay: '12%',
-    insights: 'System operating at 94% efficiency. Gym pipeline output increased by 15% vs May baseline. Week 3 variance detected (3-day lapse); recovery protocol initiated successfully. No critical interventions required.'
-  },
-  {
-    id: 'may-2026',
-    date: 'May 2026',
-    completionRate: 85,
-    activeDays: 26,
-    bestHabit: 'Meditation (90%)',
-    worstHabit: 'Gym (50%)',
-    longestLapse: '4 Days',
-    highestFrictionDay: 'Wednesday',
-    systemDecay: '22%',
-    insights: 'System operating at 85% efficiency. Meditation pipeline output optimized. Gym variance detected in first half of month; calibration completed in Week 4.'
-  }
-]
-
-const COLORS = ['#22c55e', '#3b82f6', '#a855f7', '#f97316', '#2DD4BF', '#fb293c'];
+const COLORS = ["#22c55e","#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16", "#ec4899", "#14b8a6", "#f97316", ];
 
 export default function AnalyticsPage() {
-  const [selectedReport, setSelectedReport] = useState(FAKE_REPORTS[0].id)
   const { gridData, todayActivity, heatmapData } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
+
+  const monthlyChartData = useMemo(() => {
+  const now = new Date();
+
+  return Array.from({ length: 6 }, (_, i) => {
+    const monthDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - (5 - i),
+      1
+    );
+
+    const label = monthDate.toLocaleString("en-US", {
+      month: "short",
+    });
+
+    // Temporary calculation using available heatmap data.
+    // Replace later with true date-based history.
+    const start = Math.floor((heatmapData.length / 6) * i);
+    const end = Math.floor((heatmapData.length / 6) * (i + 1));
+
+    const slice = heatmapData.slice(start, end);
+
+    const total = slice.reduce((a, b) => a + b.count, 0);
+
+    const max = slice.length * gridData.length;
+
+        return {
+          month: label,
+          rate: max
+            ? Math.round((total / max) * 100)
+            : 0,
+          volume: total,
+        };
+      });
+    }, [heatmapData, gridData]);
+
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/')
     }
   }, [isAuthenticated, isLoading, router])
-
-  if (isLoading || !isAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
-          Authenticating...
-        </div>
-      </div>
-    )
-  }
 
   // --- Metrics Calculations ---
   const monthlyTotalCompletedDays = gridData.reduce((acc, habit) => acc + habit.days.filter(d => d.completed).length, 0);
@@ -115,17 +80,125 @@ export default function AnalyticsPage() {
   });
   const monthlyTotalActiveDays = activeDaysArray.filter(Boolean).length;
 
-  const allTimeTotalTicks = heatmapData.reduce((acc, day) => acc + day.count, 0)
-  const allTimeActiveDays = heatmapData.filter(day => day.count > 0).length
+  const diagnostics = useMemo(() => {
+    const habitStats = gridData.map(habit => {
+      const completed = habit.days.filter(day => day.completed).length;
 
-  let currentStreak = 0;
+      const scheduled = habit.days.filter(day => {
+        const date = new Date();
+        date.setDate(date.getDate() - (30 - day.day));
+
+        return (
+          !habit.frequency ||
+          habit.frequency.includes(date.getDay())
+        );
+      }).length;
+
+      const rate = scheduled
+        ? Math.round((completed / scheduled) * 100)
+        : 0;
+
+      return {
+        name: habit.name,
+        completed,
+        scheduled,
+        rate,
+      };
+    });
+
+    const sorted = [...habitStats].sort((a, b) => b.rate - a.rate);
+
+    const topHabit = sorted[0];
+    const weakestHabit = sorted[sorted.length - 1];
+
+    const activeDays = Array.from({ length: 30 }, (_, i) =>
+      gridData.some(habit => habit.days[i]?.completed)
+    );
+
+    let longestLapse = 0;
+    let currentGap = 0;
+
+    for (const active of activeDays) {
+      if (!active) {
+        currentGap++;
+        longestLapse = Math.max(longestLapse, currentGap);
+      } else {
+        currentGap = 0;
+      }
+    }
+
+    const completionRate =
+      totalScheduledDays === 0
+        ? 0
+        : Math.round((monthlyTotalCompletedDays / totalScheduledDays) * 100);
+
+    let insight = "";
+
+    if (completionRate >= 90) {
+      insight =
+        "Outstanding consistency. Your habits are operating on autopilot.";
+    } else if (completionRate >= 75) {
+      insight =
+        "Excellent momentum. Protect your current streak.";
+    } else if (completionRate >= 50) {
+      insight =
+        "Momentum is building. Avoid missing consecutive days.";
+    } else if (completionRate >= 25) {
+      insight =
+        "Completion rate is healthy, but daily consistency can improve.";
+    } else {
+      insight =
+        "Consistency is low. Focus on completing one core habit every day.";
+    }
+
+    return {
+      month: new Date().toLocaleString("default", {
+        month: "long",
+        year: "numeric",
+      }),
+
+      completionRate,
+
+      topHabit,
+
+      weakestHabit,
+
+      longestLapse,
+
+      insight,
+    };
+    }, [
+        gridData,
+        monthlyTotalCompletedDays,
+        totalScheduledDays,
+
+    ]);
+    
+  const allTimeTotalTicks = heatmapData.reduce((acc, day) => acc + day.count, 0)
+
   let allTimeMaxStreak = 0;
+  let runningStreak = 0;
   for (const day of heatmapData) {
     if (day.count > 0) {
-      currentStreak++;
-      if (currentStreak > allTimeMaxStreak) allTimeMaxStreak = currentStreak;
+      runningStreak++;
+      if (runningStreak > allTimeMaxStreak) allTimeMaxStreak = runningStreak;
     } else {
-      currentStreak = 0;
+      runningStreak = 0;
+    }
+  }
+
+  // Current streak: don't zero out just because *today* hasn't been
+  // logged yet. Walk backward from today; if today is empty, start
+  // from yesterday instead, so an in-progress day doesn't wipe a
+  // real streak the user is still in the middle of.
+  let currentStreak = 0;
+  const todayHasActivity = (heatmapData[heatmapData.length - 1]?.count || 0) > 0;
+  const streakStartIndex = todayHasActivity ? heatmapData.length - 1 : heatmapData.length - 2;
+  for (let i = streakStartIndex; i >= 0; i--) {
+    if (heatmapData[i].count > 0) {
+      currentStreak++;
+    } else {
+      break;
     }
   }
 
@@ -137,20 +210,31 @@ export default function AnalyticsPage() {
     currentOperatingState = 'MOMENTUM';
   }
 
-  const pieDataRaw = gridData.reduce((acc, h) => {
-    const completedCount = h.days.filter(d => d.completed).length;
-    const existing = acc.find(a => a.name === h.category);
-    if (existing) existing.value += completedCount;
-    else acc.push({ name: h.category, value: completedCount });
-    return acc;
-  }, [] as { name: string, value: number }[]);
+  const pieDataRaw = gridData
+  .map(habit => ({
+    name: habit.name,
+    value: habit.days.filter(day => day.completed).length,
+  }))
+  .filter(habit => habit.value > 0);
 
+  
+  
   if (todayActivity.sportsLog.length > 0) {
     pieDataRaw.push({ name: 'Sports', value: todayActivity.sportsLog.length });
   }
 
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-100">
+        <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
+          Authenticating...
+        </div>
+      </div>
+    )
+  }
+  
   return (
-    <div className="max-w-[1200px] mx-auto px-6 pt-12 pb-24 space-y-12 text-foreground">
+    <div className="max-w-300 mx-auto px-6 pt-12 pb-24 space-y-12 text-foreground">
 
       {/* Productivity Dashboard Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
@@ -179,7 +263,7 @@ export default function AnalyticsPage() {
         <div className="space-y-1">
           <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Current State</div>
           <div className="text-2xl md:text-3xl font-black text-green-500 uppercase tracking-wider">{currentOperatingState}</div>
-          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Day 24</div>
+          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">Day {currentStreak}</div>
         </div>
         {/* ACTIVE STREAK */}
         <div className="space-y-1">
@@ -199,8 +283,9 @@ export default function AnalyticsPage() {
           <div className="text-3xl md:text-4xl font-black text-foreground">
             {Math.round((monthlyTotalCompletedDays / (totalScheduledDays || 1)) * 100)}%
           </div>
-          <div className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
-            {monthlyTotalActiveDays} / 30 Days Logged
+          <div className="text-[10px] font-bold uppercase tracking-widest">
+            <span className="text-green-500">{monthlyTotalActiveDays}</span>
+            <span className="text-zinc-500"> / 30 Days Logged</span>
           </div>
         </div>
       </div>
@@ -209,89 +294,67 @@ export default function AnalyticsPage() {
       <div className="space-y-6 pt-8 border-t border-border">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold uppercase tracking-widest text-foreground">System Diagnostics Section</h2>
-          {/* Archives Selector aligned cleanly on the right */}
-          <div className="flex flex-col gap-1 w-28 shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-555 py-0.5 border border-border bg-background text-center w-full">Archives</div>
-            <select
-              value={selectedReport}
-              onChange={(e) => setSelectedReport(e.target.value)}
-              className="text-[9px] font-bold uppercase tracking-widest bg-background border border-border text-zinc-500 hover:text-foreground hover:border-foreground py-0.5 px-1 outline-none cursor-pointer rounded-[2px] transition-all duration-150 font-mono w-full text-center"
-            >
-              {(() => {
-                const options = []
-                const start = new Date(2026, 5, 1) // June 2026
-                for (let i = 0; i < 12; i++) {
-                  const optDate = new Date(start.getFullYear(), start.getMonth() + i, 1)
-                  const val = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase().replace(' ', '-')
-                  const label = optDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-                  options.push(
-                    <option key={val} value={val} className="bg-background text-foreground">
-                      {label}
-                    </option>
-                  )
-                }
-                return options
-              })()}
-            </select>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Left Column */}
+        <div className="lg:col-span-3 space-y-4">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+            {diagnostics.month} Diagnostics
+          </div>
+
+          <div className="border-b border-border pb-2" />
+
+          <div className="grid grid-cols-3 gap-4 divide-x divide-border">
+            <div className="space-y-1">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+                Top Pipeline
+              </div>
+
+              <div className="text-sm md:text-base font-bold text-green-500 mt-1">
+                {diagnostics.topHabit.name} ({diagnostics.topHabit.rate}%)
+              </div>
+            </div>
+
+            <div className="pl-4 space-y-1">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+                Critical Failure
+              </div>
+
+              <div className="text-sm md:text-base font-bold text-red-500 mt-1">
+                {diagnostics.weakestHabit.name} ({diagnostics.weakestHabit.rate}%)
+              </div>
+            </div>
+
+            <div className="pl-4 space-y-1">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+                Longest Lapse
+              </div>
+
+              <div className="text-sm md:text-base font-bold text-foreground mt-1">
+                {diagnostics.longestLapse}{" "}
+                {diagnostics.longestLapse === 1 ? "Day" : "Days"}
+              </div>
+            </div>
           </div>
         </div>
 
-        {(() => {
-          const activeReport = FAKE_REPORTS.find(r => r.id === selectedReport) || (() => {
-            const parts = selectedReport.split('-');
-            const m = parts[0] ? (parts[0].charAt(0).toUpperCase() + parts[0].slice(1)) : 'June';
-            const y = parts[1] || '2026';
-            return {
-              id: selectedReport,
-              date: `${m} ${y}`,
-              completionRate: 0,
-              activeDays: 0,
-              bestHabit: 'N/A',
-              worstHabit: 'N/A',
-              longestLapse: 'N/A',
-              highestFrictionDay: 'N/A',
-              systemDecay: '0%',
-              insights: `System analytics initialized for ${m} ${y}. No tracking data exists for this future time window.`
-            };
-          })();
-
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-              {/* Left Column: Diagnostics Statistics */}
-              <div className="lg:col-span-3 space-y-4">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                  {activeReport.date} Diagnostics
-                </div>
-                <div className="border-b border-border pb-2" />
-                <div className="grid grid-cols-3 gap-4 divide-x divide-border">
-                  <div className="space-y-1">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Top Pipeline</div>
-                    <div className="text-sm md:text-base font-bold text-foreground uppercase mt-1">{activeReport.bestHabit}</div>
-                  </div>
-                  <div className="pl-4 space-y-1">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Critical Failure</div>
-                    <div className="text-sm md:text-base font-bold text-red-500 uppercase mt-1">{activeReport.worstHabit}</div>
-                  </div>
-                  <div className="pl-4 space-y-1">
-                    <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">Longest Lapse</div>
-                    <div className="text-sm md:text-base font-bold text-foreground uppercase mt-1">{activeReport.longestLapse}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: AI Insights */}
-              <div className="lg:col-span-2 space-y-3 lg:border-l lg:border-border lg:pl-8">
-                <div className="flex items-center gap-2">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 font-mono">System Status (AI Insights)</div>
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                </div>
-                <p className="text-xs text-zinc-555 leading-relaxed font-mono uppercase tracking-wide">
-                  {activeReport.insights}
-                </p>
-              </div>
+        {/* Right Column */}
+        <div className="lg:col-span-2 space-y-3 lg:border-l lg:border-border lg:pl-8">
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+              System Status
             </div>
-          )
-        })()}
+
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          </div>
+
+          <p className="text-xs text-zinc-500 leading-relaxed">
+            {diagnostics.insight}
+          </p>
+        </div>
+      </div>
+      
       </div>
 
       <div className="pt-8 border-t border-border w-full space-y-8">
@@ -300,10 +363,10 @@ export default function AnalyticsPage() {
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">6-Month Trajectory</h3>
             <div className="h-48 w-full -ml-4">
               <DynamicResponsiveContainer width="100%" height="100%">
-                <LineChart data={MOCK_MONTHLY_DATA}>
+                <LineChart data={monthlyChartData}>
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
-                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }} itemStyle={{ color: 'var(--foreground)' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }} itemStyle={{ color: 'var(--foreground)', fontWeight: "bold", }} />
                   <Line type="stepAfter" dataKey="rate" stroke="var(--foreground)" strokeWidth={2} dot={false} />
                 </LineChart>
               </DynamicResponsiveContainer>
@@ -314,22 +377,22 @@ export default function AnalyticsPage() {
             <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Monthly Volume</h3>
             <div className="h-48 w-full -ml-4">
               <DynamicResponsiveContainer width="100%" height="100%">
-                <BarChart data={MOCK_MONTHLY_DATA}>
+                <BarChart data={monthlyChartData}>
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={v => `${v}%`} />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} dy={10} />
                   <Tooltip contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '0px' }} itemStyle={{ color: 'var(--foreground)' }} cursor={{ fill: 'var(--muted)' }} />
-                  <Bar dataKey="rate" fill="var(--foreground)" radius={0} />
+                  <Bar dataKey="volume" fill="var(--foreground)" radius={0} />
                 </BarChart>
               </DynamicResponsiveContainer>
             </div>
           </div>
 
           <div className="border border-border bg-card p-6 flex flex-col rounded-[1px] text-card-foreground">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Category Spread</h3>
-            <div className="flex-1 min-h-[160px] w-full relative -ml-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-6">Habit Completion</h3>
+            <div className="flex-1 min-h-40 w-full relative -ml-4">
               <DynamicResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
+                  <Pie isAnimationActive={false}
                     data={pieDataRaw}
                     cx="50%"
                     cy="50%"
@@ -337,13 +400,19 @@ export default function AnalyticsPage() {
                     outerRadius={50}
                     paddingAngle={2}
                     dataKey="value"
-                    stroke="none"
-                    label={({ name, percent }: any) => (percent && percent > 0) ? `${name} ${(percent * 100).toFixed(0)}%` : null}
+                    stroke="#18181b"
+                    strokeWidth={2}
+                    label={({ name, percent }: { name?: string; percent?: number }) => (percent && percent > 0) ? `${name} ${(percent * 100).toFixed(0)}%` : null}
                     labelLine={{ stroke: '#52525b', strokeWidth: 1 }}
                     style={{ fontSize: '10px', fill: '#a1a1aa' }}
                   >
                     {pieDataRaw.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                        key={entry.name}
+                        fill={COLORS[index % COLORS.length]}
+                        stroke={COLORS[index % COLORS.length]}
+                        strokeWidth={1}
+                      />
                     ))}
                   </Pie>
                   <Tooltip

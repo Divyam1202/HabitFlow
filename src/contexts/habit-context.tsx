@@ -34,7 +34,7 @@ export type HabitContextType = {
   gridData: GridHabit[];
   toggleGridHabit: (habitId: number, dayNum: number) => void;
 
-  heatmapData: Array<{ id: number; count: number }>;
+  heatmapData: Array<{ date: string; count: number;}>;
 
   addHabit: (habit: Omit<HabitDef, 'id'>) => void;
   editHabit: (id: number, habit: Partial<HabitDef>) => void;
@@ -43,6 +43,11 @@ export type HabitContextType = {
   isInitialized: boolean;
   initializeJourney: () => void;
 }
+
+export type HeatmapDay = {
+  date: string;
+  count: number;
+};
 
 const HabitContext = createContext<HabitContextType | null>(null)
 
@@ -70,17 +75,27 @@ const SEED_GRID_DATA = MOCK_HABITS.map(habit => ({
   }))
 }))
 
-const SEED_HEATMAP = Array.from({ length: 364 }).map((_, i) => {
-  let count = 0
-  if (i >= 50 && i < 195) {
-    count = (i % 3 === 0) ? 4 : (i % 2 === 0) ? 2 : 1
-  } else {
-    if (i % 8 === 0) count = 5
-    else if (i % 5 === 0) count = 3
-    else if (i % 2 === 0) count = 1
+const SEED_HEATMAP: HeatmapDay[] = Array.from({ length: 364 }).map((_, i) => {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - (363 - i));
+
+  let count = 0;
+
+  if (i >= 50 && i < 195)
+    count = i % 3 === 0 ? 4 : i % 2 === 0 ? 2 : 1;
+  else {
+    if (i % 8 === 0) count = 5;
+    else if (i % 5 === 0) count = 3;
+    else if (i % 2 === 0) count = 1;
   }
-  return { id: i, count }
-})
+
+  return {
+    date: d.toISOString().split("T")[0],
+    count,
+  };
+});
+
 
 const INITIAL_NUTRITION: NutritionState = {
   hydration: 0, hydrationGoal: 2500,
@@ -110,7 +125,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [todayActivity, setTodayActivity] = useState<ActivityState>(INITIAL_ACTIVITY)
 
   const [gridData, setGridData] = useState<GridHabit[]>(SEED_GRID_DATA)
-  const [heatmapData, setHeatmapData] = useState<{ id: number, count: number }[]>(SEED_HEATMAP)
+  const [heatmapData, setHeatmapData] = useState<{ date: string, count: number }[]>(SEED_HEATMAP)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   const storageKey = useMemo(
@@ -169,7 +184,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
           setGridData([])
-          setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+          setHeatmapData(
+            Array.from({ length: 364 }).map((_, i) => {
+              const d = new Date();
+              d.setHours(0, 0, 0, 0);
+              d.setDate(d.getDate() - (363 - i));
+
+              return {
+                date: d.toISOString().split("T")[0],
+                count: 0,
+              };
+            })
+          )
         } else {
           setIsInitialized(false)
           setCurrentSystemDate(getLocalYYYYMMDD())
@@ -245,7 +271,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('habitflow_has_initialized', 'true')
     setIsInitialized(true)
     setGridData([])
-    setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+    setHeatmapData(
+      Array.from({ length: 364 }).map((_, i) => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - (363 - i));
+
+        return {
+          date: d.toISOString().split("T")[0],
+          count: 0,
+        };
+      })
+    )
     setTodayHabits([])
     setTodayNutrition(INITIAL_NUTRITION)
     setTodayActivity(INITIAL_ACTIVITY)
@@ -264,7 +301,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         const totalTicks = todayHabits.length
         setHeatmapData(prev => {
           const newMap = [...prev.slice(1)] // shift 1 day off
-          newMap.push({ id: prev.length ? prev[prev.length - 1].id + 1 : 0, count: totalTicks })
+          newMap.push({date: getLocalYYYYMMDD(), count: totalTicks })
           return newMap
         })
 
@@ -309,7 +346,25 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const toggleTodayHabit = (id: number) => {
     requireAuth(() => {
       const isCompleting = !todayHabits.includes(id);
-      setTodayHabits(prev => isCompleting ? [...prev, id] : prev.filter(x => x !== id))
+      setTodayHabits(prev => {
+        const updated = isCompleting
+          ? [...prev, id]
+          : prev.filter(x => x !== id);
+
+        // Update today's heatmap immediately
+        setHeatmapData(old => {
+          const copy = [...old];
+
+          copy[copy.length - 1] = {
+            ...copy[copy.length - 1],
+            count: updated.length,
+          };
+
+          return copy;
+        });
+
+        return updated;
+      });
 
       if (isCompleting) {
         const habit = gridData.find(h => h.id === id);
