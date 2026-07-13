@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 
@@ -113,7 +113,10 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [heatmapData, setHeatmapData] = useState<{ id: number, count: number }[]>(SEED_HEATMAP)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
-  const getStorageKey = () => user?.id ? `habitflow_state_${user.id}` : 'habitflow_state'
+  const storageKey = useMemo(
+    () => (user?.id ? `habitflow_state_${user.id}` : "habitflow_state"),
+    [user?.id]
+  );
 
   // Hydration
   useEffect(() => {
@@ -138,9 +141,9 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       if (!parsed) {
         try {
-          const saved = localStorage.getItem(getStorageKey())
+          const saved = localStorage.getItem(storageKey)
           if (saved) parsed = JSON.parse(saved)
-        } catch (e) { }
+        } catch { }
       }
 
       if (parsed) {
@@ -209,7 +212,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [user?.id, isLoading, isAuthenticated])
+  }, [storageKey, user?.id, isLoading, isAuthenticated]);
 
   // Persistence & Rollover Check
   useEffect(() => {
@@ -219,7 +222,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData
     }
     const stateString = JSON.stringify(stateToSave);
-    localStorage.setItem(getStorageKey(), stateString)
+    localStorage.setItem(storageKey, stateString)
 
     if (isAuthenticated) {
       const timer = setTimeout(() => {
@@ -236,7 +239,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       return () => clearTimeout(timer);
     }
-  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted])
+  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, storageKey]);
 
   const initializeJourney = () => {
     localStorage.setItem('habitflow_has_initialized', 'true')
@@ -267,7 +270,6 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
         // 2. Archive: Shift Grid 1 day forward
         setGridData(prev => prev.map(h => {
-          const wasCompleted = todayHabits.includes(h.id)
           const newDays = [...h.days]
           // The last element in days is roughly "today" in the 30-day window
           // We lock yesterday's completion status into the grid if it isn't already there.

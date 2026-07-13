@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
-import { GridHabit, useHabitContext } from '@/contexts/habit-context';
+import { GridHabit } from '@/contexts/habit-context';
 
 interface UnifiedHabitCalendarProps {
   gridData: GridHabit[];
@@ -20,49 +20,6 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
 
   const activeHabits = gridData.map(h => h.name);
 
-  // Calculate Perfect Days for the current calendar month
-  const getPerfectDaysCount = () => {
-    let perfectCount = 0;
-    
-    for (let actualCalendarDay = 1; actualCalendarDay <= daysInMonth; actualCalendarDay++) {
-      const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-      const today = new Date();
-      const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-      
-      const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-      
-        // Only count days that exist within our 30-day backend rolling window
-      if (diffDays <= 0 && diffDays >= -29) {
-        const relativeDayNum = 30 + diffDays;
-        let completedCount = 0;
-        let scheduledCount = 0;
-        const dayOfWeek = dateForThisDay.getDay();
-
-        for (const habit of gridData) {
-          const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
-          if (isScheduled) {
-            scheduledCount++;
-            const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-            if (habit.days && habit.days[dayIndex]?.completed) {
-              completedCount++;
-            }
-          }
-        }
-
-        // Check if all scheduled habits are completed
-        if (scheduledCount > 0 && completedCount === scheduledCount) {
-          perfectCount++;
-        }
-      }
-    }
-    
-    return perfectCount;
-  };
-
-  const perfectDaysCount = getPerfectDaysCount();
-
   const getDayStats = (actualCalendarDay: number) => {
     const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
     const today = new Date();
@@ -73,7 +30,6 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
     const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
     
     if (diffDays <= 0 && diffDays >= -29) {
-      const relativeDayNum = 30 + diffDays;
       let completedCount = 0;
       let scheduledCount = 0;
       const dayOfWeek = dateForThisDay.getDay();
@@ -125,8 +81,7 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
           <span className="text-[10px] md:text-xs font-semibold text-foreground bg-background border border-border px-2.5 py-1 rounded-full mb-1.5 md:mb-2">
             Today: {todayString}
           </span>
-          <span className="text-[10px] md:text-xs text-zinc-555 font-medium text-right">
-            {/* {perfectDaysCount}/{daysInMonth} Days */}
+          <span className="text-[10px] md:text-xs text-zinc-555 font-medium bg-background border border-border px-2.5 py-1 rounded-full">
             {todayDay}/{daysInMonth} Days
           </span>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts'
@@ -9,7 +9,7 @@ const DynamicResponsiveContainer = dynamic(
   () => import('recharts').then((mod) => mod.ResponsiveContainer),
   { ssr: false }
 )
-import { Check, Flame, Rocket, ChevronLeft, ChevronRight, Minus, Bell } from 'lucide-react'
+import { Check, Rocket, Bell } from 'lucide-react'
 import { NutritionTracker } from '@/components/dashboard/nutrition-tracker'
 import { ActivityMetricsTracker } from '@/components/dashboard/activity-metrics-tracker'
 import { UnifiedHabitCalendar } from '@/components/dashboard/unified-habit-calendar'
@@ -29,37 +29,41 @@ export default function BrutalistDashboard() {
     gridData, 
     todayHabits, 
     toggleTodayHabit, 
-    toggleGridHabit, 
-    heatmapData, 
+    toggleGridHabit,
+    heatmapData,
     isMounted, 
     isInitialized, 
     initializeJourney,
-    currentSystemDate
   } = useHabitContext()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [clientReady, setClientReady] = useState(false)
-  const [notificationPermission, setNotificationPermission] = useState<'default' | 'denied' | 'granted' | 'unsupported'>('unsupported')
-  const [selectedWeek, setSelectedWeek] = useState<'all' | 1 | 2 | 3 | 4>('all')
-  const [animatingCells, setAnimatingCells] = useState<Record<string, boolean>>({})
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false)
 
-  const todayDay = new Date().getDate()
-  const [selectedDay, setSelectedDay] = useState<number>(todayDay)
+  const [loading, setLoading] = useState(true);
+
+  const [clientReady, setClientReady] = useState(false);
+
+  const [notificationPermission, setNotificationPermission] = useState< "default" | "denied" | "granted" | "unsupported">("unsupported");
+
+  const [selectedWeek, setSelectedWeek] = useState<"all" | 1 | 2 | 3 | 4>("all");
+
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+
+  const todayDay = new Date().getDate();
+
+  const [selectedDay, setSelectedDay] = useState<number>(todayDay);
+
+  const [selectedMatrixYear, setSelectedMatrixYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
-    if (isMounted) {
-      setSelectedDay(new Date().getDate())
-    }
-  }, [currentSystemDate, isMounted])
+    const id = window.requestAnimationFrame(() => {
+      setClientReady(true);
+      if (typeof window !== "undefined" && "Notification" in window) {
+        setNotificationPermission(Notification.permission as "default" | "denied" | "granted");
+      }
+    });
 
-  useEffect(() => {
-    setClientReady(true)
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      setNotificationPermission(Notification.permission)
-    }
-  }, [])
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   // Self-repair to clear the glitchy completions on June 10 caused by the previous index mismatch
   useEffect(() => {
@@ -178,7 +182,6 @@ export default function BrutalistDashboard() {
     let rate = null; // Out of rolling window or in future
 
     if (diffDays <= 0 && diffDays >= -29) {
-      const relativeDayNum = 30 + diffDays;
       let completed = 0;
       let totalScheduled = 0;
       const dayOfWeek = dateForThisDay.getDay();
@@ -212,8 +215,7 @@ export default function BrutalistDashboard() {
       return true;
     });
 
-
-
+  
   // Selected day time-travel date calculations
   const dateForSelectedDay = new Date(currentYear, currentMonth, selectedDay);
   const dayOfWeekForSelectedDay = dateForSelectedDay.getDay();
@@ -258,36 +260,77 @@ export default function BrutalistDashboard() {
   // Selected date string, e.g. "Jun 23"
   const selectedDateStr = dateForSelectedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-  const toggleDay = (habitId: number, dayNum: number) => {
-    const key = `${habitId}-${dayNum}`
-    setAnimatingCells(prev => ({ ...prev, [key]: true }))
-    setTimeout(() => {
-      setAnimatingCells(prev => ({ ...prev, [key]: false }))
-    }, 300)
 
-    toggleGridHabit(habitId, dayNum)
-  }
+  const heatmapByDate = useMemo(() => {
+    const map = new Map<string, typeof heatmapData[number]>();
+    const totalDays = heatmapData.length;
+    heatmapData.forEach((day, index) => {
+      const daysAgo = totalDays - 1 - index;
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - daysAgo);
+      map.set(d.toISOString().split('T')[0], day);
+    });
+    return map;
+  }, [heatmapData]);
 
-  // Helper for heatmap colors
-  const getHeatmapColor = (count: number) => {
-    if (count === 0) return 'bg-zinc-200 dark:bg-zinc-900'
-    if (count <= 2) return 'bg-zinc-400 dark:bg-zinc-650'
-    if (count <= 4) return 'bg-green-400 dark:bg-green-600'
-    return 'bg-green-600 dark:bg-green-850'
-  }
+  const currentYearForMatrix = new Date().getFullYear();
 
-  // Calculate consecutive missed days up to the most recent day in the grid window
-  const getStatusColor = (days: { day: number, completed: boolean }[]) => {
-    let missedDays = 0;
-    for (let i = days.length - 1; i >= Math.max(0, days.length - 7); i--) {
-      if (!days[i]?.completed) missedDays++;
-      else break;
+  const yearlyCells = useMemo(() => {
+    const jan1 = new Date(currentYearForMatrix, 0, 1);
+    const dec31 = new Date(currentYearForMatrix, 11, 31);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const firstDayOfWeek = jan1.getDay();
+
+    const cells: ({ date: Date; count: number; id: string | number } | null)[] =
+      Array.from({ length: firstDayOfWeek }, () => null);
+
+    for (let d = new Date(jan1); d <= dec31; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().split('T')[0];
+      const existing = heatmapByDate.get(key);
+      cells.push({
+        date: new Date(d),
+        count: existing ? existing.count : 0,
+        id: existing ? existing.id : key,
+      });
     }
-    if (missedDays >= 7) return 'bg-red-500' // Danger zone (> 1 week)
-    if (missedDays >= 1) return 'bg-yellow-500' // Losing habit (1-6 days)
-    return 'bg-green-500' // Active streak
-  }
+    return cells;
+  }, [heatmapByDate, currentYearForMatrix]);
 
+  const yearlyMonthColumns = useMemo(() => {
+    const columnCount = Math.ceil(yearlyCells.length / 7);
+    const columns: { colIndex: number; monthLabel: string | null }[] = [];
+    let lastMonth = -1;
+
+    for (let col = 0; col < columnCount; col++) {
+      const rowsInCol = yearlyCells.slice(col * 7, col * 7 + 7);
+      const firstRealCell = rowsInCol.find((c) => c !== null);
+      let monthLabel: string | null = null;
+      if (firstRealCell) {
+        const month = firstRealCell.date.getMonth();
+        if (month !== lastMonth) {
+          monthLabel = firstRealCell.date.toLocaleDateString('en-US', { month: 'short' });
+          lastMonth = month;
+        }
+      }
+      columns.push({ colIndex: col, monthLabel });
+    }
+    return columns;
+  }, [yearlyCells]);
+
+  const getHeatmapColor = (count: number) => {
+    if (count === 0) return "bg-zinc-900";
+    if (count === 1) return "bg-zinc-700";
+    if (count === 2) return "bg-green-500";
+    if (count >= 3) return "bg-green-700";
+    return "bg-zinc-900";
+  };
+
+  // heatmapData is a rolling window ending today (confirmed via
+  // habit-context.tsx rollover logic) — NOT anchored to Jan 1st. Month
+  // labels and column count must be derived from real dates, not assumed.
+  
   return (
     <>
       {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
@@ -331,7 +374,10 @@ export default function BrutalistDashboard() {
           </div>
           {clientReady && isSelectedDayToday && isAuthenticated && notificationPermission === 'default' && (
             <button
-              onClick={() => requestAndStoreNotificationToken(user?.id!)}
+              onClick={() => {
+                if (!user?.id) return;
+                  requestAndStoreNotificationToken(user.id);
+              }}
               className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse self-start sm:self-auto"
             >
               <Bell size={14} /> Enable Notifications
@@ -342,7 +388,7 @@ export default function BrutalistDashboard() {
           {gridData.length === 0 && (
             <div className="col-span-full border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
               <h3 className="text-foreground text-lg font-bold uppercase tracking-widest mb-2">No Habits Configured</h3>
-              <p className="text-zinc-500 text-sm mb-6">You haven't set up any habits to track yet.</p>
+              <p className="text-zinc-500 text-sm mb-6">You haven&apos;t set up any habits to track yet.</p>
               <button onClick={() => router.push('/habits')} className="bg-foreground text-background px-6 py-2 font-bold uppercase tracking-wider text-xs hover:bg-foreground/90 transition-colors">
                 Go to Manage Habits
               </button>
@@ -475,7 +521,7 @@ export default function BrutalistDashboard() {
                       contentStyle={{ backgroundColor: 'var(--background)', color: 'var(--foreground)', border: 'none', borderRadius: '0px', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '12px' }}
                       itemStyle={{ color: 'var(--foreground)' }}
                       labelStyle={{ color: 'var(--foreground)', marginBottom: '4px' }}
-                      formatter={(value: any) => [`${value}% completed`, 'Trend']}
+                      formatter={(value) => [ `${Number(value ?? 0)}% completed`, "Trend", ]}
                       labelFormatter={(label) => {
                         return new Date(currentYear, currentMonth, Number(label)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                       }}
@@ -499,39 +545,64 @@ export default function BrutalistDashboard() {
         </div>
         {/* Micro Yearly Heatmap */}
         <div className="border border-border bg-card p-4 overflow-x-auto text-card-foreground">
-          <div className="mb-4">
-            <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground">Yearly Matrix</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-foreground"> Yearly Matrix </h3>
+              <select
+                value={selectedMatrixYear}
+                onChange={(e) => setSelectedMatrixYear(Number(e.target.value))}
+                className="bg-card border border-border text-foreground text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-[1px] focus:outline-none focus:border-foreground cursor-pointer"
+              >
+                {Array.from({ length: 5 }, (_, i) => 2026 + i).map((yr) => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
           </div>
-          <div className="flex items-start gap-3 min-w-max">
-            <div className="flex flex-col justify-between text-[8px] text-zinc-650 uppercase tracking-widest h-19 pt-3.5 pb-1 pr-1">
-              <span>Mon</span>
-              <span>Wed</span>
-              <span>Fri</span>
-            </div>
-            <div className="flex-1">
-              <div className="flex justify-between text-[8px] text-zinc-650 uppercase tracking-widest mb-1.5 pl-1 pr-8">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
-              </div>
-              <div className="grid grid-rows-7 grid-flow-col gap-0.5">
-                {heatmapData.map((day, index) => {
-                  const daysAgo = heatmapData.length - 1 - index;
-                  const d = new Date();
-                  d.setDate(d.getDate() - daysAgo);
-                  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+          <div className="min-w-205">
+            {/* Month Labels */}
+            <div className="grid grid-flow-col auto-cols-[14px] gap-0.5 ml-8 mb-2 text-[9px] font-bold uppercase tracking-widest text-zinc-500">
+              {yearlyMonthColumns.map((col) => (
+                <span key={col.colIndex} className="whitespace-nowrap overflow-visible">
+                  {col.monthLabel || ''}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex">
+              {/* Weekday Labels */}
+              <div className="flex flex-col justify-between mr-2 text-[8px] font-bold uppercase tracking-widest text-zinc-500 h-24.5 w-6">
+                <span>Mon</span>
+                <span>Wed</span>
+                <span>Fri</span>
+              </div>
+
+              {/* Existing Heatmap */}
+              <div className="grid grid-flow-col grid-rows-7 gap-0.5">
+                {yearlyCells.map((day, index) => {
+                  if (!day) {
+                    return <div key={`empty-${index}`} className="w-3.5 h-3.5" />;
+                  }
                   return (
                     <div
                       key={day.id}
-                      className={`w-2.5 h-2.5 rounded-[1px] transition-all duration-150 ease-out hover:scale-125 hover:bg-foreground hover:z-10 relative group ${getHeatmapColor(day.count)}`}
-                    >
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block bg-background text-foreground border border-border text-[10px] font-bold px-2 py-1 whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                        {dateStr}: {day.count} Habits
-                      </div>
-                    </div>
+                      title={`${day.count} completions`}
+                      className={[
+                        "w-3.5 h-3.5 rounded-[1px] transition-all duration-150 hover:scale-110",
+                        getHeatmapColor(day.count),
+                      ].join(" ")}
+                    />
                   );
                 })}
               </div>
+            </div>
+            
+            <div className="flex items-center justify-end gap-2 mt-3 text-[8px] font-bold uppercase tracking-widest text-zinc-500">
+              <span>Less</span>
+              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-900 rounded-[1px]" />
+              <div className="w-3.5 h-3.5 bg-zinc-400 dark:bg-zinc-700 rounded-[1px]" />
+              <div className="w-3.5 h-3.5 bg-green-400 dark:bg-green-600 rounded-[1px]" />
+              <div className="w-3.5 h-3.5 bg-green-600 dark:bg-green-800 rounded-[1px]" />
+              <span>More</span>
             </div>
           </div>
         </div>
@@ -557,7 +628,8 @@ export default function BrutalistDashboard() {
                   <div className="flex gap-4 pt-1.5">
                     <button
                       onClick={() => {
-                        requestAndStoreNotificationToken(user?.id!)
+                        if (!user?.id) return;
+                          requestAndStoreNotificationToken(user.id);
                         setShowNotifPrompt(false)
                       }}
                       className="bg-emerald-500 hover:bg-emerald-400 text-black px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
