@@ -290,10 +290,10 @@ export default function BrutalistDashboard() {
       const key = d.toISOString().split('T')[0];
       const existing = heatmapByDate.get(key);
       cells.push({
-        date: new Date(d),
-        count: existing ? existing.count : 0,
-        id: existing ? existing.id : key,
-      });
+      date: new Date(d),
+      count: existing?.count ?? 0,
+      id: key,
+    });
     }
     return cells;
   }, [heatmapByDate, currentYearForMatrix]);
