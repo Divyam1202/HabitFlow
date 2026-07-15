@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
+import { getGridDayRatio, getDayDiff } from '@/utils/analytics'
 
 export default function CalendarPage() {
   const { gridData, heatmapData } = useHabitContext()
@@ -34,43 +35,20 @@ export default function CalendarPage() {
   const days = Array.from({ length: totalCells }).map((_, i) => i - startOffset + 1)
 
   const getDayStats = (actualCalendarDay: number) => {
-    const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-    
-    // Within 30 days window: compute detailed ratio from gridData
-    if (diffDays <= 0 && diffDays >= -29) {
-      // const relativeDayNum = 30 + diffDays;
-      let completedCount = 0;
-      let scheduledCount = 0;
-      const dayOfWeek = dateForThisDay.getDay();
+    const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay)
+    const gridRatio = getGridDayRatio(gridData, dateForThisDay, today)
+    if (gridRatio !== null) return gridRatio
 
-      for (const habit of gridData) {
-        const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
-        if (isScheduled) {
-          scheduledCount++;
-          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-          if (habit.days && habit.days[dayIndex]?.completed) {
-            completedCount++;
-          }
-        }
-      }
-      return scheduledCount > 0 ? (completedCount / scheduledCount) : null;
-    }
-    
-    // Outside 30 days but within 364 days: compute ratio from heatmapData
+    const diffDays = getDayDiff(dateForThisDay, today)
     if (diffDays < -29 && diffDays >= -363) {
-      const heatmapIndex = heatmapData.length - 1 + diffDays;
-      const count = heatmapData[heatmapIndex]?.count || 0;
-      const totalHabits = gridData.length || 5;
-      return count / totalHabits;
+      const heatmapIndex = heatmapData.length - 1 + diffDays
+      const count = heatmapData[heatmapIndex]?.count || 0
+      const totalHabits = gridData.length || 5
+      return count / totalHabits
     }
-    
-    return null;
-  };
+
+    return null
+  }
 
 
   const getColorClass = (ratio: number | null) => {

@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseMessaging, requestAndStoreNotificationToken } from '@/lib/firebase'
 import { onMessage } from 'firebase/messaging'
 import { toast } from 'sonner'
+import { calculateAnalyticsSummary, getGridDayStats } from '@/utils/analytics'
 
 
 
@@ -53,6 +54,12 @@ export default function BrutalistDashboard() {
   const [selectedDay, setSelectedDay] = useState<number>(todayDay);
 
   const [selectedMatrixYear, setSelectedMatrixYear] = useState<number>(new Date().getFullYear());
+
+  const analyticsSummary = useMemo(
+    () => calculateAnalyticsSummary(gridData, heatmapData),
+    [gridData, heatmapData]
+  );
+  const { dailyRecords } = analyticsSummary;
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -171,37 +178,11 @@ export default function BrutalistDashboard() {
   const completionRateData = Array.from({ length: daysInMonth }).map((_, i) => {
     const actualCalendarDay = i + 1;
     const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-
-    const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-
-    let rate = null; // Out of rolling window or in future
-
-    if (diffDays <= 0 && diffDays >= -29) {
-      let completed = 0;
-      let totalScheduled = 0;
-      const dayOfWeek = dateForThisDay.getDay();
-
-      gridData.forEach(habit => {
-        const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
-        if (isScheduled) {
-          totalScheduled++;
-          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-          if (habit.days && habit.days[dayIndex]?.completed) {
-            completed++;
-          }
-        }
-      });
-      rate = totalScheduled === 0 ? 0 : Math.round((completed / totalScheduled) * 100);
-    }
+    const stats = getGridDayStats(gridData, dateForThisDay);
 
     return {
       day: actualCalendarDay,
-      rate: rate
+      rate: stats.ratio === null ? null : Math.round(stats.ratio * 100)
     };
   });
 
@@ -261,20 +242,15 @@ export default function BrutalistDashboard() {
   const selectedDateStr = dateForSelectedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 
-  const heatmapByDate = useMemo(() => {
-    const map = new Map<string, typeof heatmapData[number]>();
-    const totalDays = heatmapData.length;
-    heatmapData.forEach((day, index) => {
-      const daysAgo = totalDays - 1 - index;
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - daysAgo);
-      map.set(d.toISOString().split('T')[0], day);
+  const dailyRecordByDate = useMemo(() => {
+    const map = new Map<string, typeof dailyRecords[number]>();
+    dailyRecords.forEach((day) => {
+      map.set(day.key, day);
     });
     return map;
-  }, [heatmapData]);
+  }, [dailyRecords]);
 
-  const currentYearForMatrix = new Date().getFullYear();
+  const currentYearForMatrix = selectedMatrixYear;
 
   const yearlyCells = useMemo(() => {
     const jan1 = new Date(currentYearForMatrix, 0, 1);
@@ -287,16 +263,16 @@ export default function BrutalistDashboard() {
       Array.from({ length: firstDayOfWeek }, () => null);
 
     for (let d = new Date(jan1); d <= dec31; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().split('T')[0];
-      const existing = heatmapByDate.get(key);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const existing = dailyRecordByDate.get(key);
       cells.push({
         date: new Date(d),
-        count: existing ? existing.count : 0,
-        id: existing ? existing.id : key,
+        count: existing ? existing.completedCount : 0,
+        id: key,
       });
     }
     return cells;
-  }, [heatmapByDate, currentYearForMatrix]);
+  }, [dailyRecordByDate, currentYearForMatrix]);
 
   const yearlyMonthColumns = useMemo(() => {
     const columnCount = Math.ceil(yearlyCells.length / 7);

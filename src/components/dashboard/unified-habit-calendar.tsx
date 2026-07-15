@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { GridHabit } from '@/contexts/habit-context';
+import { getDayDiff, getGridDayStats } from '@/utils/analytics';
 
 interface UnifiedHabitCalendarProps {
   gridData: GridHabit[];
@@ -22,43 +23,18 @@ export const UnifiedHabitCalendar = ({ gridData, selectedDay, onSelectDay }: Uni
 
   const getDayStats = (actualCalendarDay: number) => {
     const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-    const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
-    
-    if (diffDays <= 0 && diffDays >= -29) {
-      let completedCount = 0;
-      let scheduledCount = 0;
-      const dayOfWeek = dateForThisDay.getDay();
+    const stats = getGridDayStats(gridData, dateForThisDay);
+    const ratio = stats.ratio ?? 0;
 
-      for (const habit of gridData) {
-        const isScheduled = habit.frequency ? habit.frequency.includes(dayOfWeek) : true;
-        if (isScheduled) {
-          scheduledCount++;
-          const dayIndex = (habit.days?.length || 30) - 1 + diffDays;
-          if (habit.days && habit.days[dayIndex]?.completed) {
-            completedCount++;
-          }
-        }
-      }
-      const ratio = scheduledCount > 0 ? (completedCount / scheduledCount) : 0;
-      return {
-        isDone: scheduledCount > 0 && completedCount === scheduledCount,
-        ratio
-      };
-    }
-    return { isDone: false, ratio: 0 }; // Future or past outside 30 day window
+    return {
+      isDone: stats.scheduledCount > 0 && stats.completedCount === stats.scheduledCount,
+      ratio
+    };
   };
 
   const diffDaysVal = (actualCalendarDay: number) => {
-    const today = new Date();
-    const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const targetMidnight = new Date(currentYear, currentMonth, actualCalendarDay);
-    const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
-    return Math.round(diffTime / (1000 * 3600 * 24));
+    return getDayDiff(targetMidnight);
   };
 
   // Generate today string
