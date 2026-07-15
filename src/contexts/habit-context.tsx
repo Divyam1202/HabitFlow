@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 
@@ -100,6 +100,8 @@ const getLocalYYYYMMDD = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+const emptyHeatmap = () => Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 }))
+
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const { requireAuth, user, isLoading, isAuthenticated } = useAuth()
@@ -112,6 +114,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [gridData, setGridData] = useState<GridHabit[]>(SEED_GRID_DATA)
   const [heatmapData, setHeatmapData] = useState<{ id: number, count: number }[]>(SEED_HEATMAP)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
+  const [hasHydratedState, setHasHydratedState] = useState(false)
+  const loadedStateRef = useRef<Record<string, unknown> | null>(null)
 
   const storageKey = useMemo(
     () => (user?.id ? `habitflow_state_${user.id}` : "habitflow_state"),
@@ -124,17 +128,24 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     const loadState = async () => {
       let parsed = null;
+      let remoteLoadFailed = false;
+      let remoteHadState = false;
 
       if (isAuthenticated) {
         try {
           const res = await fetch('/api/user-state', { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.stateData) {
-              parsed = JSON.parse(data.stateData);
-            }
+          if (!res.ok) {
+            throw new Error(`Remote state request failed with ${res.status}`)
+          }
+          const data = await res.json();
+          if (data.stateData) {
+            remoteHadState = true;
+            parsed = typeof data.parsedState === 'object' && data.parsedState
+              ? data.parsedState
+              : JSON.parse(data.stateData);
           }
         } catch (e) {
+          remoteLoadFailed = true;
           console.error("Failed to fetch remote state", e);
         }
       }
@@ -148,6 +159,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       if (parsed) {
         const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
+        loadedStateRef.current = parsed
         setIsInitialized(hasInitialized || !!isAuthenticated)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
         setTodayHabits(parsed.todayHabits || [])
@@ -160,24 +172,54 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           setGridData(parsed.gridData || SEED_GRID_DATA)
           setHeatmapData(parsed.heatmapData || SEED_HEATMAP)
         }
+        setHasHydratedState(true)
       } else {
         const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
-        if (hasInitialized || isAuthenticated) {
+        if (isAuthenticated && remoteLoadFailed) {
           setIsInitialized(true)
           setCurrentSystemDate(getLocalYYYYMMDD())
           setTodayHabits([])
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
           setGridData([])
-          setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+          setHeatmapData(emptyHeatmap())
+          setHasHydratedState(false)
+        } else if (hasInitialized || isAuthenticated) {
+          const nextState = {
+            currentSystemDate: getLocalYYYYMMDD(),
+            todayHabits: [],
+            todayNutrition: INITIAL_NUTRITION,
+            todayActivity: INITIAL_ACTIVITY,
+            gridData: [],
+            heatmapData: emptyHeatmap(),
+          }
+          loadedStateRef.current = nextState
+          setIsInitialized(true)
+          setCurrentSystemDate(nextState.currentSystemDate)
+          setTodayHabits([])
+          setTodayNutrition(INITIAL_NUTRITION)
+          setTodayActivity(INITIAL_ACTIVITY)
+          setGridData([])
+          setHeatmapData(nextState.heatmapData)
+          setHasHydratedState(!isAuthenticated || !remoteHadState)
         } else {
+          const nextState = {
+            currentSystemDate: getLocalYYYYMMDD(),
+            todayHabits: [1, 3],
+            todayNutrition: INITIAL_NUTRITION,
+            todayActivity: INITIAL_ACTIVITY,
+            gridData: SEED_GRID_DATA,
+            heatmapData: SEED_HEATMAP,
+          }
+          loadedStateRef.current = nextState
           setIsInitialized(false)
-          setCurrentSystemDate(getLocalYYYYMMDD())
+          setCurrentSystemDate(nextState.currentSystemDate)
           setTodayHabits([1, 3])
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
           setGridData(SEED_GRID_DATA)
           setHeatmapData(SEED_HEATMAP)
+          setHasHydratedState(true)
         }
       }
       setMounted(true)
@@ -216,12 +258,14 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
   // Persistence & Rollover Check
   useEffect(() => {
-    if (!mounted || isLoading) return
+    if (!mounted || isLoading || !hasHydratedState) return
 
     const stateToSave = {
+      ...(loadedStateRef.current || {}),
       currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData
     }
     const stateString = JSON.stringify(stateToSave);
+    loadedStateRef.current = stateToSave
     localStorage.setItem(storageKey, stateString)
 
     if (isAuthenticated) {
@@ -239,13 +283,23 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       return () => clearTimeout(timer);
     }
-  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, storageKey]);
+  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, hasHydratedState, storageKey]);
 
   const initializeJourney = () => {
+    const nextState = {
+      currentSystemDate: getLocalYYYYMMDD(),
+      todayHabits: [],
+      todayNutrition: INITIAL_NUTRITION,
+      todayActivity: INITIAL_ACTIVITY,
+      gridData: [],
+      heatmapData: emptyHeatmap(),
+    }
     localStorage.setItem('habitflow_has_initialized', 'true')
+    loadedStateRef.current = nextState
+    setHasHydratedState(true)
     setIsInitialized(true)
     setGridData([])
-    setHeatmapData(Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 })))
+    setHeatmapData(nextState.heatmapData)
     setTodayHabits([])
     setTodayNutrition(INITIAL_NUTRITION)
     setTodayActivity(INITIAL_ACTIVITY)
@@ -368,10 +422,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
+        ...(loadedStateRef.current || {}),
         currentSystemDate, todayHabits, todayNutrition, todayActivity,
         gridData: [...gridData, newHabit],
         heatmapData
       };
+      loadedStateRef.current = stateToSave
 
       toast.promise(
         fetch('/api/user-state', {
@@ -407,10 +463,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
+        ...(loadedStateRef.current || {}),
         currentSystemDate, todayHabits, todayNutrition, todayActivity,
         gridData: updatedGridData,
         heatmapData
       };
+      loadedStateRef.current = stateToSave
 
       toast.promise(
         fetch('/api/user-state', {
@@ -440,10 +498,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
+        ...(loadedStateRef.current || {}),
         currentSystemDate, todayHabits: updatedTodayHabits, todayNutrition, todayActivity,
         gridData: updatedGridData,
         heatmapData
       };
+      loadedStateRef.current = stateToSave
 
       toast.promise(
         fetch('/api/user-state', {
