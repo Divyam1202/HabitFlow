@@ -38,21 +38,6 @@ function CompactStat({
   )
 }
 
-function MiniProgress({ label, value, meta }: { label: string; value: number; meta: string }) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-3 text-[9px] font-bold uppercase tracking-widest">
-        <span className="truncate text-foreground">{label}</span>
-        <span className="shrink-0 text-zinc-500">{value}%</span>
-      </div>
-      <div className="h-2 bg-background border border-border">
-        <div className="h-full bg-foreground" style={{ width: `${Math.min(100, value)}%` }} />
-      </div>
-      <div className="text-[9px] font-mono uppercase tracking-widest text-zinc-500">{meta}</div>
-    </div>
-  )
-}
-
 export default function AnalyticsPage() {
   const { gridData, heatmapData, todayNutrition, todayActivity } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
@@ -74,7 +59,7 @@ export default function AnalyticsPage() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
           Authenticating...
         </div>
@@ -83,7 +68,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 pt-12 pb-24 space-y-10 text-foreground">
+    <div className="max-w-100 mx-auto px-6 pt-12 pb-24 space-y-10 text-foreground">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-widest text-foreground">Productivity Dashboard</h1>
@@ -151,14 +136,14 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 pt-6 border-t border-border">
         <div className="border border-border bg-card p-4 rounded-[1px] text-card-foreground lg:col-span-2">
-          <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Nutrition Summary</h3>
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-4">Nutrition Totals</h3>
           <div className="grid grid-cols-2 gap-4">
             {nutritionSummary.map((item) => (
-              <MiniProgress
+              <CompactStat
                 key={item.label}
                 label={item.label}
-                value={item.achievement}
-                meta={`${item.value} / ${item.goal} ${item.unit}`}
+                value={item.value}
+                meta={`Total ${item.unit}`}
               />
             ))}
           </div>
@@ -183,7 +168,7 @@ export default function AnalyticsPage() {
               meta={`${summary.monthlyComparison.currentExecutions} vs ${summary.monthlyComparison.previousExecutions}`}
               tone={summary.monthlyComparison.percentChange >= 0 ? 'text-green-500' : 'text-red-500'}
             />
-            <MiniProgress
+            <CompactStat
               label="Consistency Score"
               value={summary.consistencyScore}
               meta="Streak + active days + rate"
@@ -229,7 +214,7 @@ export default function AnalyticsPage() {
                 <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">No habit data available</div>
               )}
               {summary.habitPerformance.slice(0, 6).map((habit) => (
-                <MiniProgress
+                <CompactStat
                   key={habit.id}
                   label={habit.name}
                   value={habit.completionRate}

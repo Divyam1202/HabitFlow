@@ -1,13 +1,16 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { authClient } from '@/lib/auth-client'
 import { X, CheckCircle } from 'lucide-react'
 import { checkUsernameAvailability } from '@/actions/auth-actions'
+import { ADMIN_REDIRECT_PATH, isAdminEmail } from '@/lib/admin'
 
 export function GatekeeperModal() {
   const { showGatekeeper, setShowGatekeeper, onAuthSuccess, isAuthenticated } = useAuth()
+  const router = useRouter()
   
   type AuthMode = "login" | "signup" | "forgot" | "forgot-success";
   const [mode, setMode] = useState<AuthMode>("login");
@@ -61,6 +64,11 @@ export function GatekeeperModal() {
       
       setIsAuthenticatedScreen(true)
       setTimeout(() => {
+        if (isAdminEmail(email)) {
+          setShowGatekeeper(false)
+          router.replace(ADMIN_REDIRECT_PATH)
+          return
+        }
         onAuthSuccess()
         window.location.reload()
       }, 1500)
@@ -97,6 +105,11 @@ export function GatekeeperModal() {
             return
           }
           throw error
+        }
+        if (isAdminEmail(email)) {
+          setShowGatekeeper(false)
+          router.replace(ADMIN_REDIRECT_PATH)
+          return
         }
         onAuthSuccess()
       } else {

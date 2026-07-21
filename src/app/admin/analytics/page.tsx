@@ -76,134 +76,104 @@ export default async function AdminAnalyticsPage() {
   const totalUsers = await db.collection('user').countDocuments()
   const retentionRate = totalUsers > 0 ? ((mauCount / totalUsers) * 100).toFixed(1) : '0'
 
+  const metrics = [
+    { label: 'Daily Signups', value: `+${signupsDaily}`, note: 'Past 24 hours', icon: UserPlus, tone: 'green' },
+    { label: 'Weekly Signups', value: `+${signupsWeekly}`, note: 'Past 7 days', icon: UserPlus, tone: 'white' },
+    { label: 'Monthly Signups', value: `+${signupsMonthly}`, note: 'Past 30 days', icon: UserPlus, tone: 'amber' },
+    { label: 'MAU Retention', value: `${retentionRate}%`, note: `Retention against ${totalUsers} signups`, icon: Activity, tone: 'blue' },
+    { label: 'Avg Streak', value: `${avgStreak}d`, note: 'Across active habits', icon: Flame, tone: 'green' },
+    { label: 'Completion Rate', value: `${completionRate}%`, note: 'Completed vs scheduled', icon: Heart, tone: 'white' },
+    { label: 'DAU', value: `${dauCount}`, note: 'Active today', icon: Activity, tone: 'amber' },
+    { label: 'WAU', value: `${wauCount}`, note: 'Active past 7 days', icon: Activity, tone: 'blue' },
+  ] as const
+
   return (
-    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-foreground font-panchang">
+    <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
+      <div className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-500">
           Product Analytics
+        </div>
+        <h1 className="font-panchang text-2xl font-black uppercase tracking-tight text-foreground md:text-[2rem]">
+          HabytFlow Operations Analytics
         </h1>
-        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-          Performance, signup growth patterns, and active user metrics
+        <p className="max-w-2xl text-sm text-zinc-500">
+          Growth, retention, and habit telemetry in a compact operational view.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+          return (
+            <div key={metric.label} className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+              <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+              <Icon size={16} className="absolute right-4 top-4 text-white/20" />
+              <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500">
+                {metric.label}
+              </div>
+              <div className="mt-4 text-3xl font-black tracking-tight text-white">
+                {metric.value}
+              </div>
+              <div className="mt-2 text-xs text-zinc-500">{metric.note}</div>
+            </div>
+          )
+        })}
+      </section>
 
-        {/* Growth & Usage Section */}
-        <div className="space-y-6">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
-            <UserPlus size={16} /> Growth & Acquisition
-          </h3>
-
-          <div className="border border-border bg-card text-card-foreground p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Daily Signups</p>
-                <p className="text-xs text-zinc-500">Past 24 hours</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">+{signupsDaily}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Weekly Signups</p>
-                <p className="text-xs text-zinc-500">Past 7 days</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">+{signupsWeekly}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2">
-              <div>
-                <p className="text-sm font-bold text-foreground">Monthly Signups</p>
-                <p className="text-xs text-zinc-500">Past 30 days</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">+{signupsMonthly}</span>
-            </div>
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-sky-400/40" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">
+            <UserPlus size={15} /> Growth & Acquisition
           </div>
-
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-4 mb-2 flex items-center gap-2">
-            <Activity size={16} /> User Engagement (Usage)
-          </h3>
-
-          <div className="border border-border bg-card text-card-foreground p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Daily Active Users (DAU)</p>
-                <p className="text-xs text-zinc-500">Active today</p>
+          <div className="space-y-1">
+            {[
+              { label: 'Daily Signups', value: `+${signupsDaily}`, sub: 'Past 24 hours' },
+              { label: 'Weekly Signups', value: `+${signupsWeekly}`, sub: 'Past 7 days' },
+              { label: 'Monthly Signups', value: `+${signupsMonthly}`, sub: 'Past 30 days' },
+              { label: 'DAU', value: `${dauCount}`, sub: 'Active today' },
+              { label: 'WAU', value: `${wauCount}`, sub: 'Active past 7 days' },
+              { label: 'MAU', value: `${mauCount}`, sub: 'Active past 30 days' },
+            ].map((item) => (
+              <div key={item.label} className="flex items-start justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/[0.03]">
+                <div>
+                  <div className="text-sm text-white">{item.label}</div>
+                  <div className="mt-1 text-xs text-zinc-500">{item.sub}</div>
+                </div>
+                <div className="text-2xl font-black text-white">{item.value}</div>
               </div>
-              <span className="text-2xl font-black text-foreground">{dauCount}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Weekly Active Users (WAU)</p>
-                <p className="text-xs text-zinc-500">Active past 7 days</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">{wauCount}</span>
-            </div>
-            <div className="flex justify-between items-center pb-2">
-              <div>
-                <p className="text-sm font-bold text-foreground">Monthly Active Users (MAU)</p>
-                <p className="text-xs text-zinc-500">Active past 30 days</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">{mauCount}</span>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Habit Metrics & Retention Section */}
-        <div className="space-y-6">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
-            <Flame size={16} /> Habit Engagement Metrics
-          </h3>
-
-          <div className="border border-border bg-card text-card-foreground p-6 space-y-6">
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Average Max Streak</p>
-                <p className="text-xs text-zinc-500">Across all user habits</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">{avgStreak} Days</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-border/40 pb-4">
-              <div>
-                <p className="text-sm font-bold text-foreground">Global Completion Rate</p>
-                <p className="text-xs text-zinc-500">Completed marks vs scheduled</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">{completionRate}%</span>
-            </div>
-            <div className="flex justify-between items-center pb-2">
-              <div>
-                <p className="text-sm font-bold text-foreground">User Retention Rate</p>
-                <p className="text-xs text-zinc-500">MAU relative to total signups</p>
-              </div>
-              <span className="text-2xl font-black text-foreground">{retentionRate}%</span>
-            </div>
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-emerald-400/40" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">
+            <Heart size={15} /> Top Habits Tracked
           </div>
-
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-4 mb-2 flex items-center gap-2">
-            <Heart size={16} /> Top Habits Tracked
-          </h3>
-
-          <div className="border border-border bg-card text-card-foreground p-6">
-            {popularHabitsAgg.length === 0 ? (
-              <p className="text-xs text-zinc-500 py-6 text-center font-bold">No telemetry events logged yet</p>
-            ) : (
-              <div className="space-y-4">
-                {popularHabitsAgg.map((habit, i) => (
-                  <div key={i} className="flex justify-between items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                    <span className="text-sm font-bold text-foreground">
+          {popularHabitsAgg.length === 0 ? (
+            <div className="px-4 py-16 text-center text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+              No telemetry events logged yet
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {popularHabitsAgg.map((habit, i) => (
+                <div key={i} className="flex items-center justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/[0.03]">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm text-white">
                       {i + 1}. {habit._id || 'Unnamed Habit'}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-zinc-500">
-                      {habit.count} completions
-                    </span>
+                    </div>
+                    <div className="mt-1 text-xs text-zinc-500">Telemetry-tracked activity</div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                    {habit.count} completions
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-
-      </div>
+      </section>
     </div>
   )
 }

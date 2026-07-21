@@ -50,7 +50,7 @@ export default async function AdminDashboardPage() {
   let totalCompletions = 0
   let totalStreakSum = 0
   
-  allHabits.forEach((h: any) => {
+  allHabits.forEach((h) => {
     if (h.history) {
       const historyObj = h.history instanceof Map ? Object.fromEntries(h.history) : h.history
       let currentStreak = 0
@@ -91,158 +91,232 @@ export default async function AdminDashboardPage() {
     .limit(5)
     .lean()
 
+  const metrics = [
+    {
+      label: 'Users',
+      value: totalUsers,
+      delta: `+${newUsersToday} today`,
+      icon: Users,
+      tone: 'green',
+    },
+    {
+      label: 'Habits',
+      value: totalHabits,
+      delta: `${totalCompletions} completions`,
+      icon: CheckSquare,
+      tone: 'white',
+    },
+    {
+      label: 'Active Today',
+      value: activeUsersCount,
+      delta: 'Active sessions and new signups',
+      icon: TrendingUp,
+      tone: 'amber',
+    },
+    {
+      label: 'Retention',
+      value: `${retentionRate}%`,
+      delta: `Avg streak ${averageStreak} days`,
+      icon: Trophy,
+      tone: 'blue',
+    },
+  ] as const
+
   return (
-    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-foreground font-panchang">
+    <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
+      <header className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-500">
           System Overview
+        </div>
+        <h1 className="font-panchang text-2xl font-black uppercase tracking-tight text-foreground md:text-[2rem]">
+          HabytFlow Operations Console
         </h1>
-        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-          HabitFlow System Core Dashboard
+        <p className="max-w-2xl text-sm text-zinc-500">
+          Operational visibility for growth, activity, and moderation across the platform.
         </p>
-      </div>
+      </header>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Users */}
-        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
-          <div className="flex justify-between items-center text-zinc-500 mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Total Users</span>
-            <Users size={16} />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-foreground">{totalUsers}</h3>
-            <p className="text-xs text-emerald-500 font-bold mt-1">
-              +{newUsersToday} Today
-            </p>
-          </div>
-        </div>
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+          const toneClasses = {
+            green: 'before:bg-emerald-400/70 group-hover:bg-emerald-500/5',
+            white: 'before:bg-white/70 group-hover:bg-white/[0.04]',
+            amber: 'before:bg-amber-400/70 group-hover:bg-amber-500/5',
+            blue: 'before:bg-sky-400/70 group-hover:bg-sky-500/5',
+          }[metric.tone]
 
-        {/* Active Today */}
-        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
-          <div className="flex justify-between items-center text-zinc-500 mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Active Users (Today)</span>
-            <TrendingUp size={16} />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-foreground">{activeUsersCount}</h3>
-            <p className="text-xs text-zinc-500 mt-1">
-              Based on active sessions
-            </p>
-          </div>
-        </div>
-
-        {/* Total Habits & Completions */}
-        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
-          <div className="flex justify-between items-center text-zinc-500 mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Total Habits</span>
-            <CheckSquare size={16} />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-foreground">{totalHabits}</h3>
-            <p className="text-xs text-zinc-500 font-bold mt-1">
-              {totalCompletions} Completions
-            </p>
-          </div>
-        </div>
-
-        {/* Streak & Retention */}
-        <div className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
-          <div className="flex justify-between items-center text-zinc-500 mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest">Avg Streak / Retention</span>
-            <Trophy size={16} />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-foreground">{averageStreak} Days</h3>
-            <p className="text-xs text-emerald-500 font-bold mt-1">
-              {retentionRate}% user retention
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Activity Panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Signups */}
-        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recent Signups</h3>
-            <Link href="/admin/users" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
-              All Users <ArrowUpRight size={14} />
-            </Link>
-          </div>
-          <div className="space-y-4 flex-grow">
-            {recentSignups.map((u, i) => (
-              <div key={i} className="flex justify-between items-center border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                <div>
-                  <p className="text-sm font-bold text-foreground">{u.name || 'Anonymous'}</p>
-                  <p className="text-xs text-zinc-500">{u.email}</p>
-                </div>
-                <span className="text-[10px] font-mono text-zinc-650">
-                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
-                </span>
+          return (
+            <div
+              key={metric.label}
+              className={`group relative overflow-hidden bg-card/70 p-4 ring-1 ring-white/5 transition-all duration-150 hover:-translate-y-0.5 hover:ring-white/10 ${toneClasses}`}
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+              <div className="absolute right-4 top-4 text-white/15 transition-colors group-hover:text-white/30">
+                <Icon size={18} />
               </div>
-            ))}
+              <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500">
+                {metric.label}
+              </div>
+              <div className="mt-4 text-3xl font-black tracking-tight text-foreground">
+                {metric.value}
+              </div>
+              <div className="mt-2 text-xs text-zinc-500">
+                {metric.delta}
+              </div>
+            </div>
+          )
+        })}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-emerald-400/50" />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Recent Signups</h2>
+              <p className="mt-1 text-sm text-zinc-500">Newest accounts arriving in the console.</p>
+            </div>
+            <Link href="/admin/users" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:text-white">
+              All Users <ArrowUpRight size={13} />
+            </Link>
+          </div>
+          <div className="space-y-1">
+            {recentSignups.length === 0 ? (
+              <div className="px-3 py-4 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                No signups yet
+              </div>
+            ) : (
+              recentSignups.map((u, i) => {
+                const initials = (u.name || u.email || 'U')
+                  .split(' ')
+                  .map((part: string) => part[0])
+                  .slice(0, 2)
+                  .join('')
+                  .toUpperCase()
+
+                return (
+                  <div key={i} className="group flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-white/3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/5 bg-white/3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+                      {initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="truncate text-sm font-medium text-white">
+                          {u.name || 'Anonymous'}
+                        </p>
+                        <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                        </span>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-zinc-500">{u.email}</p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
-        {/* Recent Feedback */}
-        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recent Feedback</h3>
-            <Link href="/admin/feedback" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
-              View Desk <ArrowUpRight size={14} />
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-sky-400/40" />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Recent Feedback</h2>
+              <p className="mt-1 text-sm text-zinc-500">Latest product signals from users.</p>
+            </div>
+            <Link href="/admin/feedback" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:text-white">
+              View Desk <ArrowUpRight size={13} />
             </Link>
           </div>
-          <div className="space-y-4 flex-grow">
+          <div className="space-y-1">
             {recentFeedback.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-6 font-bold">No feedback submitted yet</p>
+              <div className="px-3 py-4 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                No feedback submitted
+              </div>
             ) : (
               recentFeedback.map((f, i) => (
-                <div key={i} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="text-[9px] font-mono font-bold tracking-wider px-2 py-0.5 bg-zinc-800 text-zinc-300 uppercase rounded-sm">
-                      {f.type.replace('_', ' ')}
-                    </span>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase">{f.status}</span>
+                <div key={i} className="group flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-white/3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/5 bg-white/3 text-white/65">
+                    <FileText size={15} />
                   </div>
-                  <p className="text-sm text-foreground line-clamp-1">{f.message}</p>
-                  <p className="text-[10px] text-zinc-500 mt-1 font-semibold">{f.email}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="truncate text-sm font-medium text-white">
+                        {f.message}
+                      </p>
+                      <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                        {new Date(f.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-[0.22em]">
+                      <span className={`border px-2 py-0.5 ${
+                        f.type === 'BUG_REPORT' ? 'border-red-500/20 text-red-400' :
+                        f.type === 'FEATURE_REQUEST' ? 'border-sky-500/20 text-sky-400' :
+                        'border-white/10 text-zinc-300'
+                      }`}>
+                        {f.type.replace('_', ' ')}
+                      </span>
+                      <span className={`border px-2 py-0.5 ${
+                        f.status === 'RESOLVED' || f.status === 'CLOSED'
+                          ? 'border-emerald-500/20 text-emerald-400'
+                          : f.status === 'PLANNED'
+                            ? 'border-amber-500/20 text-amber-400'
+                            : 'border-white/10 text-zinc-400'
+                      }`}>
+                        {f.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <p className="mt-2 truncate text-xs text-zinc-500">{f.email}</p>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* Recent Audit Logs */}
-        <div className="border border-border bg-card p-6 text-card-foreground flex flex-col justify-between">
-          <div className="mb-6 flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Audit Logs</h3>
-            <Link href="/admin/audit-logs" className="text-xs text-zinc-400 hover:text-foreground transition-colors flex items-center gap-1 font-bold">
-              View Logs <ArrowUpRight size={14} />
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-amber-400/40" />
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Audit Logs</h2>
+              <p className="mt-1 text-sm text-zinc-500">Recent system events and operator actions.</p>
+            </div>
+            <Link href="/admin/audit-logs" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:text-white">
+              View Logs <ArrowUpRight size={13} />
             </Link>
           </div>
-          <div className="space-y-4 flex-grow">
+          <div className="space-y-1">
             {recentAuditLogs.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-6 font-bold">No audit entries yet</p>
+              <div className="px-3 py-4 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                No audit entries
+              </div>
             ) : (
               recentAuditLogs.map((log, i) => (
-                <div key={i} className="border-b border-border/40 pb-3 last:border-0 last:pb-0">
-                  <div className="flex justify-between items-start">
-                    <span className="text-xs font-bold text-foreground">{log.action.replace('_', ' ')}</span>
-                    <span className="text-[9px] font-mono text-zinc-500">
-                      {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                <div key={i} className="group flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-white/3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-white/5 bg-white/3 text-white/65">
+                    <ShieldAlert size={15} />
                   </div>
-                  <p className="text-xs text-zinc-500 line-clamp-1 mt-0.5">{log.details}</p>
-                  <p className="text-[10px] text-zinc-650 mt-1 font-semibold">{log.adminEmail}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="truncate text-sm font-medium text-white">
+                        {log.action.replaceAll('_', ' ')}
+                      </p>
+                      <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="mt-1 truncate text-xs text-zinc-500">{log.details}</p>
+                    <p className="mt-2 truncate text-xs uppercase tracking-[0.18em] text-zinc-600">
+                      {log.adminEmail}
+                    </p>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

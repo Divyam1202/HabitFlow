@@ -3,25 +3,15 @@ import { connectToDatabase } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import Announcement from '@/models/Announcement'
 import AuditLog from '@/models/AuditLog'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
-
-async function checkAdmin(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: req.headers })
-  if (!session || !session.user) return null
-  const email = session.user.email
-  const role = email === 'habytflow@gmail.com' ? 'SUPER_ADMIN' : (session.user.role || 'USER')
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-    return { user: session.user, role }
-  }
-  return null
-}
 
 export async function GET(req: NextRequest) {
   try {
     // Both users and admins can fetch announcements (filtered by audience for users)
     const session = await auth.api.getSession({ headers: req.headers })
-    const isAdmin = session && (session.user.email === 'habytflow@gmail.com' || ['ADMIN', 'SUPER_ADMIN'].includes(session.user.role || 'USER'))
+    const isAdmin = !!session?.user && session.user.email?.toLowerCase() === 'habytflow@gmail.com'
 
     await connectToDatabase()
 
@@ -52,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminCheck = await checkAdmin(req)
+    const adminCheck = await requireAdmin(req)
     if (!adminCheck) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

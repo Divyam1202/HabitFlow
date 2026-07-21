@@ -3,19 +3,9 @@ import { connectToDatabase } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import NotificationLog from '@/models/NotificationLog'
 import ShadowSendLog from '@/models/ShadowSendLog'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
-
-async function checkAdmin(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: req.headers })
-  if (!session || !session.user) return null
-  const email = session.user.email
-  const role = email === 'habytflow@gmail.com' ? 'SUPER_ADMIN' : (session.user.role || 'USER')
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-    return { user: session.user, role }
-  }
-  return null
-}
 
 /**
  * GET /api/admin/notifications-diff?days=7
@@ -30,7 +20,7 @@ async function checkAdmin(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const adminCheck = await checkAdmin(req)
+    const adminCheck = await requireAdmin(req)
     if (!adminCheck) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -69,124 +69,123 @@ export default function AdminAnnouncementsPage() {
   }
 
   return (
-    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-foreground font-panchang">
+    <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
+      <div className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-500">
+          Broadcast Control
+        </div>
+        <h1 className="font-panchang text-2xl font-black uppercase tracking-tight text-foreground md:text-[2rem]">
           Announcements
         </h1>
-        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-          Draft system-wide notices and broadcast messages to segments
+        <p className="max-w-2xl text-sm text-zinc-500">
+          Draft notices and broadcast updates from a compact command surface.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Creation Form */}
-        <div className="lg:col-span-1 border border-border bg-card p-6 text-card-foreground h-fit">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2">
-            <Bell size={16} /> Publish New Notice
-          </h3>
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">
+            <Bell size={15} /> Publish New Notice
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 font-sans">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Notice Title</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="Notice Title">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Server Maintenance"
-                className="w-full px-4 py-2 border border-border bg-background text-foreground text-sm focus:outline-none focus:border-foreground"
+                className="w-full bg-background px-3 py-2.5 text-sm text-foreground ring-1 ring-white/5 outline-none focus:ring-white/10"
                 required
               />
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Type</label>
+            <Field label="Type">
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full px-4 py-2 border border-border bg-background text-foreground text-sm uppercase tracking-wider font-semibold focus:outline-none"
+                className="w-full bg-background px-3 py-2.5 text-sm text-foreground ring-1 ring-white/5 outline-none"
               >
                 <option value="NEW_FEATURE">New Feature</option>
                 <option value="MAINTENANCE">Maintenance</option>
                 <option value="BUG_FIXES">Bug Fixes</option>
                 <option value="UPDATE_NOTES">Update Notes</option>
               </select>
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Audience Segment</label>
+            <Field label="Audience Segment">
               <select
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="w-full px-4 py-2 border border-border bg-background text-foreground text-sm uppercase tracking-wider font-semibold focus:outline-none"
+                className="w-full bg-background px-3 py-2.5 text-sm text-foreground ring-1 ring-white/5 outline-none"
               >
                 <option value="ALL_USERS">All Users</option>
                 <option value="PREMIUM_USERS">Premium Users Only</option>
                 <option value="INACTIVE_USERS">Inactive Users</option>
               </select>
-            </div>
+            </Field>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Message Body</label>
+            <Field label="Message Body">
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Write your announcement details here..."
-                rows={5}
-                className="w-full px-4 py-2 border border-border bg-background text-foreground text-sm focus:outline-none focus:border-foreground resize-none"
+                rows={7}
+                className="w-full resize-none bg-background px-3 py-2.5 text-sm text-foreground ring-1 ring-white/5 outline-none"
                 required
               />
-            </div>
+            </Field>
 
             <button
               type="submit"
               disabled={publishing}
-              className="w-full py-3 bg-foreground text-background font-bold text-xs uppercase tracking-widest hover:bg-foreground/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="inline-flex w-full items-center justify-center gap-2 bg-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-black transition-colors hover:bg-white/90 disabled:opacity-50"
             >
-              {publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send size={14} />}
+              {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={14} />}
               Broadcast Notice
             </button>
           </form>
         </div>
 
-        {/* List of past announcements */}
-        <div className="lg:col-span-2 space-y-6">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-2 flex items-center gap-2">
-            <Megaphone size={16} /> Broadcast History
-          </h3>
+        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+          <div className="absolute inset-x-0 top-0 h-px bg-sky-400/40" />
+          <div className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">
+            <Megaphone size={15} /> Broadcast History
+          </div>
 
           {loading ? (
-            <div className="flex justify-center py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+            <div className="flex justify-center py-24">
+              <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
             </div>
           ) : announcements.length === 0 ? (
-            <div className="border border-dashed border-border py-12 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">
+            <div className="px-4 py-16 text-center text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
               No notices published yet
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-1">
               {announcements.map((a) => (
-                <div key={a.id} className="border border-border bg-card p-6 text-card-foreground">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="text-base font-bold text-foreground">{a.title}</h4>
-                      <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
-                        Segment: <span className="text-foreground uppercase">{a.audience.replace('_', ' ')}</span>
+                <div key={a.id} className="group px-3 py-3 transition-colors hover:bg-white/[0.03]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="truncate text-sm font-medium text-white">{a.title}</h4>
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                          {new Date(a.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-sm text-zinc-400 whitespace-pre-line">
+                        {a.message}
                       </p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.22em]">
+                        <span className="border border-white/10 px-2 py-0.5 text-zinc-300">
+                          {a.audience.replace('_', ' ')}
+                        </span>
+                        <span className="border border-sky-500/20 px-2 py-0.5 text-sky-400">
+                          {a.type.replace('_', ' ')}
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-mono text-zinc-500 font-bold">
-                      {new Date(a.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-
-                  <p className="text-sm font-sans leading-relaxed text-zinc-400 whitespace-pre-line mb-4">
-                    {a.message}
-                  </p>
-
-                  <div className="flex justify-end">
-                    <span className="text-[9px] font-mono font-bold tracking-wider px-2.5 py-1 bg-zinc-800 text-zinc-300 uppercase rounded-sm">
-                      {a.type.replace('_', ' ')}
-                    </span>
                   </div>
                 </div>
               ))}
@@ -195,5 +194,14 @@ export default function AdminAnnouncementsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-2">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500">{label}</span>
+      {children}
+    </label>
   )
 }

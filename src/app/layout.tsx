@@ -4,13 +4,9 @@ import localFont from 'next/font/local'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { TopNav } from '@/components/layout/top-nav'
-import { Footer } from '@/components/layout/footer'
-import { ActivityTracker } from '@/components/activity-tracker'
 import { HabitProvider } from '@/contexts/habit-context'
 import { AuthProvider } from '@/contexts/auth-context'
-import { GatekeeperModal } from '@/components/ui/gatekeeper-modal'
-import { Toaster } from 'sonner'
+import { AppShell } from '@/components/app-shell'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -54,16 +50,7 @@ export default function RootLayout({
           <AuthProvider>
             <HabitProvider>
               <TooltipProvider>
-                <div className="min-h-screen flex flex-col">
-                  <TopNav />
-                  <ActivityTracker />
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <Footer />
-                  <GatekeeperModal />
-                  <Toaster theme="dark" position="bottom-right" />
-                </div>
+                <AppShell>{children}</AppShell>
               </TooltipProvider>
             </HabitProvider>
           </AuthProvider>

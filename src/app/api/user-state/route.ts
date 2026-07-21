@@ -2,12 +2,39 @@ import { NextRequest, NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 import { connectToDatabase } from '@/lib/db'
 import UserState from '@/models/UserState'
+import Habit from '@/models/Habit'
+import HabitSchedule from '@/models/HabitSchedule'
+import Note from '@/models/Note'
+import DailyMetric from '@/models/DailyMetric'
+import SportsLog from '@/models/SportsLog'
+import Notification from '@/models/Notification'
+import NotificationLog from '@/models/NotificationLog'
+import { isAdminUser } from '@/lib/admin'
 import { auth } from '@/lib/auth'
 import { dualWriteHabitSchedules } from '@/lib/dual-write-schedule'
+import {
+  appendBackupToState,
+  createExportPayload,
+  createStoredBackupRecord,
+  getBackupAgeDays,
+  getBackupList,
+  getLatestBackup,
+  getStoredBackups,
+} from '@/lib/backup-manager'
 
 const DEFAULT_PREVIEW_HABIT_NAMES = ['Gym', 'Reading', 'Touch Grass', 'Skincare', 'Digital Detox']
 
 type StateRecord = Record<string, unknown>
+
+type RelatedStateSnapshot = {
+  legacyHabits: Record<string, unknown>[]
+  habitSchedules: Record<string, unknown>[]
+  notes: Record<string, unknown>[]
+  dailyMetrics: Record<string, unknown>[]
+  sportsLogs: Record<string, unknown>[]
+  notifications: Record<string, unknown>[]
+  notificationLogs: Record<string, unknown>[]
+}
 
 function asRecord(value: unknown): StateRecord {
   return typeof value === 'object' && value !== null ? value as StateRecord : {}
@@ -57,6 +84,42 @@ function isUnsafeOverwrite(existingState: unknown, incomingState: unknown) {
   return false
 }
 
+function shouldCreateScheduledBackup(state: StateRecord, latestBackup: ReturnType<typeof getLatestBackup>) {
+  if (!hasTrackedState(state)) return false
+  const ageDays = getBackupAgeDays(latestBackup)
+  return !latestBackup || ageDays === null || ageDays >= 3
+}
+
+async function buildRelatedStateSnapshot(userId: string): Promise<RelatedStateSnapshot> {
+  const [
+    legacyHabits,
+    habitSchedules,
+    notes,
+    dailyMetrics,
+    sportsLogs,
+    notifications,
+    notificationLogs,
+  ] = await Promise.all([
+    Habit.find({ userId }).lean(),
+    HabitSchedule.find({ userId }).lean(),
+    Note.find({ userId }).lean(),
+    DailyMetric.find({ userId }).lean(),
+    SportsLog.find({ userId }).lean(),
+    Notification.find({ userId }).lean(),
+    NotificationLog.find({ userId }).lean(),
+  ])
+
+  return {
+    legacyHabits,
+    habitSchedules,
+    notes,
+    dailyMetrics,
+    sportsLogs,
+    notifications,
+    notificationLogs,
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers })
@@ -65,22 +128,69 @@ export async function GET(req: NextRequest) {
     }
 
     await connectToDatabase()
-    
-    const userState = await UserState.findOne({ userId: session.user.id })
+
+    const targetUserId = req.nextUrl.searchParams.get('adminTargetUser')
+    const isAdminRequest = Boolean(targetUserId && isAdminUser(session.user))
+    const userState = await UserState.findOne({ userId: isAdminRequest ? targetUserId : session.user.id })
     
     if (!userState) {
       return NextResponse.json({ stateData: null, timezone: null })
     }
     
-    let parsedState = null
+    let parsedState: StateRecord | null = null
+    let stateDataValue = userState.stateData
     try {
       parsedState = JSON.parse(userState.stateData)
     } catch {
       return NextResponse.json({ error: 'Stored user state is invalid JSON' }, { status: 500 })
     }
 
+    const storedBackups = getStoredBackups(parsedState)
+    const latestBackup = getLatestBackup(storedBackups)
+
+    if (!isAdminRequest && parsedState && shouldCreateScheduledBackup(parsedState, latestBackup)) {
+      const relatedData = await buildRelatedStateSnapshot(session.user.id)
+      const backupPayload = createExportPayload({
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        },
+        userState: {
+          id: String(userState._id),
+          userId: userState.userId,
+          timezone: userState.timezone || 'Asia/Kolkata',
+          createdAt: userState.createdAt,
+          updatedAt: userState.updatedAt,
+          stateDataRaw: userState.stateData,
+          stateData: parsedState,
+        },
+        relatedData,
+      })
+      const scheduledBackup = createStoredBackupRecord(
+        backupPayload,
+        'scheduled',
+        `Automatic Backup ${new Date().toLocaleString()}`
+      )
+      const nextState = appendBackupToState(parsedState, scheduledBackup)
+
+      await UserState.findOneAndUpdate(
+        { userId: session.user.id },
+        {
+          $set: {
+            stateData: JSON.stringify(nextState),
+            timezone: userState.timezone || 'Asia/Kolkata',
+          },
+        },
+        { upsert: true }
+      )
+
+      parsedState = nextState
+      stateDataValue = JSON.stringify(nextState)
+    }
+
     return NextResponse.json({
-      stateData: userState.stateData,
+      stateData: stateDataValue,
       parsedState,
       timezone: userState.timezone || 'Asia/Kolkata'
     })

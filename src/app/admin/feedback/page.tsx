@@ -66,23 +66,25 @@ export default function AdminFeedbackPage() {
   })
 
   return (
-    <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-foreground font-panchang">
+    <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-500">
+            Moderation Queue
+          </div>
+          <h1 className="font-panchang text-2xl font-black uppercase tracking-tight text-foreground md:text-[2rem]">
             Feedback Desk
           </h1>
-          <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-            Review user-submitted reports and coordinate updates
+          <p className="max-w-2xl text-sm text-zinc-500">
+            Review user-submitted reports, triage issues, and keep the product loop moving.
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex flex-wrap gap-3">
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="bg-card border border-border text-foreground text-xs px-4 py-2 uppercase tracking-wider font-bold focus:outline-none"
+            className="bg-card/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-foreground ring-1 ring-white/5 outline-none"
           >
             <option value="ALL">All Types</option>
             <option value="BUG_REPORT">Bugs</option>
@@ -93,7 +95,7 @@ export default function AdminFeedbackPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-card border border-border text-foreground text-xs px-4 py-2 uppercase tracking-wider font-bold focus:outline-none"
+            className="bg-card/70 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-foreground ring-1 ring-white/5 outline-none"
           >
             <option value="ALL">All Statuses</option>
             <option value="OPEN">Open</option>
@@ -106,58 +108,67 @@ export default function AdminFeedbackPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <div className="flex justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-card/65 ring-1 ring-white/5">
           {filteredFeedback.length === 0 ? (
-            <div className="col-span-full border border-dashed border-border py-20 text-center text-zinc-500 text-xs font-bold uppercase tracking-widest">
+            <div className="px-4 py-16 text-center text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
               No feedback items matching filters
             </div>
           ) : (
-            filteredFeedback.map((item) => (
-              <div key={item.id} className="border border-border bg-card p-6 flex flex-col justify-between text-card-foreground">
-                <div>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-sm uppercase flex items-center gap-1.5 ${item.type === 'BUG_REPORT' ? 'bg-red-500/10 text-red-500' :
-                        item.type === 'FEATURE_REQUEST' ? 'bg-blue-500/10 text-blue-500' : 'bg-zinc-800 text-zinc-300'
-                      }`}>
-                      {item.type === 'BUG_REPORT' ? <AlertCircle size={10} /> :
-                        item.type === 'FEATURE_REQUEST' ? <Sparkles size={10} /> : <MessageSquare size={10} />}
-                      {item.type.replace('_', ' ')}
-                    </span>
-                    <span className="text-[10px] font-mono text-zinc-500 font-bold uppercase">
-                      {new Date(item.createdAt).toLocaleDateString()}
-                    </span>
+            <div className="divide-y divide-white/5">
+              {filteredFeedback.map((item) => (
+                <div key={item.id} className="group px-4 py-4 transition-colors hover:bg-white/[0.03]">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                          item.type === 'BUG_REPORT'
+                            ? 'border-red-500/20 text-red-400'
+                            : item.type === 'FEATURE_REQUEST'
+                              ? 'border-sky-500/20 text-sky-400'
+                              : 'border-white/10 text-zinc-300'
+                        }`}>
+                          {item.type === 'BUG_REPORT' ? <AlertCircle size={10} /> : item.type === 'FEATURE_REQUEST' ? <Sparkles size={10} /> : <MessageSquare size={10} />}
+                          {item.type.replace('_', ' ')}
+                        </span>
+                        <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <p className="mt-3 max-w-4xl whitespace-pre-line text-sm leading-relaxed text-white">
+                        {item.message}
+                      </p>
+
+                      <div className="mt-3 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                        {item.email}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 xl:justify-end">
+                      {updatingId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                      ) : (
+                        <select
+                          value={item.status}
+                          onChange={(e) => updateStatus(item.id, e.target.value)}
+                          className="bg-background px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground ring-1 ring-white/5 outline-none"
+                        >
+                          <option value="OPEN">Open</option>
+                          <option value="IN_REVIEW">In Review</option>
+                          <option value="PLANNED">Planned</option>
+                          <option value="RESOLVED">Resolved</option>
+                          <option value="CLOSED">Closed</option>
+                        </select>
+                      )}
+                    </div>
                   </div>
-
-                  <p className="text-sm font-medium text-foreground mb-4 leading-relaxed whitespace-pre-line">
-                    {item.message}
-                  </p>
                 </div>
-
-                <div className="border-t border-border pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <span className="text-[10px] text-zinc-500 font-semibold truncate max-w-xs">{item.email}</span>
-
-                  {updatingId === item.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
-                  ) : (
-                    <select
-                      value={item.status}
-                      onChange={(e) => updateStatus(item.id, e.target.value)}
-                      className="bg-background border border-border text-foreground text-[10px] px-2.5 py-1 uppercase tracking-wider font-bold focus:outline-none"
-                    >
-                      <option value="OPEN">Open</option>
-                      <option value="IN_REVIEW">In Review</option>
-                      <option value="PLANNED">Planned</option>
-                      <option value="RESOLVED">Resolved</option>
-                      <option value="CLOSED">Closed</option>
-                    </select>
-                  )}
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, Trash2, CheckCircle2 } from 'lucide-react'
+import { Download, Trash2, CheckCircle2, RotateCcw, AlertTriangle, X } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
@@ -9,6 +9,8 @@ import { useTheme } from 'next-themes'
 import { authClient } from '@/lib/auth-client'
 import { toast } from 'sonner'
 import { requestAndStoreNotificationToken } from '@/lib/firebase'
+import DataImportSection from '@/components/settings/data-import-section'
+import BackupManagerSection from '@/components/settings/backup-manager-section'
 
 export default function SettingsPage() {
   const { timeFormat, updateTimeFormat } = useSettings()
@@ -27,6 +29,14 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
+  const [isExporting, setIsExporting] = useState(false)
+  const [isResetting, setIsResetting] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetConfirmationText, setResetConfirmationText] = useState('')
+  const [isResetConfirming, setIsResetConfirming] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
   // Notification auto-repair state — not displayed, runs silently
   const [health, setHealth] = useState<{ notificationStatus?: string } | null>(null)
@@ -50,7 +60,10 @@ export default function SettingsPage() {
   // Silently fetch health on mount so the repair effect can evaluate
   useEffect(() => {
     if (isAuthenticated) {
-      checkNotifHealth()
+      const id = window.requestAnimationFrame(() => {
+        checkNotifHealth()
+      })
+      return () => window.cancelAnimationFrame(id)
     }
   }, [isAuthenticated])
 
@@ -64,14 +77,17 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user) {
-      setUsername(user.name || '')
-      setEmail(user.email || '')
+      const id = window.requestAnimationFrame(() => {
+        setUsername(user.name || '')
+        setEmail(user.email || '')
+      })
+      return () => window.cancelAnimationFrame(id)
     }
   }, [user])
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <div className="text-sm font-bold uppercase tracking-widest text-zinc-500 animate-pulse">
           Authenticating...
         </div>
@@ -108,9 +124,161 @@ export default function SettingsPage() {
     }
   }
 
+  const handleExportData = async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/user-state/export', { cache: 'no-store' })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to export data')
+      }
+
+      const exportData = {
+        ...data,
+        clientSettings: {
+          timeFormat,
+          theme: theme || 'system',
+        },
+      }
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const date = new Date().toISOString().slice(0, 10)
+      link.href = url
+      link.download = `habytflow-export-${user?.email || 'user'}-${date}.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+
+      toast.success('Export downloaded')
+    } catch (error) {
+      console.error('Export failed:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to export data')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleResetData = async () => {
+    setIsResetting(true)
+    try {
+      const res = await fetch('/api/user-state/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientSettings: {
+            timeFormat,
+            theme: theme || 'system',
+          },
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reset data')
+      }
+
+      toast.success('Data reset')
+      window.location.reload()
+    } catch (error) {
+      console.error('Reset failed:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to reset data')
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
+  const openResetModal = () => {
+    setResetConfirmationText('')
+    setShowResetModal(true)
+  }
+
+  const closeResetModal = () => {
+    if (isResetConfirming) return
+    setShowResetModal(false)
+    setResetConfirmationText('')
+  }
+
+  const confirmResetPhraseMatches = resetConfirmationText.trim().toLowerCase() === 'reset my data'
+
+  const handleResetConfirmed = async () => {
+    if (!confirmResetPhraseMatches || isResetConfirming) return
+
+    setIsResetConfirming(true)
+    try {
+      await handleResetData()
+    } finally {
+      setIsResetConfirming(false)
+      setShowResetModal(false)
+      setResetConfirmationText('')
+    }
+  }
+
+  const openDeleteModal = () => {
+    setDeleteConfirmationText('')
+    setShowDeleteModal(true)
+  }
+
+  const closeDeleteModal = () => {
+    if (isDeletingAccount) return
+    setShowDeleteModal(false)
+    setDeleteConfirmationText('')
+  }
+
+  const handleDeleteAccount = async () => {
+    const phraseMatches = deleteConfirmationText.trim().toLowerCase() === 'delete my data'
+    if (!phraseMatches || isDeletingAccount) return
+
+    setIsDeletingAccount(true)
+    try {
+      const backupRes = await fetch('/api/user-state/backups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source: 'pre-destructive',
+          clientSettings: {
+            timeFormat,
+            theme: theme || 'system',
+          },
+        }),
+      })
+      const backupData = await backupRes.json()
+
+      if (!backupRes.ok) {
+        throw new Error(backupData.error || 'Failed to create final backup')
+      }
+
+      const deleteResult = await authClient.deleteUser({
+        callbackURL: window.location.origin,
+      })
+
+      if (deleteResult?.error) {
+        throw new Error(deleteResult.error.message || 'Failed to delete account')
+      }
+
+      toast.success('Account deleted')
+      router.replace('/')
+      router.refresh()
+    } catch (error) {
+      console.error('Account deletion failed:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to delete account')
+    } finally {
+      setIsDeletingAccount(false)
+      setShowDeleteModal(false)
+      setDeleteConfirmationText('')
+    }
+  }
+
+  const deletePhraseMatches = deleteConfirmationText.trim().toLowerCase() === 'delete my data'
+
   return (
     <>
-      <div className="max-w-[800px] mx-auto px-6 pt-12 pb-24 space-y-12">
+      <div className="max-w-200 mx-auto px-6 pt-12 pb-24 space-y-12">
         
         <div>
           <h1 className="text-2xl font-bold uppercase tracking-tight">Settings</h1>
@@ -235,25 +403,193 @@ export default function SettingsPage() {
           <section className="space-y-4">
             <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Data Management</h2>
             <div className="border border-border bg-card p-6 flex flex-col gap-4 text-card-foreground">
-              <button className="flex items-center justify-between p-4 border border-border hover:border-foreground hover:bg-foreground hover:text-background transition-colors text-left group">
+              <BackupManagerSection />
+              <DataImportSection />
+
+              <button
+                onClick={handleExportData}
+                disabled={isExporting}
+                className="flex items-center justify-between p-4 border border-border transition-colors text-left group disabled:opacity-60 disabled:cursor-not-allowed hover:border-white/40 hover:bg-white/5"
+              >
                 <div>
-                  <div className="font-bold text-foreground group-hover:text-background transition-colors">Export Data</div>
-                  <div className="text-xs text-zinc-500 mt-1">Download all your habits as JSON.</div>
+                  <div className="font-bold text-foreground transition-colors group-hover:text-white">Export Data</div>
+                  <div className="text-xs text-zinc-500 mt-1 transition-colors group-hover:text-white/75">
+                    {isExporting ? 'Preparing JSON export...' : 'Download your complete persisted state as JSON.'}
+                  </div>
                 </div>
-                <Download size={18} className="text-zinc-500 group-hover:text-background transition-colors" />
+                <Download size={18} className="text-zinc-500 transition-colors group-hover:text-white" />
               </button>
-              <button className="flex items-center justify-between p-4 border border-border hover:border-red-650 hover:bg-red-500/10 transition-colors text-left group">
+              <button
+                onClick={openResetModal}
+                disabled={isResetting}
+                className="flex items-center justify-between p-4 border border-border transition-colors text-left group disabled:opacity-60 disabled:cursor-not-allowed hover:border-amber-500/40 hover:bg-amber-500/5"
+              >
                 <div>
-                  <div className="font-bold text-red-500">Delete All Data</div>
-                  <div className="text-xs text-zinc-500 mt-1">Irreversibly clear your database.</div>
+                  <div className="font-bold text-foreground transition-colors group-hover:text-amber-700">Reset Data</div>
+                  <div className="text-xs text-zinc-500 mt-1 transition-colors group-hover:text-amber-700/80">
+                    {isResetting ? 'Resetting your app state...' : 'Start with a fresh empty state.'}
+                  </div>
                 </div>
-                <Trash2 size={18} className="text-red-900 group-hover:text-red-500" />
+                <RotateCcw size={18} className="text-zinc-500 transition-colors group-hover:text-amber-600" />
+              </button>
+              <button
+                type="button"
+                onClick={openDeleteModal}
+                className="flex items-center justify-between p-4 border border-border transition-colors text-left group hover:border-red-500/40 hover:bg-red-500/5"
+              >
+                <div>
+                  <div className="font-bold text-foreground transition-colors group-hover:text-red-600">Delete Account Data</div>
+                  <div className="text-xs text-zinc-500 mt-1">Irreversibly clear your database and account.</div>
+                </div>
+                <Trash2 size={18} className="text-zinc-500 transition-colors group-hover:text-red-600" />
               </button>
             </div>
           </section>
 
         </div>
       </div>
+
+      {showDeleteModal ? (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 px-4">
+          <div className="w-full max-w-lg border border-red-500/20 bg-background p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 border border-red-500/20 bg-red-500/5 p-2">
+                  <AlertTriangle size={18} className="text-red-500" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-red-500">Delete Account Data</div>
+                  <h3 className="mt-2 text-lg font-bold text-foreground">This will permanently delete your account.</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={isDeletingAccount}
+                className="border border-border p-2 text-zinc-500 transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                aria-label="Close dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm text-zinc-400">
+              <p>Your account will be permanently deleted.</p>
+              <p>All habits, history, analytics, calendar, nutrition, sports, notes, backups, and settings will be permanently removed.</p>
+              <p>This action cannot be undone.</p>
+              <p className="text-zinc-300">
+                Before deletion, a final backup will be created. This is your last recoverable backup before the account is removed.
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Type <span className="text-foreground">delete my data</span> to continue
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmationText}
+                onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                placeholder='Type "delete my data" to continue'
+                autoComplete="off"
+                spellCheck={false}
+                disabled={isDeletingAccount}
+                className="w-full border border-border bg-background px-3 py-3 text-sm text-foreground focus:border-red-500 focus:outline-none disabled:opacity-60"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={isDeletingAccount}
+                className="border border-border px-4 py-3 text-xs font-bold uppercase tracking-widest text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={!deletePhraseMatches || isDeletingAccount}
+                className="border border-red-500/25 px-4 py-3 text-xs font-bold uppercase tracking-widest text-red-500 transition-colors hover:border-red-500/40 hover:bg-red-500/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDeletingAccount ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showResetModal ? (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/75 px-4">
+          <div className="w-full max-w-lg border border-amber-500/20 bg-background p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 border border-amber-500/20 bg-amber-500/5 p-2">
+                  <AlertTriangle size={18} className="text-amber-600" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-amber-600">Reset Data</div>
+                  <h3 className="mt-2 text-lg font-bold text-foreground">Start with a fresh empty state?</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeResetModal}
+                disabled={isResetConfirming}
+                className="border border-border p-2 text-zinc-500 transition-colors hover:border-foreground hover:text-foreground disabled:opacity-50"
+                aria-label="Close dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm text-zinc-400">
+              <p>Your active account data will be reset to a fresh state.</p>
+              <p>Before resetting, a recoverable backup will be created automatically.</p>
+              <p>This will clear habits, history, analytics, calendar, nutrition, sports, notes, archives, and settings from the current state.</p>
+              <p className="text-zinc-300">
+                This action is recoverable through the backup created just before the reset.
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                Type <span className="text-foreground">reset my data</span> to continue
+              </label>
+              <input
+                type="text"
+                value={resetConfirmationText}
+                onChange={(event) => setResetConfirmationText(event.target.value)}
+                placeholder='Type "reset my data" to continue'
+                autoComplete="off"
+                spellCheck={false}
+                disabled={isResetConfirming}
+                className="w-full border border-border bg-background px-3 py-3 text-sm text-foreground focus:border-amber-500 focus:outline-none disabled:opacity-60"
+              />
+            </div>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeResetModal}
+                disabled={isResetConfirming}
+                className="border border-border px-4 py-3 text-xs font-bold uppercase tracking-widest text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetConfirmed}
+                disabled={!confirmResetPhraseMatches || isResetConfirming}
+                className="border border-amber-500/25 px-4 py-3 text-xs font-bold uppercase tracking-widest text-amber-600 transition-colors hover:border-amber-500/40 hover:bg-amber-500/5 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isResetConfirming ? 'Resetting...' : 'Reset Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Sync Success Overlay */}
       <div 
@@ -275,7 +611,7 @@ export default function SettingsPage() {
                 stroke="currentColor" 
                 strokeWidth="4" 
                 fill="transparent" 
-                className="text-green-500 transition-all duration-[1200ms] ease-out"
+                className="text-green-500 transition-all duration-1200 ease-out"
                 strokeDasharray={276}
                 strokeDashoffset={syncPhase === 'idle' ? 276 : 0} 
                 strokeLinecap="square"

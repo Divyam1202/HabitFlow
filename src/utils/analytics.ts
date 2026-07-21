@@ -308,16 +308,13 @@ export function calculateAnalyticsSummary(
 
 export function getNutritionSummary(nutrition: NutritionState) {
   const items = [
-    { label: 'Hydration', value: nutrition.hydration, goal: nutrition.hydrationGoal, unit: 'ml' },
-    { label: 'Calories', value: nutrition.calories, goal: nutrition.caloriesGoal, unit: 'kcal' },
-    { label: 'Protein', value: nutrition.protein, goal: nutrition.proteinGoal, unit: 'g' },
-    { label: 'Carbs', value: nutrition.carbs, goal: nutrition.carbsGoal, unit: 'g' },
+    { label: 'Hydration', value: nutrition.hydration, unit: 'ml' },
+    { label: 'Calories', value: nutrition.calories, unit: 'kcal' },
+    { label: 'Protein', value: nutrition.protein, unit: 'g' },
+    { label: 'Carbs', value: nutrition.carbs, unit: 'g' },
   ]
 
-  return items.map((item) => ({
-    ...item,
-    achievement: item.goal > 0 ? Math.min(999, Math.round((item.value / item.goal) * 100)) : 0,
-  }))
+  return items
 }
 
 export function getSportsSummary(activity: ActivityState) {

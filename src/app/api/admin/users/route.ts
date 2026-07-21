@@ -4,23 +4,13 @@ import { auth } from '@/lib/auth'
 import mongoose from 'mongoose'
 import AuditLog from '@/models/AuditLog'
 import { ObjectId } from 'mongodb'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
-async function checkAdmin(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: req.headers })
-  if (!session || !session.user) return null
-  const email = session.user.email
-  const role = email === 'habytflow@gmail.com' ? 'SUPER_ADMIN' : (session.user.role || 'USER')
-  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-    return { user: session.user, role }
-  }
-  return null
-}
-
 export async function GET(req: NextRequest) {
   try {
-    const adminCheck = await checkAdmin(req)
+    const adminCheck = await requireAdmin(req)
     if (!adminCheck) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -52,7 +42,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminCheck = await checkAdmin(req)
+    const adminCheck = await requireAdmin(req)
     if (!adminCheck) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
