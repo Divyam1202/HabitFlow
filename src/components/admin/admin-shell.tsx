@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, LayoutDashboard, Megaphone, MessageSquare, Settings, Shield, ShieldAlert, Users } from 'lucide-react'
+import { BarChart3, LayoutDashboard, LogOut, Megaphone, MessageSquare, Settings, Shield, ShieldAlert, Users } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -64,7 +64,7 @@ export function AdminShell({ children, role }: AdminShellProps) {
 
   return (
     <div className="min-h-screen bg-background text-foreground md:grid md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="border-b border-white/5 bg-zinc-950/90 md:border-b-0 md:border-r md:border-white/5">
+      <aside className="flex flex-col border-b border-white/5 bg-zinc-950/90 md:border-b-0 md:border-r md:border-white/5">
         <div className="px-6 pb-8 pt-6">
           <div className="min-w-0">
             <div className="text-[15px] font-semibold uppercase tracking-[0.26em] text-white">
@@ -101,6 +101,23 @@ export function AdminShell({ children, role }: AdminShellProps) {
               </nav>
             </div>
           ) : null}
+        </div>
+
+        <div className="mt-auto border-t border-white/5 px-4 py-4">
+          <button
+            type="button"
+            onClick={() => {
+              import('@/lib/auth-client').then(({ authClient }) => {
+                authClient.signOut().then(() => window.location.reload())
+              })
+            }}
+            className="group flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium text-zinc-400 transition-all duration-150 hover:bg-white/[0.03] hover:text-white"
+          >
+            <span className="text-zinc-500 transition-colors group-hover:text-white">
+              <LogOut size={15} />
+            </span>
+            <span className="truncate">Sign Out</span>
+          </button>
         </div>
       </aside>
 

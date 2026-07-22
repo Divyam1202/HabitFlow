@@ -272,13 +272,27 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       const timer = setTimeout(() => {
         fetch('/api/user-state', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          keepalive: true,
-          body: JSON.stringify({ 
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
             stateData: stateString,
-            timezone: typeof window !== 'undefined' ? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata') : 'Asia/Kolkata'
+            timezone:
+              typeof window !== 'undefined'
+                ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'
+                : 'Asia/Kolkata',
+          }),
+        })
+          .then(async (res) => {
+            console.log('POST /api/user-state', res.status);
+
+            if (!res.ok) {
+              console.error('Sync failed:', await res.text());
+            }
           })
-        }).catch(e => console.error("Failed to sync remote state", e));
+          .catch((e) => {
+            console.error('Network Error:', e);
+          });
       }, 1500); // 1.5s debounce
 
       return () => clearTimeout(timer);
