@@ -441,6 +441,67 @@ function mergeRecordsByKey<T extends Record<string, unknown>>(
   return Array.from(map.values())
 }
 
+function buildLegacyHistoryMap(records: ImportedCompletion[]) {
+  const historyMap = new Map<string, Record<string, boolean>>()
+
+  for (const record of records) {
+    const key = record.habitName.trim().toLowerCase()
+    if (!key) continue
+    if (!historyMap.has(key)) historyMap.set(key, {})
+    historyMap.get(key)![record.date] = record.completed
+  }
+
+  return historyMap
+}
+
+function buildFallbackLegacyHabits(
+  existingLegacyHabits: Record<string, unknown>[],
+  habits: StateHabit[],
+  mergedRecords: ImportedCompletion[],
+  strategy: ImportStrategy
+) {
+  const historyMap = buildLegacyHistoryMap(mergedRecords)
+  const habitDocs = new Map<string, Record<string, unknown>>()
+
+  if (strategy === 'merge') {
+    for (const habit of existingLegacyHabits) {
+      const item = asRecord(habit)
+      const name = stringOrEmpty(item.name)
+      if (!name) continue
+      habitDocs.set(name.toLowerCase(), habit)
+    }
+  }
+
+  for (const habit of habits) {
+    const key = habit.name.trim().toLowerCase()
+    if (!key) continue
+    const existing = habitDocs.get(key)
+    const history = historyMap.get(key) || (isObject(existing?.history) ? asRecord(existing?.history) : {})
+
+    habitDocs.set(key, {
+      ...(existing || {}),
+      name: habit.name,
+      category: habit.category || stringOrEmpty(existing?.category) || 'Imported',
+      history,
+    })
+  }
+
+  if (strategy === 'replace') {
+    return Array.from(habitDocs.values())
+  }
+
+  for (const habit of existingLegacyHabits) {
+    const item = asRecord(habit)
+    const name = stringOrEmpty(item.name)
+    if (!name) continue
+    if (!habitDocs.has(name.toLowerCase())) {
+      habitDocs.set(name.toLowerCase(), habit)
+    }
+  }
+
+  return Array.from(habitDocs.values())
+}
+
 function mergeNotifications(existing: Record<string, unknown>[], incoming: Record<string, unknown>[], strategy: ImportStrategy) {
   if (strategy === 'replace') {
     return incoming.map((item) => ({ ...item, userId: undefined }))
@@ -516,6 +577,10 @@ function buildStateData(
     const date = localDateOffset(today, index - 363)
     return { id: index, count: date ? (heatmapCounts.get(date) || 0) : 0 }
   })
+  const firstImportedCompletion = [...mergedRecords]
+    .filter((record) => record.completed && record.date)
+    .map((record) => record.date)
+    .sort()[0] || null
 
   const todaysNutrition = nextDailyMetrics.find((metric) => asRecord(metric).date === today)
   const existingNutrition = asRecord(existingState?.todayNutrition || {})
@@ -545,9 +610,14 @@ function buildStateData(
   delete preservedUnknown.todayActivity
   delete preservedUnknown.currentSystemDate
 
+  const trackingStartedAt = stringOrEmpty(preservedUnknown.trackingStartedAt)
+    || firstImportedCompletion
+    || today
+
   return {
     ...preservedUnknown,
     currentSystemDate: today,
+    trackingStartedAt,
     todayHabits: gridData
       .filter((habit) => habit.days[habit.days.length - 1]?.completed)
       .map((habit) => habit.id),
@@ -822,9 +892,19 @@ export async function POST(req: NextRequest) {
     const nextNotifications = mergeNotifications(currentSnapshot.notifications, bundle.notifications, strategy)
     const nextNotificationLogs = mergeNotificationLogs(currentSnapshot.notificationLogs, bundle.notificationLogs, strategy)
 
-    const nextLegacyHabits = strategy === 'replace'
-      ? (Array.isArray(bundle.rawStateData?.legacyHabits) ? bundle.rawStateData.legacyHabits as Record<string, unknown>[] : [])
-      : currentSnapshot.legacyHabits
+    const nextLegacyHabits = bundle.legacyHabits.length > 0
+      ? mergeRecordsByKey(
+          strategy === 'replace' ? [] : currentSnapshot.legacyHabits,
+          bundle.legacyHabits,
+          (record) => String(asRecord(record)._id || stringOrEmpty(asRecord(record).name)).toLowerCase(),
+          strategy
+        )
+      : buildFallbackLegacyHabits(
+          strategy === 'replace' ? [] : currentSnapshot.legacyHabits,
+          nextHabits,
+          mergedRecords,
+          strategy
+        )
 
     try {
       await UserState.findOneAndUpdate(

@@ -17,7 +17,6 @@ import {
   createExportPayload,
   createStoredBackupRecord,
   getBackupAgeDays,
-  getBackupList,
   getLatestBackup,
   getStoredBackups,
 } from '@/lib/backup-manager'
@@ -88,6 +87,162 @@ function shouldCreateScheduledBackup(state: StateRecord, latestBackup: ReturnTyp
   if (!hasTrackedState(state)) return false
   const ageDays = getBackupAgeDays(latestBackup)
   return !latestBackup || ageDays === null || ageDays >= 3
+}
+
+function toLocalDateKey(value: string | Date | null | undefined) {
+  if (!value) return null
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+  }
+
+  const raw = value.trim()
+  if (!raw) return null
+
+  const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (dateOnly) return dateOnly[1]
+
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return null
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`
+}
+
+function addDaysToDateKey(dateKey: string, offsetDays: number) {
+  const date = new Date(`${dateKey}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  date.setDate(date.getDate() + offsetDays)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+function asBooleanHistoryMap(history: unknown) {
+  const map = new Map<string, boolean>()
+
+  const addEntry = (key: unknown, value: unknown) => {
+    const normalizedKey = toLocalDateKey(typeof key === 'string' || key instanceof Date ? key : null)
+    if (!normalizedKey) return
+    if (value) {
+      map.set(normalizedKey, true)
+    }
+  }
+
+  if (history instanceof Map) {
+    for (const [key, value] of history.entries()) addEntry(key, value)
+    return map
+  }
+
+  if (Array.isArray(history)) {
+    for (const entry of history) {
+      if (!Array.isArray(entry) || entry.length < 2) continue
+      addEntry(entry[0], entry[1])
+    }
+    return map
+  }
+
+  if (history && typeof history === 'object') {
+    for (const [key, value] of Object.entries(history as Record<string, unknown>)) {
+      addEntry(key, value)
+    }
+  }
+
+  return map
+}
+
+async function syncCanonicalCollectionsFromState(state: StateRecord, userId: string) {
+  const currentSystemDate = toLocalDateKey(state.currentSystemDate as string | Date | null | undefined) || toLocalDateKey(new Date()) || ''
+  const gridData = Array.isArray(state.gridData)
+    ? state.gridData.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null && !Array.isArray(item))
+    : []
+  const currentGridNames = new Set<string>()
+
+  const existingHabits = await Habit.find({ userId }).lean()
+  const existingByName = new Map(existingHabits.map((habit) => [stringOrEmpty((habit as Record<string, unknown>).name).toLowerCase(), habit as Record<string, unknown>]))
+  const nextHabits: Record<string, unknown>[] = []
+
+  for (const habit of gridData) {
+    const name = stringOrEmpty(habit.name)
+    if (!name) continue
+
+    const key = name.toLowerCase()
+    currentGridNames.add(key)
+    const existing = existingByName.get(key)
+    const history = asBooleanHistoryMap(existing?.history)
+    const days = Array.isArray(habit.days) ? habit.days : []
+
+    days.forEach((day, index) => {
+      const dayRecord = typeof day === 'object' && day !== null && !Array.isArray(day) ? day : {}
+      const completed = !!dayRecord.completed
+      const dateKey = currentSystemDate ? addDaysToDateKey(currentSystemDate, index - (days.length - 1)) : null
+      if (!dateKey) return
+
+      if (completed) {
+        history.set(dateKey, true)
+      } else {
+        history.delete(dateKey)
+      }
+    })
+
+    nextHabits.push({
+      ...(existing ? { ...existing } : {}),
+      name,
+      description: typeof existing?.description === 'string' ? existing.description : undefined,
+      category: stringOrEmpty(habit.category) || stringOrEmpty(existing?.category) || 'Imported',
+      color: stringOrEmpty(habit.color) || stringOrEmpty(existing?.color) || 'bg-emerald-500',
+      history: Object.fromEntries(history.entries()),
+    })
+  }
+
+  await Habit.deleteMany({ userId })
+  if (nextHabits.length > 0) {
+    await Habit.insertMany(nextHabits.map((habit) => ({ ...clone(habit), userId })))
+  }
+
+  const todayNutrition = typeof state.todayNutrition === 'object' && state.todayNutrition !== null && !Array.isArray(state.todayNutrition)
+    ? state.todayNutrition as Record<string, unknown>
+    : {}
+  const nutritionDate = currentSystemDate
+  if (nutritionDate) {
+    await DailyMetric.deleteMany({ userId, date: nutritionDate })
+    const hasNutrition = ['hydration', 'calories', 'protein', 'carbs', 'fat'].some((key) => typeof todayNutrition[key] === 'number')
+    if (hasNutrition) {
+      await DailyMetric.create({
+        userId,
+        date: nutritionDate,
+        hydration: typeof todayNutrition.hydration === 'number' ? todayNutrition.hydration : 0,
+        calories: typeof todayNutrition.calories === 'number' ? todayNutrition.calories : 0,
+        protein: typeof todayNutrition.protein === 'number' ? todayNutrition.protein : 0,
+        carbs: typeof todayNutrition.carbs === 'number' ? todayNutrition.carbs : 0,
+        fat: typeof todayNutrition.fat === 'number' ? todayNutrition.fat : 0,
+      })
+    }
+  }
+
+  const todayActivity = typeof state.todayActivity === 'object' && state.todayActivity !== null && !Array.isArray(state.todayActivity)
+    ? state.todayActivity as Record<string, unknown>
+    : {}
+  const sportsLog = Array.isArray(todayActivity.sportsLog) ? todayActivity.sportsLog.filter((item): item is Record<string, unknown> => isObject(item)) : []
+  if (nutritionDate) {
+    await SportsLog.deleteMany({ userId, date: nutritionDate })
+    if (sportsLog.length > 0) {
+      await SportsLog.insertMany(sportsLog.map((entry) => ({
+        userId,
+        date: nutritionDate,
+        name: stringOrEmpty(entry.name) || 'Activity',
+        durationHours: typeof entry.durationHours === 'number'
+          ? entry.durationHours
+          : typeof entry.duration === 'number'
+            ? entry.duration
+            : 0,
+      })))
+    }
+  }
+
+  return {
+    habitCount: nextHabits.length,
+    trackedHabitNames: currentGridNames.size,
+    nutritionDate,
+    sportsSessions: sportsLog.length,
+  }
 }
 
 async function buildRelatedStateSnapshot(userId: string): Promise<RelatedStateSnapshot> {
@@ -192,7 +347,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       stateData: stateDataValue,
       parsedState,
-      timezone: userState.timezone || 'Asia/Kolkata'
+      timezone: userState.timezone || 'Asia/Kolkata',
+      createdAt: userState.createdAt,
+      updatedAt: userState.updatedAt,
     })
   } catch (error) {
     console.error('Error fetching user state:', error)
@@ -250,6 +407,8 @@ export async function POST(req: NextRequest) {
       { $set: updateFields },
       { upsert: true, returnDocument: 'after' }
     )
+
+    await syncCanonicalCollectionsFromState(incomingState as StateRecord, session.user.id)
 
     // Phase 1 (Strangler Fig migration): shadow dual-write into the
     // normalized HabitSchedule collection. Non-blocking to correctness —

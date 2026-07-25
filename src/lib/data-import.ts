@@ -49,6 +49,7 @@ export type DataImportBundle = {
   sourceType: ImportSourceType
   sourceLabel: string
   habits: ImportedHabit[]
+  legacyHabits: Record<string, unknown>[]
   completionRecords: ImportedCompletion[]
   nutritionRecords: ImportedNutritionRecord[]
   sportsRecords: ImportedSportRecord[]
@@ -98,19 +99,26 @@ function stringOrEmpty(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function toDateOnlyString(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export function normalizeDateString(value: unknown): string | null {
   if (value instanceof Date) {
     if (Number.isNaN(value.getTime())) return null
-    return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
+    return toDateOnlyString(value)
   }
 
   const raw = stringOrEmpty(value)
   if (!raw) return null
 
+  const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (dateOnly) return dateOnly[1]
+
   const asDate = new Date(raw)
   if (Number.isNaN(asDate.getTime())) return null
 
-  return `${asDate.getFullYear()}-${String(asDate.getMonth() + 1).padStart(2, '0')}-${String(asDate.getDate()).padStart(2, '0')}`
+  return toDateOnlyString(asDate)
 }
 
 function isTruthyCompleted(value: unknown) {
@@ -261,6 +269,7 @@ function parseBackupJson(fileName: string, data: Record<string, unknown>, invali
   }
 
   const relatedData = isObject(data.relatedData) ? data.relatedData : {}
+  const legacyHabits = toArray(relatedData.legacyHabits).filter(isObject)
   const nutritionRecords = toArray(relatedData.dailyMetrics).flatMap((record) => {
     if (!isObject(record)) return []
     const date = normalizeDateString(record.date)
@@ -316,6 +325,7 @@ function parseBackupJson(fileName: string, data: Record<string, unknown>, invali
     sourceType: 'habytflow-backup' as const,
     sourceLabel: 'HabytFlow Backup',
     habits,
+    legacyHabits,
     completionRecords,
     nutritionRecords,
     sportsRecords,
@@ -334,6 +344,7 @@ function parseBackupJson(fileName: string, data: Record<string, unknown>, invali
 function parseGenericJson(fileName: string, data: unknown, invalidRecords: DataImportBundle['invalidRecords']) {
   const sourceLabel = 'Generic Habit JSON'
   const habits: ImportedHabit[] = []
+  const legacyHabits: Record<string, unknown>[] = []
   const completionRecords: ImportedCompletion[] = []
   const nutritionRecords: ImportedNutritionRecord[] = []
   const sportsRecords: ImportedSportRecord[] = []
@@ -475,6 +486,7 @@ function parseGenericJson(fileName: string, data: unknown, invalidRecords: DataI
     sourceType: 'generic-json' as const,
     sourceLabel,
     habits,
+    legacyHabits,
     completionRecords,
     nutritionRecords,
     sportsRecords,
@@ -508,6 +520,7 @@ function parseCsv(fileName: string, text: string, invalidRecords: DataImportBund
   }
 
   const habits = new Map<string, ImportedHabit>()
+  const legacyHabits: Record<string, unknown>[] = []
   const completionRecords: ImportedCompletion[] = []
   const notes: ImportedNoteRecord[] = []
 
@@ -543,6 +556,7 @@ function parseCsv(fileName: string, text: string, invalidRecords: DataImportBund
     sourceType: 'csv' as const,
     sourceLabel: 'CSV',
     habits: Array.from(habits.values()),
+    legacyHabits,
     completionRecords,
     nutritionRecords: [],
     sportsRecords: [],

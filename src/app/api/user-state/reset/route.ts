@@ -24,6 +24,7 @@ function getEmptyState() {
 
   return {
     currentSystemDate,
+    trackingStartedAt: today.toISOString(),
     todayHabits: [],
     todayNutrition: {
       hydration: 0,

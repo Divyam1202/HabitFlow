@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
+import { requestAnalyticsRefresh } from '@/lib/analytics-refresh'
 
 export type NutritionState = {
   hydration: number; hydrationGoal: number;
@@ -22,6 +23,7 @@ export type GridHabit = HabitDef & { days: { day: number; completed: boolean }[]
 
 export type HabitContextType = {
   currentSystemDate: string;
+  trackingStartedAt: string;
   todayHabits: number[];
   toggleTodayHabit: (id: number) => void;
 
@@ -107,6 +109,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
   const { requireAuth, user, isLoading, isAuthenticated } = useAuth()
 
   const [currentSystemDate, setCurrentSystemDate] = useState<string>(() => getLocalYYYYMMDD())
+  const [trackingStartedAt, setTrackingStartedAt] = useState<string>(() => new Date().toISOString())
   const [todayHabits, setTodayHabits] = useState<number[]>([])
   const [todayNutrition, setTodayNutrition] = useState<NutritionState>(INITIAL_NUTRITION)
   const [todayActivity, setTodayActivity] = useState<ActivityState>(INITIAL_ACTIVITY)
@@ -130,6 +133,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       let parsed = null;
       let remoteLoadFailed = false;
       let remoteHadState = false;
+      let remoteCreatedAt: string | null = null;
 
       if (isAuthenticated) {
         try {
@@ -138,11 +142,20 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
             throw new Error(`Remote state request failed with ${res.status}`)
           }
           const data = await res.json();
+          if (typeof data.createdAt === 'string') {
+            remoteCreatedAt = data.createdAt
+          }
           if (data.stateData) {
             remoteHadState = true;
             parsed = typeof data.parsedState === 'object' && data.parsedState
               ? data.parsedState
               : JSON.parse(data.stateData);
+            if (remoteCreatedAt && !parsed?.trackingStartedAt) {
+              parsed = {
+                ...(parsed || {}),
+                trackingStartedAt: remoteCreatedAt,
+              }
+            }
           }
         } catch (e) {
           remoteLoadFailed = true;
@@ -159,9 +172,18 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       if (parsed) {
         const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
-        loadedStateRef.current = parsed
+        const nextTrackingStartedAt = typeof parsed.trackingStartedAt === 'string'
+          ? parsed.trackingStartedAt
+          : typeof parsed.createdAt === 'string'
+            ? parsed.createdAt
+            : getLocalYYYYMMDD()
+        loadedStateRef.current = {
+          ...parsed,
+          trackingStartedAt: nextTrackingStartedAt,
+        }
         setIsInitialized(hasInitialized || !!isAuthenticated)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
+        setTrackingStartedAt(nextTrackingStartedAt)
         setTodayHabits(parsed.todayHabits || [])
         setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
         setTodayActivity(parsed.todayActivity || INITIAL_ACTIVITY)
@@ -178,6 +200,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         if (isAuthenticated && remoteLoadFailed) {
           setIsInitialized(true)
           setCurrentSystemDate(getLocalYYYYMMDD())
+          setTrackingStartedAt(new Date().toISOString())
           setTodayHabits([])
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
@@ -187,6 +210,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         } else if (hasInitialized || isAuthenticated) {
           const nextState = {
             currentSystemDate: getLocalYYYYMMDD(),
+            trackingStartedAt: new Date().toISOString(),
             todayHabits: [],
             todayNutrition: INITIAL_NUTRITION,
             todayActivity: INITIAL_ACTIVITY,
@@ -196,6 +220,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           loadedStateRef.current = nextState
           setIsInitialized(true)
           setCurrentSystemDate(nextState.currentSystemDate)
+          setTrackingStartedAt(nextState.trackingStartedAt)
           setTodayHabits([])
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
@@ -205,6 +230,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         } else {
           const nextState = {
             currentSystemDate: getLocalYYYYMMDD(),
+            trackingStartedAt: new Date().toISOString(),
             todayHabits: [1, 3],
             todayNutrition: INITIAL_NUTRITION,
             todayActivity: INITIAL_ACTIVITY,
@@ -214,6 +240,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           loadedStateRef.current = nextState
           setIsInitialized(false)
           setCurrentSystemDate(nextState.currentSystemDate)
+          setTrackingStartedAt(nextState.trackingStartedAt)
           setTodayHabits([1, 3])
           setTodayNutrition(INITIAL_NUTRITION)
           setTodayActivity(INITIAL_ACTIVITY)
@@ -238,6 +265,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
               const parsed = JSON.parse(data.stateData);
               if (parsed) {
                 setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
+                setTrackingStartedAt(typeof parsed.trackingStartedAt === 'string' ? parsed.trackingStartedAt : trackingStartedAt)
                 setTodayHabits(parsed.todayHabits || [])
                 setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
                 setTodayActivity(parsed.todayActivity || INITIAL_ACTIVITY)
@@ -254,7 +282,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [storageKey, user?.id, isLoading, isAuthenticated]);
+  }, [storageKey, user?.id, isLoading, isAuthenticated, trackingStartedAt]);
 
   // Persistence & Rollover Check
   useEffect(() => {
@@ -262,7 +290,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     const stateToSave = {
       ...(loadedStateRef.current || {}),
-      currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData
+      currentSystemDate, trackingStartedAt, todayHabits, todayNutrition, todayActivity, gridData, heatmapData
     }
     const stateString = JSON.stringify(stateToSave);
     loadedStateRef.current = stateToSave
@@ -297,11 +325,12 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       return () => clearTimeout(timer);
     }
-  }, [currentSystemDate, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, hasHydratedState, storageKey]);
+  }, [currentSystemDate, trackingStartedAt, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, hasHydratedState, storageKey]);
 
   const initializeJourney = () => {
     const nextState = {
       currentSystemDate: getLocalYYYYMMDD(),
+      trackingStartedAt: new Date().toISOString(),
       todayHabits: [],
       todayNutrition: INITIAL_NUTRITION,
       todayActivity: INITIAL_ACTIVITY,
@@ -317,6 +346,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
     setTodayHabits([])
     setTodayNutrition(INITIAL_NUTRITION)
     setTodayActivity(INITIAL_ACTIVITY)
+    setTrackingStartedAt(nextState.trackingStartedAt)
+    requestAnalyticsRefresh()
   }
 
   // Midnight Rollover Engine
@@ -358,6 +389,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
         // 4. Advance System Date
         setCurrentSystemDate(nowStr)
+        requestAnalyticsRefresh()
       }
     }
 
@@ -400,6 +432,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
         newDays[lastIdx] = { ...newDays[lastIdx], completed: isCompleting }
         return { ...h, days: newDays }
       }))
+      requestAnalyticsRefresh()
     })
   }
 
@@ -412,15 +445,22 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           days: h.days.map(d => d.day === dayNum ? { ...d, completed: !d.completed } : d)
         }
       }))
+      requestAnalyticsRefresh()
     })
   }
 
   const updateNutritionWrapped = (updater: (prev: NutritionState) => NutritionState) => {
-    requireAuth(() => setTodayNutrition(updater))
+    requireAuth(() => {
+      setTodayNutrition(updater)
+      requestAnalyticsRefresh()
+    })
   }
 
   const updateActivityWrapped = (updater: (prev: ActivityState) => ActivityState) => {
-    requireAuth(() => setTodayActivity(updater))
+    requireAuth(() => {
+      setTodayActivity(updater)
+      requestAnalyticsRefresh()
+    })
   }
 
   const addHabit = (habit: Omit<HabitDef, 'id'>) => {
@@ -467,6 +507,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           metadata: { habitName: habit.name, category: habit.category }
         })
       }).catch(console.error)
+
+      requestAnalyticsRefresh()
     })
   }
 
@@ -499,6 +541,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           error: 'Warning: Failed to sync edits to cloud.'
         }
       );
+
+      requestAnalyticsRefresh()
     })
   }
 
@@ -534,12 +578,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           error: 'Warning: Failed to sync deletion to cloud.'
         }
       );
+
+      requestAnalyticsRefresh()
     })
   }
 
   return (
     <HabitContext.Provider value={{
       currentSystemDate,
+      trackingStartedAt,
       todayHabits, toggleTodayHabit,
       todayNutrition, updateNutrition: updateNutritionWrapped,
       todayActivity, updateActivity: updateActivityWrapped,

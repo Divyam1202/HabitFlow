@@ -8,6 +8,7 @@ export type HabitPerformance = {
   executions: number
   scheduled: number
   completionRate: number
+  trackingDays: number
 }
 
 export type DailyHabitRecord = {
@@ -40,6 +41,57 @@ export type AnalyticsSummary = {
   monthlyTrend: Array<{ month: string; rate: number; executions: number }>
   monthlyComparison: MonthlyComparison
   consistencyScore: number
+}
+
+function parseDateLike(value: string | Date | null | undefined) {
+  if (!value) return null
+  const date = value instanceof Date ? value : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : startOfLocalDay(date)
+}
+
+function getEarliestActivityDate(
+  gridData: GridHabit[],
+  heatmapData: Array<{ count: number }>,
+  baseDate = new Date()
+) {
+  const today = startOfLocalDay(baseDate)
+  const heatmapStart = new Date(today)
+  heatmapStart.setDate(today.getDate() - Math.max(0, heatmapData.length - 1))
+
+  for (let index = 0; index < heatmapData.length; index++) {
+    const entry = heatmapData[index]
+    if ((entry?.count || 0) <= 0) continue
+    const date = new Date(heatmapStart)
+    date.setDate(heatmapStart.getDate() + index)
+    return date
+  }
+
+  for (const habit of gridData) {
+    for (let index = 0; index < habit.days.length; index++) {
+      if (!habit.days[index]?.completed) continue
+      const date = new Date(today)
+      date.setDate(today.getDate() - ((habit.days.length - 1) - index))
+      return date
+    }
+  }
+
+  return null
+}
+
+function resolveTrackingStartDate(
+  gridData: GridHabit[],
+  heatmapData: Array<{ count: number }>,
+  trackingStartedAt: string | Date | null | undefined,
+  baseDate = new Date()
+) {
+  const configuredStart = parseDateLike(trackingStartedAt)
+  const firstActivity = getEarliestActivityDate(gridData, heatmapData, baseDate)
+
+  if (configuredStart && firstActivity) {
+    return configuredStart.getTime() > firstActivity.getTime() ? configuredStart : firstActivity
+  }
+
+  return configuredStart || firstActivity || startOfLocalDay(baseDate)
 }
 
 export function toDateKey(date: Date) {
@@ -104,9 +156,11 @@ export function getGridDayRatio(gridData: GridHabit[], date: Date, baseDate = ne
 export function buildDailyRecords(
   gridData: GridHabit[],
   heatmapData: Array<{ count: number }>,
+  trackingStartedAt: string | Date | null | undefined = null,
   baseDate = new Date()
 ): DailyHabitRecord[] {
   const today = startOfLocalDay(baseDate)
+  const trackingStart = resolveTrackingStartDate(gridData, heatmapData, trackingStartedAt, baseDate)
   const records: DailyHabitRecord[] = []
   const historicalDays = Math.max(0, heatmapData.length - 1)
 
@@ -114,6 +168,7 @@ export function buildDailyRecords(
     const daysAgo = historicalDays - i
     const date = new Date(today)
     date.setDate(today.getDate() - daysAgo)
+    if (date.getTime() < trackingStart.getTime()) continue
     const completedCount = heatmapData[i]?.count || 0
 
     records.push({
@@ -128,6 +183,7 @@ export function buildDailyRecords(
   for (let diffDays = -29; diffDays <= 0; diffDays++) {
     const date = new Date(today)
     date.setDate(today.getDate() + diffDays)
+    if (date.getTime() < trackingStart.getTime()) continue
     const record = getGridDayStats(gridData, date, today)
     const existingIndex = records.findIndex((item) => item.key === record.key)
 
@@ -189,8 +245,15 @@ function getCurrentState(currentStreak: number): AnalyticsSummary['currentState'
   return 'INITIATION'
 }
 
-function calculateHabitPerformance(gridData: GridHabit[], baseDate = new Date()): HabitPerformance[] {
+function calculateHabitPerformance(
+  gridData: GridHabit[],
+  trackingStartedAt: string | Date | null | undefined,
+  baseDate = new Date(),
+  heatmapData: Array<{ count: number }> = []
+): HabitPerformance[] {
   const today = startOfLocalDay(baseDate)
+  const trackingStart = resolveTrackingStartDate(gridData, heatmapData, trackingStartedAt, baseDate)
+  const trackingDays = Math.max(1, Math.floor((today.getTime() - trackingStart.getTime()) / MS_PER_DAY) + 1)
 
   return gridData.map((habit) => {
     let executions = 0
@@ -211,6 +274,7 @@ function calculateHabitPerformance(gridData: GridHabit[], baseDate = new Date())
       name: habit.name,
       executions,
       scheduled,
+      trackingDays,
       completionRate: scheduled > 0 ? Math.round((executions / scheduled) * 100) : 0,
     }
   }).sort((a, b) => b.completionRate - a.completionRate || b.executions - a.executions || a.name.localeCompare(b.name))
@@ -276,14 +340,15 @@ function calculateConsistencyScore(currentStreak: number, activeDays: number, co
 export function calculateAnalyticsSummary(
   gridData: GridHabit[],
   heatmapData: Array<{ count: number }>,
+  trackingStartedAt: string | Date | null | undefined = null,
   baseDate = new Date()
 ): AnalyticsSummary {
-  const dailyRecords = buildDailyRecords(gridData, heatmapData, baseDate)
+  const dailyRecords = buildDailyRecords(gridData, heatmapData, trackingStartedAt, baseDate)
   const last30Records = dailyRecords.slice(-30)
   const completedLast30 = last30Records.reduce((sum, record) => sum + record.completedCount, 0)
   const scheduledLast30 = last30Records.reduce((sum, record) => sum + record.scheduledCount, 0)
   const thirtyDayCompletionRate = scheduledLast30 > 0 ? Math.round((completedLast30 / scheduledLast30) * 100) : 0
-  const habitPerformance = calculateHabitPerformance(gridData, baseDate)
+  const habitPerformance = calculateHabitPerformance(gridData, trackingStartedAt, baseDate, heatmapData)
   const currentStreak = calculateCurrentStreak(dailyRecords)
   const thirtyDayActiveDays = last30Records.filter((record) => record.completedCount > 0).length
 
@@ -356,4 +421,581 @@ export function getSystemStatus(summary: AnalyticsSummary) {
   }
 
   return `SYSTEM BUILDING: ${summary.currentStreak}-DAY STREAK WITH ${summary.thirtyDayCompletionRate}% COMPLETION. ${top} IS STRONGEST; TIGHTEN ${weak} NEXT.`
+}
+
+export type AnalyticsMonthOption = {
+  key: string
+  label: string
+  hasData: boolean
+}
+
+export type HistoricalHabitRecord = {
+  name?: string
+  category?: string
+  history?: Record<string, boolean> | Array<[string, boolean]>
+}
+
+export type HistoricalDailyMetricRecord = {
+  date?: string
+  hydration?: number
+  calories?: number
+  protein?: number
+  carbs?: number
+}
+
+export type HistoricalSportLogRecord = {
+  date?: string
+  name?: string
+  durationHours?: number
+}
+
+export type AnalyticsHistorySnapshot = {
+  userState?: {
+    trackingStartedAt?: string
+  }
+  relatedData?: {
+    legacyHabits?: HistoricalHabitRecord[]
+    dailyMetrics?: HistoricalDailyMetricRecord[]
+    sportsLogs?: HistoricalSportLogRecord[]
+  }
+}
+
+export type MonthlyAnalyticsView = {
+  monthKey: string
+  monthLabel: string
+  availableMonths: AnalyticsMonthOption[]
+  dailyRecords: DailyHabitRecord[]
+  currentState: AnalyticsSummary['currentState']
+  currentStreak: number
+  longestStreak: number
+  lifetimeExecutions: number
+  activeDays: number
+  thirtyDayCompletionRate: number
+  thirtyDayActiveDays: number
+  topHabit: HabitPerformance | null
+  weakestHabit: HabitPerformance | null
+  longestLapse: number
+  habitPerformance: HabitPerformance[]
+  monthlyTrend: Array<{ month: string; rate: number; executions: number }>
+  monthlyComparison: MonthlyComparison
+  consistencyScore: number
+  nutritionSummary: Array<{ label: string; value: number; unit: string }>
+  sportsSummary: ReturnType<typeof getSportsSummary>
+  insights: Array<{ title: string; body: string }>
+}
+
+function parseDateString(value: string | Date | null | undefined) {
+  if (!value) return null
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate())
+  }
+
+  const dateOnly = value.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (dateOnly) {
+    const [year, month, day] = dateOnly[1].split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function getDateKeyString(value: string | Date | null | undefined) {
+  if (!value) return null
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null
+    return toDateKey(value)
+  }
+
+  const raw = value.trim()
+  if (!raw) return null
+
+  const dateOnly = raw.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (dateOnly) return dateOnly[1]
+
+  const parsed = parseDateString(raw)
+  return parsed ? toDateKey(parsed) : null
+}
+
+function getMonthKeyFromDateKey(dateKey: string | null | undefined) {
+  if (!dateKey) return null
+  return dateKey.slice(0, 7)
+}
+
+function getHabitHistoryDateBounds(history: HistoricalHabitRecord['history']) {
+  const keys = normalizeHistoryEntries(history)
+    .map(([dateKey]) => getDateKeyString(dateKey))
+    .filter((dateKey): dateKey is string => Boolean(dateKey))
+    .sort()
+
+  return {
+    firstDateKey: keys[0] || null,
+    lastDateKey: keys[keys.length - 1] || null,
+  }
+}
+
+function isHabitActiveOnOrBeforeDate(
+  habit: HistoricalHabitRecord,
+  dateKey: string,
+  trackingStartKey: string
+) {
+  const historyBounds = getHabitHistoryDateBounds(habit.history)
+  const habitStartKey = historyBounds.firstDateKey || trackingStartKey
+
+  return habitStartKey <= dateKey
+}
+
+function startOfMonthLocal(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1)
+}
+
+function endOfMonthLocal(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0)
+}
+
+function getMonthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function getMonthLabel(date: Date) {
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+}
+
+function normalizeHistoryEntries(history: HistoricalHabitRecord['history']) {
+  if (!history) return [] as Array<[string, boolean]>
+  if (history instanceof Map) return Array.from(history.entries())
+  if (Array.isArray(history)) return history
+  return Object.entries(history)
+}
+
+function buildMonthRange(start: Date, end: Date) {
+  const months: Date[] = []
+  const current = startOfMonthLocal(start)
+  const final = startOfMonthLocal(end)
+
+  while (current.getTime() <= final.getTime()) {
+    months.push(new Date(current))
+    current.setMonth(current.getMonth() + 1)
+  }
+
+  return months
+}
+
+function buildHistoricalCompletionIndex(snapshot: AnalyticsHistorySnapshot) {
+  const habits = snapshot.relatedData?.legacyHabits || []
+  let earliestDate: Date | null = null
+  let latestDate: Date | null = null
+
+  for (const habit of habits) {
+    for (const [dateKey] of normalizeHistoryEntries(habit.history)) {
+      const normalizedKey = getDateKeyString(dateKey)
+      if (!normalizedKey) continue
+      const date = parseDateString(normalizedKey)
+      if (!date) continue
+      if (!earliestDate || date.getTime() < earliestDate.getTime()) earliestDate = date
+      if (!latestDate || date.getTime() > latestDate.getTime()) latestDate = date
+    }
+  }
+
+  const dailyMetrics = snapshot.relatedData?.dailyMetrics || []
+  const sportsLogs = snapshot.relatedData?.sportsLogs || []
+
+  for (const record of dailyMetrics) {
+    const date = parseDateString(record.date)
+    if (!date) continue
+    if (!earliestDate || date.getTime() < earliestDate.getTime()) earliestDate = date
+    if (!latestDate || date.getTime() > latestDate.getTime()) latestDate = date
+  }
+
+  for (const record of sportsLogs) {
+    const date = parseDateString(record.date)
+    if (!date) continue
+    if (!earliestDate || date.getTime() < earliestDate.getTime()) earliestDate = date
+    if (!latestDate || date.getTime() > latestDate.getTime()) latestDate = date
+  }
+
+  const trackingStart = earliestDate || startOfLocalDay(new Date())
+  const rangeStart = trackingStart
+  const rangeEnd = latestDate || startOfLocalDay(new Date())
+
+  return {
+    trackingStart,
+    rangeStart,
+    rangeEnd,
+  }
+}
+
+function buildHabitPerformanceForRange(
+  snapshot: AnalyticsHistorySnapshot,
+  monthStart: Date,
+  monthEnd: Date,
+  trackingStart: Date
+) {
+  const habits = snapshot.relatedData?.legacyHabits || []
+
+  return habits.map((habit, index) => {
+    const habitName = typeof habit.name === 'string' && habit.name.trim() ? habit.name.trim() : 'Habit'
+    const history = normalizeHistoryEntries(habit.history)
+    const historyMap = new Map(
+      history
+        .map(([dateKey, completed]) => [getDateKeyString(dateKey), !!completed] as const)
+        .filter((entry): entry is readonly [string, boolean] => Boolean(entry[0]))
+    )
+    const historyBounds = getHabitHistoryDateBounds(habit.history)
+    const activeStartKey = historyBounds.firstDateKey || toDateKey(trackingStart)
+    let executions = 0
+    let scheduled = 0
+
+    for (let cursor = new Date(monthStart); cursor.getTime() <= monthEnd.getTime(); cursor.setDate(cursor.getDate() + 1)) {
+      const key = toDateKey(cursor)
+      if (key >= activeStartKey && key >= toDateKey(trackingStart)) {
+        scheduled++
+        if (historyMap.get(key)) executions++
+      }
+    }
+
+    return {
+      id: resolveHabitId(habit, index),
+      name: habitName,
+      executions,
+      scheduled,
+      completionRate: scheduled > 0 ? Math.round((executions / scheduled) * 100) : 0,
+      trackingDays: Math.max(1, scheduled || 1),
+    }
+  }).sort((a, b) => b.completionRate - a.completionRate || b.executions - a.executions || a.name.localeCompare(b.name))
+}
+
+function resolveHabitId(habit: HistoricalHabitRecord, index: number) {
+  const rawId = (habit as { _id?: unknown })._id
+
+  if (typeof rawId === 'number' && Number.isFinite(rawId)) {
+    return rawId
+  }
+
+  if (typeof rawId === 'string') {
+    const parsed = Number.parseInt(rawId.replace(/\D/g, ''), 10)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+  }
+
+  return index + 1
+}
+
+function getMonthlyLongestLapse(habitPerformance: HabitPerformance[], monthStart: Date, monthEnd: Date, snapshot: AnalyticsHistorySnapshot, trackingStart: Date) {
+  const habits = snapshot.relatedData?.legacyHabits || []
+  let longest = 0
+
+  for (const habit of habits) {
+    const history = normalizeHistoryEntries(habit.history)
+    const historyMap = new Map(
+      history
+        .map(([dateKey, completed]) => [getDateKeyString(dateKey), !!completed] as const)
+        .filter((entry): entry is readonly [string, boolean] => Boolean(entry[0]))
+    )
+    const activeStartKey = getHabitHistoryDateBounds(habit.history).firstDateKey || toDateKey(trackingStart)
+    let current = 0
+    let hasCompletion = false
+
+    for (let cursor = new Date(monthStart); cursor.getTime() <= monthEnd.getTime(); cursor.setDate(cursor.getDate() + 1)) {
+      const key = toDateKey(cursor)
+      if (key < activeStartKey || key < toDateKey(trackingStart)) continue
+      const completed = historyMap.get(key) || false
+      if (completed) {
+        hasCompletion = true
+        current = 0
+      } else {
+        current++
+        longest = Math.max(longest, current)
+      }
+    }
+
+    if (!hasCompletion) {
+      const start = activeStartKey > toDateKey(trackingStart) ? activeStartKey : toDateKey(trackingStart)
+      longest = Math.max(longest, Math.max(1, Math.round((monthEnd.getTime() - parseDateString(start)!.getTime()) / MS_PER_DAY) + 1))
+    }
+  }
+
+  return longest
+}
+
+function calculateDailyRecordsForMonth(snapshot: AnalyticsHistorySnapshot, monthStart: Date, monthEnd: Date, trackingStart: Date) {
+  const habits = snapshot.relatedData?.legacyHabits || []
+  const records: DailyHabitRecord[] = []
+  const trackingStartKey = toDateKey(trackingStart)
+
+  for (let cursor = new Date(monthStart); cursor.getTime() <= monthEnd.getTime(); cursor.setDate(cursor.getDate() + 1)) {
+    const date = startOfLocalDay(cursor)
+    const dateKey = toDateKey(date)
+    if (dateKey < trackingStartKey) continue
+    let completedCount = 0
+    let scheduledCount = 0
+
+    for (const habit of habits) {
+      if (!isHabitActiveOnOrBeforeDate(habit, dateKey, trackingStartKey)) continue
+      scheduledCount++
+      const completed = normalizeHistoryEntries(habit.history).find(([storedDateKey]) => getDateKeyString(storedDateKey) === dateKey)?.[1] || false
+      if (completed) completedCount++
+    }
+
+    records.push({
+      date,
+      key: dateKey,
+      completedCount,
+      scheduledCount,
+      ratio: scheduledCount > 0 ? completedCount / scheduledCount : null,
+    })
+  }
+
+  return records
+}
+
+function calculateMonthlyTrendFromSnapshot(snapshot: AnalyticsHistorySnapshot, monthStart: Date, monthEnd: Date, trackingStart: Date) {
+  const dailyCounts = new Map<string, number>()
+  const habits = snapshot.relatedData?.legacyHabits || []
+
+  for (const habit of habits) {
+    for (const [dateKey, completed] of normalizeHistoryEntries(habit.history)) {
+      if (!completed) continue
+      const normalizedKey = getDateKeyString(dateKey)
+      if (!normalizedKey) continue
+      dailyCounts.set(normalizedKey, (dailyCounts.get(normalizedKey) || 0) + 1)
+    }
+  }
+
+  const months = buildMonthRange(new Date(monthStart.getFullYear(), monthStart.getMonth() - 5, 1), monthEnd)
+  const trackingStartKey = toDateKey(trackingStart)
+
+  return months.map((month) => {
+    const start = startOfMonthLocal(month)
+    const end = endOfMonthLocal(month)
+    let completed = 0
+    let scheduled = 0
+
+    for (let cursor = new Date(start); cursor.getTime() <= end.getTime(); cursor.setDate(cursor.getDate() + 1)) {
+      const key = toDateKey(cursor)
+      if (key < trackingStartKey) continue
+      completed += dailyCounts.get(key) || 0
+      scheduled += habits.filter((habit) => {
+        return isHabitActiveOnOrBeforeDate(habit, key, trackingStartKey)
+      }).length
+    }
+
+    return {
+      month: month.toLocaleDateString('en-US', { month: 'short' }),
+      rate: scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0,
+      executions: completed,
+    }
+  })
+}
+
+function summarizeMonthActivity(snapshot: AnalyticsHistorySnapshot, monthStart: Date) {
+  const nutritionSummary = [
+    { label: 'Hydration', value: 0, unit: 'ml' },
+    { label: 'Calories', value: 0, unit: 'kcal' },
+    { label: 'Protein', value: 0, unit: 'g' },
+    { label: 'Carbs', value: 0, unit: 'g' },
+  ]
+  const monthKey = getMonthKey(monthStart)
+
+  for (const record of snapshot.relatedData?.dailyMetrics || []) {
+    const dateKey = getDateKeyString(record.date)
+    if (!dateKey || getMonthKeyFromDateKey(dateKey) !== monthKey) continue
+    nutritionSummary[0].value += Number(record.hydration || 0)
+    nutritionSummary[1].value += Number(record.calories || 0)
+    nutritionSummary[2].value += Number(record.protein || 0)
+    nutritionSummary[3].value += Number(record.carbs || 0)
+  }
+
+  const sportsCounts = new Map<string, number>()
+  let totalSessions = 0
+  let totalHours = 0
+
+  for (const record of snapshot.relatedData?.sportsLogs || []) {
+    const dateKey = getDateKeyString(record.date)
+    if (!dateKey || getMonthKeyFromDateKey(dateKey) !== monthKey) continue
+    const name = typeof record.name === 'string' && record.name.trim() ? record.name.trim() : 'Activity'
+    const duration = Number(record.durationHours || 0)
+    totalSessions++
+    totalHours += duration
+    sportsCounts.set(name, (sportsCounts.get(name) || 0) + 1)
+  }
+
+  const mostPlayedSport = [...sportsCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || 'NONE'
+
+  return {
+    nutritionSummary,
+    sportsSummary: {
+      mostPlayedSport,
+      totalSessions,
+      totalHours,
+      averageDuration: totalSessions > 0 ? totalHours / totalSessions : 0,
+    },
+  }
+}
+
+function buildInsightsForMonth(
+  summary: Pick<MonthlyAnalyticsView, 'topHabit' | 'weakestHabit' | 'currentStreak' | 'longestStreak' | 'monthlyComparison' | 'longestLapse' | 'sportsSummary' | 'nutritionSummary'>
+) {
+  const insights: Array<{ title: string; body: string }> = []
+
+  if (summary.topHabit) {
+    insights.push({
+      title: 'Strongest habit',
+      body: `${summary.topHabit.name} leads this month at ${summary.topHabit.completionRate}% completion.`,
+    })
+  }
+
+  if (summary.weakestHabit) {
+    insights.push({
+      title: 'Needs attention',
+      body: summary.weakestHabit.completionRate === 0
+        ? `${summary.weakestHabit.name} has never been completed yet.`
+        : `${summary.weakestHabit.name} is trailing at ${summary.weakestHabit.completionRate}%.`,
+    })
+  }
+
+  insights.push({
+    title: 'Current momentum',
+    body: summary.currentStreak > 0
+      ? `You closed the selected month with a ${summary.currentStreak}-day streak.`
+      : 'The selected month ended without an active streak.',
+  })
+
+  if (summary.monthlyComparison.previousExecutions > 0 || summary.monthlyComparison.currentExecutions > 0) {
+    insights.push({
+      title: 'Month-over-month',
+      body: `Completion volume changed by ${summary.monthlyComparison.percentChange}% versus the previous month.`,
+    })
+  }
+
+  if (summary.longestLapse >= 5) {
+    insights.push({
+      title: 'Long gap',
+      body: `Your longest missed stretch this month was ${summary.longestLapse} days.`,
+    })
+  }
+
+  if (summary.sportsSummary.totalSessions === 0) {
+    insights.push({
+      title: 'Sports log',
+      body: 'No sports sessions were logged in the selected month.',
+    })
+  }
+
+  if (summary.nutritionSummary.every((item) => item.value === 0)) {
+    insights.push({
+      title: 'Nutrition',
+      body: 'No nutrition entries were logged in the selected month.',
+    })
+  }
+
+  return insights.slice(0, 5)
+}
+
+export function buildAnalyticsMonthOptions(snapshot: AnalyticsHistorySnapshot, currentDate = new Date()): AnalyticsMonthOption[] {
+  const { rangeStart, rangeEnd } = buildHistoricalCompletionIndex(snapshot)
+  const months = buildMonthRange(rangeStart, rangeEnd)
+  const monthSet = new Set<string>()
+
+  for (const habit of snapshot.relatedData?.legacyHabits || []) {
+    for (const [dateKey, completed] of normalizeHistoryEntries(habit.history)) {
+      if (!completed) continue
+      const normalizedKey = getDateKeyString(dateKey)
+      if (normalizedKey) monthSet.add(getMonthKeyFromDateKey(normalizedKey)!)
+    }
+  }
+
+  for (const record of snapshot.relatedData?.dailyMetrics || []) {
+    const dateKey = getDateKeyString(record.date)
+    const monthKey = getMonthKeyFromDateKey(dateKey)
+    if (monthKey) monthSet.add(monthKey)
+  }
+
+  for (const record of snapshot.relatedData?.sportsLogs || []) {
+    const dateKey = getDateKeyString(record.date)
+    const monthKey = getMonthKeyFromDateKey(dateKey)
+    if (monthKey) monthSet.add(monthKey)
+  }
+
+  monthSet.add(getMonthKey(startOfMonthLocal(currentDate)))
+
+  return months.map((month) => {
+    const key = getMonthKey(month)
+    return {
+      key,
+      label: getMonthLabel(month),
+      hasData: monthSet.has(key),
+    }
+  }).filter((month) => month.hasData)
+}
+
+export function calculateHistoricalAnalyticsView(
+  snapshot: AnalyticsHistorySnapshot,
+  selectedMonth: Date,
+  currentDate = new Date()
+): MonthlyAnalyticsView {
+  const monthStart = startOfMonthLocal(selectedMonth)
+  const monthEnd = endOfMonthLocal(selectedMonth)
+  const { trackingStart } = buildHistoricalCompletionIndex(snapshot)
+  const dailyRecords = calculateDailyRecordsForMonth(snapshot, monthStart, monthEnd, trackingStart)
+  const trailing30Start = new Date(monthEnd)
+  trailing30Start.setDate(trailing30Start.getDate() - 29)
+  const trailing30Records = dailyRecords.filter((record) => record.date.getTime() >= trailing30Start.getTime())
+
+  const completedLast30 = trailing30Records.reduce((sum, record) => sum + record.completedCount, 0)
+  const scheduledLast30 = trailing30Records.reduce((sum, record) => sum + record.scheduledCount, 0)
+  const thirtyDayCompletionRate = scheduledLast30 > 0 ? Math.round((completedLast30 / scheduledLast30) * 100) : 0
+  const habitPerformance = buildHabitPerformanceForRange(snapshot, monthStart, monthEnd, trackingStart)
+  const weeklyActiveDays = dailyRecords.filter((record) => record.completedCount > 0).length
+  const monthlyComparisonStart = new Date(monthStart)
+  monthlyComparisonStart.setMonth(monthlyComparisonStart.getMonth() - 1)
+  const previousMonthEnd = new Date(monthStart)
+  previousMonthEnd.setDate(0)
+  const previousMonthRecords = calculateDailyRecordsForMonth(snapshot, monthlyComparisonStart, previousMonthEnd, trackingStart)
+  const currentExecutions = dailyRecords.reduce((sum, record) => sum + record.completedCount, 0)
+  const previousExecutions = previousMonthRecords.reduce((sum, record) => sum + record.completedCount, 0)
+  const monthlyComparison: MonthlyComparison = {
+    currentExecutions,
+    previousExecutions,
+    percentChange: previousExecutions > 0
+      ? Math.round(((currentExecutions - previousExecutions) / previousExecutions) * 100)
+      : currentExecutions > 0 ? 100 : 0,
+  }
+  const topHabit = habitPerformance[0] || null
+  const weakestHabit = [...habitPerformance].filter((habit) => habit.scheduled > 0).sort((a, b) => a.completionRate - b.completionRate || a.executions - b.executions)[0] || null
+  const longestLapse = getMonthlyLongestLapse(habitPerformance, monthStart, monthEnd, snapshot, trackingStart)
+  const monthlyTrend = calculateMonthlyTrendFromSnapshot(snapshot, monthStart, monthEnd, trackingStart)
+  const nutritionAndSports = summarizeMonthActivity(snapshot, monthStart)
+
+  const summaryForInsights: MonthlyAnalyticsView = {
+    monthKey: getMonthKey(selectedMonth),
+    monthLabel: getMonthLabel(selectedMonth),
+    availableMonths: buildAnalyticsMonthOptions(snapshot, currentDate),
+    dailyRecords,
+    currentState: getCurrentState(weeklyActiveDays >= 14 ? 14 : weeklyActiveDays),
+    currentStreak: calculateCurrentStreak(dailyRecords),
+    longestStreak: calculateLongestStreak(dailyRecords),
+    lifetimeExecutions: currentExecutions,
+    activeDays: weeklyActiveDays,
+    thirtyDayCompletionRate,
+    thirtyDayActiveDays: trailing30Records.filter((record) => record.completedCount > 0).length,
+    topHabit,
+    weakestHabit,
+    longestLapse,
+    habitPerformance,
+    monthlyTrend,
+    monthlyComparison,
+    consistencyScore: calculateConsistencyScore(calculateCurrentStreak(dailyRecords), weeklyActiveDays, thirtyDayCompletionRate),
+    nutritionSummary: nutritionAndSports.nutritionSummary,
+    sportsSummary: nutritionAndSports.sportsSummary,
+    insights: [],
+  }
+
+  return {
+    ...summaryForInsights,
+    currentState: getCurrentState(summaryForInsights.currentStreak),
+    insights: buildInsightsForMonth(summaryForInsights),
+  }
 }

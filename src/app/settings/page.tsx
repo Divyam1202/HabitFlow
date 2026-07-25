@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { requestAndStoreNotificationToken } from '@/lib/firebase'
 import DataImportSection from '@/components/settings/data-import-section'
 import BackupManagerSection from '@/components/settings/backup-manager-section'
+import { requestAnalyticsRefresh } from '@/lib/analytics-refresh'
 
 export default function SettingsPage() {
   const { timeFormat, updateTimeFormat } = useSettings()
@@ -183,6 +184,7 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to reset data')
       }
 
+      requestAnalyticsRefresh()
       toast.success('Data reset')
       window.location.reload()
     } catch (error) {
@@ -253,6 +255,7 @@ export default function SettingsPage() {
         throw new Error(backupData.error || 'Failed to create final backup')
       }
 
+      requestAnalyticsRefresh()
       const deleteResult = await authClient.deleteUser({
         callbackURL: window.location.origin,
       })

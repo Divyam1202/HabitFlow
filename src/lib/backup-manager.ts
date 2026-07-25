@@ -340,8 +340,14 @@ export function buildRestoredStateFromBackup(
   backups: StoredBackupRecord[]
 ) {
   const state = clone(backup.payload.userState.stateData)
+  const trackingStartedAt = typeof (state as Record<string, unknown>).trackingStartedAt === 'string'
+    ? (state as Record<string, unknown>).trackingStartedAt
+    : typeof backup.payload.userState.createdAt === 'string'
+      ? backup.payload.userState.createdAt
+      : undefined
   return {
     ...state,
+    ...(trackingStartedAt ? { trackingStartedAt } : {}),
     backups,
   }
 }

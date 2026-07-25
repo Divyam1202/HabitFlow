@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 
 import { useSettings } from '@/hooks/useSettings'
+import { requestAnalyticsRefresh } from '@/lib/analytics-refresh'
 import type { BackupStatus, StoredBackupRecord } from '@/lib/backup-manager'
 
 type RestoreTarget =
@@ -115,6 +116,7 @@ export default function BackupManagerSection() {
       }
 
       applyBackupResponse(data)
+      requestAnalyticsRefresh()
       toast.success('Current state synced')
     } catch (error) {
       console.error('Sync backup failed:', error)
@@ -161,6 +163,7 @@ export default function BackupManagerSection() {
         setTheme(data.clientSettings.theme)
       }
 
+      requestAnalyticsRefresh()
       toast.success('Backup restored')
       window.location.reload()
     } catch (error) {
@@ -184,6 +187,7 @@ export default function BackupManagerSection() {
       const res = await fetch(`/api/user-state/backups/${target.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to delete backup')
+      requestAnalyticsRefresh()
       toast.success('Backup deleted')
       await loadBackups()
     } catch (error) {

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 
 import { useSettings } from '@/hooks/useSettings'
+import { requestAnalyticsRefresh } from '@/lib/analytics-refresh'
 import {
   DataImportBundle,
   ImportStrategy,
@@ -93,6 +94,7 @@ export default function DataImportSection() {
         setTheme(data.clientSettings.theme)
       }
 
+      requestAnalyticsRefresh()
       toast.success('Import complete')
       window.setTimeout(() => window.location.reload(), 250)
     } catch (err) {
