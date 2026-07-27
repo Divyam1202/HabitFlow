@@ -1,25 +1,22 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { motion } from 'framer-motion'
 import { Bar, BarChart, Line, LineChart, Tooltip, XAxis, YAxis } from 'recharts'
 import { useRouter } from 'next/navigation'
 import { Activity, CalendarDays, ChevronLeft, Dumbbell, Sparkles, Trophy, TrendingUp, UtensilsCrossed, X } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
-import { useHabitContext } from '@/contexts/habit-context'
 import {
   buildAnalyticsMonthOptions,
-  calculateAnalyticsSummary,
   calculateHistoricalAnalyticsView,
-  getNutritionSummary,
-  getSportsSummary,
-  type AnalyticsHistorySnapshot,
+  getAnalyticsCurrentState,
+  getMonthKey,
+  parseMonthKey,
   type AnalyticsMonthOption,
-  type AnalyticsSummary,
   type MonthlyAnalyticsView,
 } from '@/utils/analytics'
-import { ANALYTICS_REFRESH_EVENT, getAnalyticsRefreshChannelName, getAnalyticsRefreshStorageKey } from '@/lib/analytics-refresh'
+import { useAnalyticsSnapshot } from '@/hooks/useAnalyticsSnapshot'
 
 const DynamicResponsiveContainer = dynamic(
   () => import('recharts').then((mod) => mod.ResponsiveContainer),
@@ -32,35 +29,6 @@ type MetricCardProps = {
   meta: string
   tone?: string
   valueClassName?: string
-}
-
-type Insight = {
-  title: string
-  body: string
-}
-
-type DashboardView = AnalyticsSummary & MonthlyAnalyticsView & {
-  insights: Insight[]
-}
-
-function getMonthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-}
-
-function parseMonthKey(key: string) {
-  const [yearPart, monthPart] = key.split('-')
-  const year = Number(yearPart)
-  const month = Number(monthPart)
-
-  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
-    return null
-  }
-
-  return new Date(year, month - 1, 1)
-}
-
-function formatMonthLabel(date: Date) {
-  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
 function formatDayLabel(value: number) {
@@ -97,95 +65,6 @@ function getValueTypography(value: React.ReactNode, variant: 'default' | 'compac
   return 'whitespace-normal text-[clamp(0.95rem,1.7vw,1.35rem)] leading-tight'
 }
 
-function getCurrentState(summary: AnalyticsSummary) {
-  if (summary.thirtyDayCompletionRate >= 85 && summary.currentStreak >= 14) {
-    return { label: 'Momentum', tone: 'text-green-500' }
-  }
-
-  if (summary.thirtyDayCompletionRate >= 65 && summary.currentStreak >= 7) {
-    return { label: 'Consistent', tone: 'text-emerald-500' }
-  }
-
-  if (summary.thirtyDayCompletionRate > 0 || summary.currentStreak > 0) {
-    return { label: 'Recovering', tone: 'text-amber-500' }
-  }
-
-  return { label: 'At Risk', tone: 'text-red-500' }
-}
-
-function buildInsights(
-  summary: AnalyticsSummary,
-  nutritionSummary: ReturnType<typeof getNutritionSummary>,
-  sportsSummary: ReturnType<typeof getSportsSummary>
-): Insight[] {
-  const insights: Insight[] = []
-
-  if (summary.topHabit) {
-    insights.push({
-      title: 'Strongest habit',
-      body: `${summary.topHabit.name} is leading at ${summary.topHabit.completionRate}% completion over the last 30 days.`,
-    })
-  }
-
-  if (summary.weakestHabit) {
-    const weakHabit = summary.weakestHabit.completionRate === 0
-      ? `${summary.weakestHabit.name} has not been completed yet.`
-      : `${summary.weakestHabit.name} is the lowest at ${summary.weakestHabit.completionRate}%.`
-
-    insights.push({
-      title: 'Needs attention',
-      body: `${weakHabit} A smaller target or a clearer time block could help it recover.`,
-    })
-  }
-
-  if (summary.currentStreak > 0) {
-    insights.push({
-      title: 'Current momentum',
-      body: `You have a ${summary.currentStreak}-day streak right now, with a best run of ${summary.longestStreak} days.`,
-    })
-  } else {
-    insights.push({
-      title: 'Restart point',
-      body: 'Your current streak is at zero. Start with one habit today to rebuild momentum quickly.',
-    })
-  }
-
-  if (summary.monthlyComparison.previousExecutions > 0 || summary.monthlyComparison.currentExecutions > 0) {
-    insights.push({
-      title: 'Month-over-month',
-      body: `This month is ${formatSignedPercent(summary.monthlyComparison.percentChange)} compared with last month (${summary.monthlyComparison.currentExecutions} vs ${summary.monthlyComparison.previousExecutions}).`,
-    })
-  }
-
-  if (summary.longestLapse >= 5) {
-    insights.push({
-      title: 'Long gap',
-      body: `There was a ${summary.longestLapse}-day lapse in your habit history. Tightening one habit window can reduce that drop-off.`,
-    })
-  }
-
-  if (sportsSummary.totalSessions === 0) {
-    insights.push({
-      title: 'Sports log',
-      body: 'No sports sessions are logged yet. Once you add workouts, this section will start showing your most frequent activity.',
-    })
-  } else {
-    insights.push({
-      title: 'Activity volume',
-      body: `You logged ${sportsSummary.totalSessions} sports sessions across ${sportsSummary.totalHours.toFixed(1)} hours.`,
-    })
-  }
-
-  if (nutritionSummary.every((item) => item.value === 0)) {
-    insights.push({
-      title: 'Nutrition',
-      body: 'Nutrition is still empty. Log hydration or meals to unlock intake trends here.',
-    })
-  }
-
-  return insights.slice(0, 5)
-}
-
 function MetricCard({ label, value, meta, tone = 'text-foreground', valueClassName = '' }: MetricCardProps) {
   const rawValue = typeof value === 'string' || typeof value === 'number' ? String(value) : ''
   const valueTypography = getValueTypography(rawValue)
@@ -197,7 +76,7 @@ function MetricCard({ label, value, meta, tone = 'text-foreground', valueClassNa
       whileHover={{ y: -2 }}
       className="min-w-0 border border-border bg-card p-4 text-card-foreground rounded-[1px] shadow-none transition-colors duration-200 hover:border-white/30"
     >
-      <div className="flex min-h-[128px] min-w-0 flex-col items-center justify-center gap-3 text-center">
+      <div className="flex min-h-32 min-w-0 flex-col items-center justify-center gap-3 text-center">
         <div className="min-w-0 space-y-1">
           <div className="text-[clamp(0.65rem,0.9vw,0.75rem)] font-bold uppercase tracking-widest text-zinc-400/90">
             {label}
@@ -206,7 +85,7 @@ function MetricCard({ label, value, meta, tone = 'text-foreground', valueClassNa
             {value}
           </div>
         </div>
-        <div className="min-w-0 whitespace-normal break-words text-[clamp(0.6rem,0.78vw,0.7rem)] font-bold uppercase tracking-widest text-zinc-400/85">
+        <div className="min-w-0 whitespace-normal wrap-break-word text-[clamp(0.6rem,0.78vw,0.7rem)] font-bold uppercase tracking-widest text-zinc-400/85">
           {meta}
         </div>
       </div>
@@ -231,7 +110,7 @@ function SectionHeader({ title, meta }: { title: string; meta?: string }) {
 
 function EmptyPanel({ icon: Icon, title, body }: { icon: React.ComponentType<{ size?: number; className?: string }>; title: string; body: string }) {
   return (
-    <div className="flex min-h-[148px] flex-col items-start justify-between gap-4 border border-border p-4">
+    <div className="flex min-h-37 flex-col items-start justify-between gap-4 border border-border p-4">
       <div className="flex items-start gap-3">
         <div className="border border-border bg-background p-2">
           <Icon size={16} className="text-zinc-500" />
@@ -369,81 +248,18 @@ function MonthSelectorModal({
 }
 
 export default function AnalyticsPage() {
-  const { gridData, heatmapData, todayNutrition, todayActivity, trackingStartedAt } = useHabitContext()
   const { isAuthenticated, isLoading } = useAuth()
+  const { snapshot: historySnapshot, loading: historyLoading, error: historyError } = useAnalyticsSnapshot()
   const router = useRouter()
   const currentMonthKey = getMonthKey(new Date())
-  const [historySnapshot, setHistorySnapshot] = useState<AnalyticsHistorySnapshot | null>(null)
   const [selectedMonthKey, setSelectedMonthKey] = useState(currentMonthKey)
   const [monthPickerOpen, setMonthPickerOpen] = useState(false)
-  const [historyLoading, setHistoryLoading] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/')
     }
   }, [isAuthenticated, isLoading, router])
-
-  const loadHistorySnapshot = useCallback(async () => {
-    setHistoryLoading(true)
-
-    try {
-      const response = await fetch('/api/user-state/export', { cache: 'no-store' })
-      if (!response.ok) {
-        throw new Error(`Failed to load analytics export: ${response.status}`)
-      }
-
-      const payload = await response.json() as { relatedData?: AnalyticsHistorySnapshot['relatedData']; userState?: AnalyticsHistorySnapshot['userState'] }
-      if (payload?.relatedData) {
-        setHistorySnapshot(payload as AnalyticsHistorySnapshot)
-      } else {
-        setHistorySnapshot(null)
-      }
-    } catch (error) {
-      console.error('Failed to load analytics history snapshot', error)
-      setHistorySnapshot(null)
-    } finally {
-      setHistoryLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!isAuthenticated) return
-    const timeoutId = window.setTimeout(() => {
-      void loadHistorySnapshot()
-    }, 0)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [isAuthenticated, loadHistorySnapshot])
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !isAuthenticated) return
-
-    const refresh = () => {
-      void loadHistorySnapshot()
-    }
-
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === getAnalyticsRefreshStorageKey()) {
-        refresh()
-      }
-    }
-
-    window.addEventListener(ANALYTICS_REFRESH_EVENT, refresh)
-    window.addEventListener('storage', handleStorage)
-
-    let channel: BroadcastChannel | null = null
-    if ('BroadcastChannel' in window) {
-      channel = new BroadcastChannel(getAnalyticsRefreshChannelName())
-      channel.onmessage = refresh
-    }
-
-    return () => {
-      window.removeEventListener(ANALYTICS_REFRESH_EVENT, refresh)
-      window.removeEventListener('storage', handleStorage)
-      channel?.close()
-    }
-  }, [isAuthenticated, loadHistorySnapshot])
 
   useEffect(() => {
     if (!monthPickerOpen) return
@@ -458,16 +274,6 @@ export default function AnalyticsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [monthPickerOpen])
 
-  const liveSummary = useMemo(
-    () => calculateAnalyticsSummary(gridData, heatmapData, trackingStartedAt),
-    [gridData, heatmapData, trackingStartedAt]
-  )
-  const liveNutritionSummary = useMemo(() => getNutritionSummary(todayNutrition), [todayNutrition])
-  const liveSportsSummary = useMemo(() => getSportsSummary(todayActivity), [todayActivity])
-  const liveInsights = useMemo(
-    () => buildInsights(liveSummary, liveNutritionSummary, liveSportsSummary),
-    [liveSummary, liveNutritionSummary, liveSportsSummary]
-  )
   const historicalMonthOptions = useMemo(
     () => (historySnapshot ? buildAnalyticsMonthOptions(historySnapshot).filter((month) => month.key !== currentMonthKey) : []),
     [historySnapshot, currentMonthKey]
@@ -484,7 +290,7 @@ export default function AnalyticsPage() {
     if (!historySnapshot) return null
     return calculateHistoricalAnalyticsView(historySnapshot, new Date())
   }, [historySnapshot])
-  const summary = useMemo<DashboardView>(() => {
+  const summary = useMemo<MonthlyAnalyticsView | null>(() => {
     if (historicalView) {
       return historicalView
     }
@@ -493,21 +299,12 @@ export default function AnalyticsPage() {
       return currentMonthView
     }
 
-    return {
-      ...liveSummary,
-      monthKey: currentMonthKey,
-      monthLabel: formatMonthLabel(new Date()),
-      availableMonths: historicalMonthOptions,
-      dailyRecords: liveSummary.dailyRecords,
-      nutritionSummary: liveNutritionSummary,
-      sportsSummary: liveSportsSummary,
-      insights: liveInsights,
-    }
-  }, [currentMonthKey, currentMonthView, historicalMonthOptions, historicalView, liveInsights, liveNutritionSummary, liveSportsSummary, liveSummary])
-  const currentState = useMemo(() => getCurrentState(summary), [summary])
-  const hasNutritionData = summary.nutritionSummary.some((item) => item.value > 0)
-  const hasSportsData = summary.sportsSummary.totalSessions > 0
-  const selectedMonthLabel = effectiveSelectedMonthKey === currentMonthKey ? 'Current Month' : summary.monthLabel
+    return null
+  }, [currentMonthView, historicalView])
+  const currentState = useMemo(() => (summary ? getAnalyticsCurrentState(summary) : { label: 'Loading', tone: 'text-zinc-500' }), [summary])
+  const hasNutritionData = summary ? summary.nutritionSummary.some((item) => item.value > 0) : false
+  const hasSportsData = summary ? summary.sportsSummary.totalSessions > 0 : false
+  const selectedMonthLabel = effectiveSelectedMonthKey === currentMonthKey ? 'Current Month' : summary?.monthLabel ?? 'Current Month'
   const canReturnToCurrentMonth = effectiveSelectedMonthKey !== currentMonthKey
 
   if (isLoading || !isAuthenticated) {
@@ -515,6 +312,27 @@ export default function AnalyticsPage() {
       <div className="flex min-h-100 items-center justify-center">
         <div className="animate-pulse text-sm font-bold uppercase tracking-widest text-zinc-500">
           Authenticating...
+        </div>
+      </div>
+    )
+  }
+
+  if (historyError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 text-center text-foreground">
+        <div className="max-w-lg space-y-3 border border-border bg-card p-6">
+          <div className="text-sm font-bold uppercase tracking-widest text-red-500">Analytics snapshot unavailable</div>
+          <p className="text-sm text-zinc-400">{historyError}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (historyLoading || !historySnapshot || !summary) {
+    return (
+      <div className="flex min-h-100 items-center justify-center">
+        <div className="animate-pulse text-sm font-bold uppercase tracking-widest text-zinc-500">
+          Loading analytics snapshot...
         </div>
       </div>
     )
@@ -609,16 +427,16 @@ export default function AnalyticsPage() {
               <MetricCard
                 label="Top Habit"
                 value={summary.topHabit ? (summary.topHabit.completionRate === 0 ? 'Never Completed' : summary.topHabit.name) : 'None yet'}
-                meta={summary.topHabit ? (summary.topHabit.completionRate === 0 ? formatTrackingDaysLabel(summary.topHabit.trackingDays) : `${summary.topHabit.completionRate}% completion`) : 'No completed habit history'}
+                meta={summary.topHabit ? `${summary.topHabit.status} • ${summary.topHabit.completionRate}% completion • ${formatTrackingDaysLabel(summary.topHabit.trackingDays)}` : 'No completed habit history'}
                 tone="text-foreground"
-                valueClassName={summary.topHabit?.completionRate === 0 ? getValueTypography('Never Completed') : ''}
+                valueClassName={summary.topHabit?.status === 'Never Completed' ? getValueTypography('Never Completed') : ''}
               />
               <MetricCard
                 label="Needs Attention"
-                value={summary.weakestHabit ? (summary.weakestHabit.completionRate === 0 ? 'Never Completed' : summary.weakestHabit.name) : 'None yet'}
-                meta={summary.weakestHabit ? (summary.weakestHabit.completionRate === 0 ? formatTrackingDaysLabel(summary.weakestHabit.trackingDays) : `${summary.weakestHabit.completionRate}% completion`) : 'No habit performance to review'}
-                tone={summary.weakestHabit && summary.weakestHabit.completionRate === 0 ? 'text-red-500' : 'text-foreground'}
-                valueClassName={summary.weakestHabit?.completionRate === 0 ? getValueTypography('Never Completed') : ''}
+                value={summary.weakestHabit ? summary.weakestHabit.name : 'None yet'}
+                meta={summary.weakestHabit ? `${summary.weakestHabit.status} • ${summary.weakestHabit.completionRate}% completion • ${formatTrackingDaysLabel(summary.weakestHabit.trackingDays)}` : 'No habit performance to review'}
+                tone={summary.weakestHabit && summary.weakestHabit.status === 'Never Completed' ? 'text-red-500' : summary.weakestHabit && summary.weakestHabit.status === 'Currently Missed' ? 'text-amber-500' : 'text-foreground'}
+                valueClassName={summary.weakestHabit?.status === 'Never Completed' ? getValueTypography('Never Completed') : ''}
               />
               <MetricCard
                 label="Longest Missed Habit"
@@ -726,7 +544,7 @@ export default function AnalyticsPage() {
               <MetricCard
                 label="Monthly Change"
                 value={formatSignedPercent(summary.monthlyComparison.percentChange)}
-                meta={`${summary.monthlyComparison.currentExecutions} this month vs ${summary.monthlyComparison.previousExecutions} last month`}
+                meta={`Completion ${summary.monthlyComparison.currentCompletionRate}% vs ${summary.monthlyComparison.previousCompletionRate}%; Avg ${summary.monthlyComparison.currentAveragePerTrackedDay.toFixed(1)} vs ${summary.monthlyComparison.previousAveragePerTrackedDay.toFixed(1)} completions per tracked day`}
                 tone={summary.monthlyComparison.percentChange >= 0 ? 'text-green-500' : 'text-red-500'}
               />
               <MetricCard

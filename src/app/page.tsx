@@ -18,9 +18,10 @@ import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseMessaging, requestAndStoreNotificationToken } from '@/lib/firebase'
+import { useAnalyticsSnapshot } from '@/hooks/useAnalyticsSnapshot'
 import { onMessage } from 'firebase/messaging'
 import { toast } from 'sonner'
-import { calculateAnalyticsSummary, getGridDayStats } from '@/utils/analytics'
+import { calculateHistoricalAnalyticsView } from '@/utils/analytics'
 
 
 
@@ -37,6 +38,7 @@ export default function BrutalistDashboard() {
     initializeJourney,
   } = useHabitContext()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
+  const { snapshot: analyticsSnapshot, loading: analyticsLoading, error: analyticsError } = useAnalyticsSnapshot()
   const router = useRouter()
 
   const [loading, setLoading] = useState(true);
@@ -56,10 +58,11 @@ export default function BrutalistDashboard() {
   const [selectedMatrixYear, setSelectedMatrixYear] = useState<number>(new Date().getFullYear());
 
   const analyticsSummary = useMemo(
-    () => calculateAnalyticsSummary(gridData, heatmapData),
-    [gridData, heatmapData]
+    () => (analyticsSnapshot ? calculateHistoricalAnalyticsView(analyticsSnapshot, new Date()) : null),
+    [analyticsSnapshot]
   );
-  const { dailyRecords } = analyticsSummary;
+  const dailyRecords = analyticsSummary?.dailyRecords || [];
+  const analyticsReady = Boolean(analyticsSnapshot && analyticsSummary && !analyticsLoading)
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -177,12 +180,11 @@ export default function BrutalistDashboard() {
 
   const completionRateData = Array.from({ length: daysInMonth }).map((_, i) => {
     const actualCalendarDay = i + 1;
-    const dateForThisDay = new Date(currentYear, currentMonth, actualCalendarDay);
-    const stats = getGridDayStats(gridData, dateForThisDay);
+    const stats = dailyRecords.find((record) => record.date.getDate() === actualCalendarDay);
 
     return {
       day: actualCalendarDay,
-      rate: stats.ratio === null ? null : Math.round(stats.ratio * 100)
+      rate: stats?.ratio === null || typeof stats?.ratio === 'undefined' ? null : Math.round((stats.ratio || 0) * 100)
     };
   });
 
@@ -306,12 +308,23 @@ export default function BrutalistDashboard() {
   // heatmapData is a rolling window ending today (confirmed via
   // habit-context.tsx rollover logic) — NOT anchored to Jan 1st. Month
   // labels and column count must be derived from real dates, not assumed.
+
+  if (analyticsError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6 text-center text-foreground">
+        <div className="max-w-lg space-y-3 border border-border bg-card p-6">
+          <div className="text-sm font-bold uppercase tracking-widest text-red-500">Analytics snapshot unavailable</div>
+          <p className="text-sm text-zinc-400">{analyticsError}</p>
+        </div>
+      </div>
+    )
+  }
   
   return (
     <>
-      {loading && <CanvasLoader onComplete={() => setLoading(false)} />}
+      {(loading || analyticsLoading) && <CanvasLoader onComplete={() => setLoading(false)} />}
 
-      <div className={`max-w-250 mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
+      <div className={`max-w-250 mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted || !analyticsReady) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
 
         {/* Initialization Banner */}
         {!isInitialized && (

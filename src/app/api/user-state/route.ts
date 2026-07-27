@@ -115,6 +115,18 @@ function addDaysToDateKey(dateKey: string, offsetDays: number) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+function stringOrEmpty(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value))
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function asBooleanHistoryMap(history: unknown) {
   const map = new Map<string, boolean>()
 

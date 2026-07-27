@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { format, subDays } from 'date-fns'
+import { toDateKey } from '@/utils/analytics'
 
 interface HeatmapProps {
   entries: { date: Date; completed: boolean }[]
@@ -9,14 +10,14 @@ export function Heatmap({ entries }: HeatmapProps) {
   // Generate last 365 days
   const days = Array.from({ length: 365 }).map((_, i) => {
     const d = subDays(new Date(), 364 - i)
-    d.setUTCHours(0, 0, 0, 0)
+    d.setHours(0, 0, 0, 0)
     return d
   })
 
   // Count completions per day
   const counts = entries.reduce((acc, entry) => {
     if (entry.completed) {
-      const key = entry.date.toISOString().split('T')[0]
+      const key = toDateKey(entry.date)
       acc[key] = (acc[key] || 0) + 1
     }
     return acc
@@ -56,7 +57,7 @@ export function Heatmap({ entries }: HeatmapProps) {
               <div key={`empty-${i}`} className="w-3 h-3" />
             ))}
             {week.map((day, dIdx) => {
-              const key = day.toISOString().split('T')[0]
+              const key = toDateKey(day)
               const count = counts[key] || 0
               return (
                 <Tooltip key={dIdx}>
