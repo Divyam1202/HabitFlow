@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts'
@@ -24,6 +24,20 @@ import { toast } from 'sonner'
 import { calculateHistoricalAnalyticsView } from '@/utils/analytics'
 
 
+function getHabitTimeMinutes(time: string | undefined) {
+  if (!time) return Number.POSITIVE_INFINITY
+  const match = time.match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return Number.POSITIVE_INFINITY
+
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  return hours * 60 + minutes
+}
+
 
 export default function BrutalistDashboard() {
   const { timeFormat } = useSettings()
@@ -46,10 +60,10 @@ export default function BrutalistDashboard() {
   const [clientReady, setClientReady] = useState(false);
 
   const [notificationPermission, setNotificationPermission] = useState< "default" | "denied" | "granted" | "unsupported">("unsupported");
+  const [notificationTokenRegistered, setNotificationTokenRegistered] = useState(false);
+  const [isEnablingNotifications, setIsEnablingNotifications] = useState(false);
 
   const [selectedWeek, setSelectedWeek] = useState<"all" | 1 | 2 | 3 | 4>("all");
-
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
 
   const todayDay = new Date().getDate();
 
@@ -74,6 +88,41 @@ export default function BrutalistDashboard() {
 
     return () => window.cancelAnimationFrame(id);
   }, []);
+
+  const refreshNotificationHealth = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await fetch('/api/notifications/health-check', { cache: 'no-store' });
+      const data = await res.json();
+      if (res.ok) {
+        setNotificationTokenRegistered(Boolean(data.fcmTokenRegistered));
+      }
+    } catch (error) {
+      console.error('Failed to check notification health:', error);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!clientReady || !isAuthenticated) return;
+
+    const id = window.requestAnimationFrame(() => {
+      refreshNotificationHealth();
+    });
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        if ("Notification" in window) {
+          setNotificationPermission(Notification.permission as "default" | "denied" | "granted");
+        }
+        refreshNotificationHealth();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.cancelAnimationFrame(id);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [clientReady, isAuthenticated, refreshNotificationHealth]);
 
   // Self-repair to clear the glitchy completions on June 10 caused by the previous index mismatch
   useEffect(() => {
@@ -210,9 +259,15 @@ export default function BrutalistDashboard() {
   const diffTimeForSelectedDay = targetMidnight.getTime() - todayMidnight.getTime();
   const diffDaysForSelectedDay = Math.round(diffTimeForSelectedDay / (1000 * 3600 * 24));
 
-  const scheduledHabitsForSelectedDay = gridData.filter(habit =>
-    habit.frequency ? habit.frequency.includes(dayOfWeekForSelectedDay) : true
-  );
+  const scheduledHabitsForSelectedDay = gridData
+    .filter(habit => habit.frequency ? habit.frequency.includes(dayOfWeekForSelectedDay) : true)
+    .map((habit, index) => ({ habit, index }))
+    .sort((a, b) => {
+      const timeDiff = getHabitTimeMinutes(a.habit.time) - getHabitTimeMinutes(b.habit.time)
+      if (timeDiff !== 0) return timeDiff
+      return a.index - b.index
+    })
+    .map(({ habit }) => habit);
 
   const getIsCompleted = (habit: typeof gridData[0]) => {
     if (diffDaysForSelectedDay === 0) {
@@ -238,6 +293,31 @@ export default function BrutalistDashboard() {
         }
       }
     }
+  };
+
+  const handleEnableNotifications = async () => {
+    if (!user?.id || isEnablingNotifications) return;
+
+    setIsEnablingNotifications(true);
+    const result = await requestAndStoreNotificationToken(user.id);
+    if ("Notification" in window) {
+      setNotificationPermission(Notification.permission as "default" | "denied" | "granted");
+    }
+
+    if (result.ok) {
+      setNotificationTokenRegistered(true);
+      toast.success('Habit reminders enabled');
+      await refreshNotificationHealth();
+    } else if (result.reason === 'permission-denied') {
+      toast.error('Notifications are blocked for this browser');
+    } else if (result.reason === 'missing-vapid-key') {
+      toast.error('Notification setup is missing a VAPID key');
+    } else if (result.reason === 'unsupported') {
+      toast.error('Notifications are not supported in this browser');
+    } else {
+      toast.error('Failed to enable notifications');
+    }
+    setIsEnablingNotifications(false);
   };
 
   // Selected date string, e.g. "Jun 23"
@@ -361,18 +441,45 @@ export default function BrutalistDashboard() {
               </button>
             )}
           </div>
-          {clientReady && isSelectedDayToday && isAuthenticated && notificationPermission === 'default' && (
-            <button
-              onClick={() => {
-                if (!user?.id) return;
-                  requestAndStoreNotificationToken(user.id);
-              }}
-              className="flex items-center gap-2 border border-border bg-card text-foreground px-4 py-2 text-[10px] font-bold tracking-widest uppercase hover:bg-muted transition-colors animate-pulse self-start sm:self-auto"
-            >
-              <Bell size={14} /> Enable Notifications
-            </button>
-          )}
         </div>
+        {clientReady && isSelectedDayToday && isAuthenticated && notificationPermission !== 'granted' && (
+          <div className="mb-4 flex flex-col gap-3 border border-border bg-card/70 px-4 py-3 text-card-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <Bell size={15} className="mt-0.5 shrink-0 text-zinc-500" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-foreground">Habit reminders are off</div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">Enable notifications to get timely habit reminders on this device.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              disabled={isEnablingNotifications}
+              className="inline-flex h-9 items-center justify-center border border-border px-3 text-[10px] font-bold uppercase tracking-widest text-foreground transition-colors hover:border-foreground hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isEnablingNotifications ? 'Enabling...' : 'Enable'}
+            </button>
+          </div>
+        )}
+        {clientReady && isSelectedDayToday && isAuthenticated && notificationPermission === 'granted' && !notificationTokenRegistered && (
+          <div className="mb-4 flex flex-col gap-3 border border-amber-500/25 bg-amber-500/5 px-4 py-3 text-card-foreground sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <Bell size={15} className="mt-0.5 shrink-0 text-amber-600" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-foreground">Finish reminder setup</div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">Permission is granted, but this device needs a fresh reminder token.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleEnableNotifications}
+              disabled={isEnablingNotifications}
+              className="inline-flex h-9 items-center justify-center border border-amber-500/30 px-3 text-[10px] font-bold uppercase tracking-widest text-amber-700 transition-colors hover:bg-amber-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isEnablingNotifications ? 'Syncing...' : 'Sync'}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {gridData.length === 0 && (
             <div className="col-span-full border border-border bg-card p-8 flex flex-col items-center justify-center text-center">
@@ -595,51 +702,6 @@ export default function BrutalistDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Floating Brutalist Notification Banner */}
-        <AnimatePresence>
-          {showNotifPrompt && clientReady && isMounted && isAuthenticated && notificationPermission === 'default' && (
-            <motion.div
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-6 right-6 z-50 max-w-sm border-2 border-foreground bg-background p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
-            >
-              <div className="flex items-start gap-4">
-                <div className="bg-foreground text-background p-2">
-                  <Bell className="h-5 w-5 animate-bounce" />
-                </div>
-                <div className="space-y-2 flex-1">
-                  <h4 className="font-bold uppercase tracking-wider text-xs text-foreground">STREAK PROTECTION REMINDER</h4>
-                  <p className="text-[11px] text-zinc-500 leading-relaxed">
-                    Protect your progress! Allow push notifications to receive real-time habit reminders on this device.
-                  </p>
-                  <div className="flex gap-4 pt-1.5">
-                    <button
-                      onClick={() => {
-                        if (!user?.id) return;
-                          requestAndStoreNotificationToken(user.id);
-                        setShowNotifPrompt(false)
-                      }}
-                      className="bg-emerald-500 hover:bg-emerald-400 text-black px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors"
-                    >
-                      ENABLE REMINDERS &gt;
-                    </button>
-                    <button
-                      onClick={() => {
-                        sessionStorage.setItem('habitflow_notif_prompt_dismissed', 'true')
-                        setShowNotifPrompt(false)
-                      }}
-                      className="text-zinc-500 hover:text-foreground text-[10px] font-bold uppercase tracking-wider transition-colors"
-                    >
-                      Maybe Later
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
       </div>
     </>

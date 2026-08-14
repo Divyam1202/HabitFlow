@@ -11,46 +11,10 @@ import DailyMetric from '@/models/DailyMetric'
 import SportsLog from '@/models/SportsLog'
 import Notification from '@/models/Notification'
 import NotificationLog from '@/models/NotificationLog'
+import { createExportPayload } from '@/lib/backup-manager'
 
 function toPlain<T>(value: T): T {
   return JSON.parse(JSON.stringify(value))
-}
-
-function summarizeState(state: Record<string, unknown> | null) {
-  const gridData = Array.isArray(state?.gridData) ? state.gridData : []
-  const heatmapData = Array.isArray(state?.heatmapData) ? state.heatmapData : []
-  const todayHabits = Array.isArray(state?.todayHabits) ? state.todayHabits : []
-  const todayActivity = typeof state?.todayActivity === 'object' && state.todayActivity !== null
-    ? state.todayActivity as { sportsLog?: unknown[] }
-    : null
-
-  return {
-    stateKeys: state ? Object.keys(state) : [],
-    habits: gridData.length,
-    habitHistoryCells: gridData.reduce((sum, habit) => {
-      const days = typeof habit === 'object' && habit !== null && Array.isArray((habit as { days?: unknown[] }).days)
-        ? (habit as { days: unknown[] }).days
-        : []
-      return sum + days.length
-    }, 0),
-    completedHabitCells: gridData.reduce((sum, habit) => {
-      const days = typeof habit === 'object' && habit !== null && Array.isArray((habit as { days?: Array<{ completed?: boolean }> }).days)
-        ? (habit as { days: Array<{ completed?: boolean }> }).days
-        : []
-      return sum + days.filter((day) => day.completed).length
-    }, 0),
-    heatmapDays: heatmapData.length,
-    heatmapNonZeroDays: heatmapData.filter((day) => {
-      if (typeof day !== 'object' || day === null) return false
-      return ((day as { count?: number }).count || 0) > 0
-    }).length,
-    heatmapExecutions: heatmapData.reduce((sum, day) => {
-      if (typeof day !== 'object' || day === null) return sum
-      return sum + ((day as { count?: number }).count || 0)
-    }, 0),
-    todayHabits: todayHabits.length,
-    sportsEntriesToday: Array.isArray(todayActivity?.sportsLog) ? todayActivity.sportsLog.length : 0,
-  }
 }
 
 export async function GET(req: NextRequest) {
@@ -92,9 +56,7 @@ export async function GET(req: NextRequest) {
       NotificationLog.find({ userId: session.user.id }).lean(),
     ])
 
-    const exportPayload = {
-      exportedAt: new Date().toISOString(),
-      format: 'habytflow-user-export-v1',
+    const exportPayload = createExportPayload({
       user: {
         id: session.user.id,
         email: session.user.email,
@@ -108,7 +70,6 @@ export async function GET(req: NextRequest) {
         updatedAt: userState.updatedAt,
         stateData: parsedState,
         stateDataRaw: userState.stateData,
-        summary: summarizeState(parsedState),
       },
       relatedData: {
         legacyHabits,
@@ -119,7 +80,7 @@ export async function GET(req: NextRequest) {
         notifications,
         notificationLogs,
       },
-    }
+    })
 
     return NextResponse.json(toPlain(exportPayload))
   } catch (error) {

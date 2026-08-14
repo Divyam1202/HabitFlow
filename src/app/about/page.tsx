@@ -29,8 +29,8 @@ const LinkedInIcon = () => (
 const DeveloperMarquee = () => {
   return (
     <div className="relative w-full overflow-hidden whitespace-nowrap py-6 select-none my-4">
-      <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
-      <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 left-0 w-24 bg-linear-to-r from-[#050505] to-transparent z-10 pointer-events-none" />
+      <div className="absolute inset-y-0 right-0 w-24 bg-linear-to-l from-[#050505] to-transparent z-10 pointer-events-none" />
       <motion.div
         className="inline-flex gap-16 whitespace-nowrap"
         animate={{ x: [0, "-50%"] }}
@@ -93,7 +93,7 @@ const DeveloperCard = () => {
       className="relative w-80 bg-zinc-950/80 border border-zinc-900 rounded-xl p-8 flex flex-col items-start select-none cursor-pointer group shadow-[0_30px_100px_rgba(0,0,0,0.8)]"
     >
       {/* Glow background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-br from-emerald-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
       
       <div style={{ transform: "translateZ(50px)" }} className="w-full space-y-6">
         <div className="text-left">
@@ -104,7 +104,7 @@ const DeveloperCard = () => {
         <div className="flex justify-between items-center w-full border-t border-zinc-900 pt-6">
           <div className="text-left">
             <p className="text-[9px] font-mono text-zinc-600 uppercase tracking-wider mb-0.5">Established</p>
-            <p className="text-zinc-300 text-xs font-semibold">June 2027</p>
+            <p className="text-zinc-300 text-xs font-semibold">June 2026</p>
           </div>
 
           <a
@@ -176,7 +176,7 @@ const UniverseBackground = () => {
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050505]" />
+      <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#050505]" />
     </div>
   )
 }
@@ -281,7 +281,7 @@ export default function AboutPage() {
                   damping: 20,
                   delay: 1.6 + i * 0.08
                 }}
-                className={`inline-block ${char !== " " ? "bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" : ""}`}
+                className={`inline-block ${char !== " " ? "bg-linear-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent" : ""}`}
               >
                 {char === " " ? "\u00A0" : char}
               </motion.span>
@@ -350,7 +350,7 @@ export default function AboutPage() {
                 THE GAP IS IN THE EXECUTION.
               </p>
               <p>
-                Meaningful progress is rarely the result of a single breakthrough. It's built through the small actions we repeat every day—the choices that seem insignificant in the moment but compound into something remarkable over time.
+                Meaningful progress is rarely the result of a single breakthrough. It&aposs built through the small actions we repeat every day—the choices that seem insignificant in the moment but compound into something remarkable over time.
               </p>
               <p>
                 Most people already know what they need to do.
@@ -359,10 +359,10 @@ export default function AboutPage() {
                 <strong className="text-white font-semibold">HabytFlow was born from that realization.</strong>
               </p>
               <p>
-                I wasn't looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
+                I wasn&apost looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
               </p>
               <p className="py-2 text-center">
-                <span className="text-sm md:text-base text-white font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
+                <span className="text-sm md:text-base font-extrabold bg-linear-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
                   A system that measured actions, not intentions.
                 </span>
               </p>
@@ -373,15 +373,15 @@ export default function AboutPage() {
                 Built alongside my work as an AI & Machine Learning Engineer, HabytFlow was developed through late-night iterations, constant refinement, and a relentless focus on simplicity. Every feature exists because it solves a real problem. Every decision was made with one goal in mind: helping people stay consistent with the things that matter.
               </p>
               <p>
-                Just a clear view of the promises you make to yourself—and whether you're keeping them.
+                Just a clear view of the promises you make to yourself—and whether you&aposre keeping them.
               </p>
               <p>
                 Today, HabytFlow is more than a habit tracker.
               </p>
               <div className="pl-4 border-l border-zinc-800 space-y-2 py-1 italic">
-                <p>It's a system for accountability.</p>
+                <p>It&aposs a system for accountability.</p>
                 <p>A record of consistency.</p>
-                <p>A reminder that progress isn't created by what we intend to do, but by what we repeatedly choose to do.</p>
+                <p>A reminder that progress isn&apost created by what we intend to do, but by what we repeatedly choose to do.</p>
               </div>
               
               <div className="pt-4 text-center">
@@ -420,14 +420,14 @@ export default function AboutPage() {
           {/* Section 5.5 (Developer Note Section) */}
           <div className="relative w-full flex flex-col items-center justify-center py-16 px-6 select-none overflow-hidden border-y border-zinc-900/30 border-t">
             {/* Grid mesh background */}
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-24px_24px mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
             
             <div className="relative z-10 max-w-4xl w-full flex flex-col items-center text-center gap-8">
               <h2
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
                 className="text-xs xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase text-center sm:whitespace-nowrap"
               >
-                WE'RE JUST GETTING STARTED.
+                WE&aposRE JUST GETTING STARTED.
               </h2>
 
               <div className="w-full flex flex-col items-center gap-4 mt-2">
@@ -449,7 +449,7 @@ export default function AboutPage() {
           {/* Modal Popup for Developer Note */}
           <AnimatePresence>
             {noteOpen && (
-              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-md">
+              <div className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-6 bg-black/95 backdrop-blur-md">
                 {/* Click outside to close */}
                 <div className="absolute inset-0" onClick={() => setNoteOpen(false)} />
                 
@@ -496,7 +496,7 @@ export default function AboutPage() {
                         HabytFlow was built with a simple goal: to create a space where progress feels honest. A place where consistency matters more than perfection and where small actions are given the recognition they deserve.
                       </p>
                       <p>
-                        Like many people, I've started routines I couldn't maintain, set goals I didn't achieve, and underestimated the power of simply showing up. HabytFlow is the result of those lessons.
+                        Like many people, I&aposve started routines I couldn&apost maintain, set goals I didn&apost achieve, and underestimated the power of simply showing up. HabytFlow is the result of those lessons.
                       </p>
                       <p>
                         If this platform helps you stay consistent for one more day, finish one more workout, read one more chapter, or keep one more promise to yourself, then it has already served its purpose.
@@ -514,7 +514,7 @@ export default function AboutPage() {
                         <p className="text-white font-bold text-xs">— Divyam Chandak</p>
                         <p className="text-[9px] text-zinc-650 font-semibold mt-0.5">Founder & Developer</p>
                       </div>
-                      <span>June 2027</span>
+                      <span>June 2026</span>
                     </div>
                   </div>
                 </motion.div>
@@ -527,22 +527,22 @@ export default function AboutPage() {
             <div className="flex flex-col items-center gap-4 w-full mx-auto text-center select-none">
               {/* Copyright with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
-                <div className="h-px bg-zinc-800 flex-grow max-w-[80px]" />
+                <div className="h-px bg-zinc-800 grow max-w-80px" />
                 <span className="text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">
                   © 2026 HabytFlow. All Rights Reserved.
                 </span>
-                <div className="h-px bg-zinc-800 flex-grow max-w-[80px]" />
+                <div className="h-px bg-zinc-800 fgrow max-w-80px" />
               </div>
 
               {/* Links with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
-                <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
+                <div className="h-px bg-zinc-850 grow max-w-60px" />
                 <div className="flex items-center gap-4 text-zinc-500 text-[10px] md:text-xs uppercase tracking-widest font-black whitespace-nowrap">
                   <Link href="/about/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
                   <span className="text-zinc-700">·</span>
                   <Link href="/about/terms" className="hover:text-white transition-colors">Terms of Conditions</Link>
                 </div>
-                <div className="h-px bg-zinc-850 flex-grow max-w-[60px]" />
+                <div className="h-px bg-zinc-850 grow max-w-60px" />
               </div>
             </div>
           </div>

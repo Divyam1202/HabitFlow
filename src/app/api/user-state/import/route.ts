@@ -805,7 +805,7 @@ export async function POST(req: NextRequest) {
             duplicateRecords: 0,
             invalidRecords: 0,
           },
-          clientSettings: body.clientSettings || backupPayload.clientSettings,
+          clientSettings: backupPayload.clientSettings || body.clientSettings,
           stateData: nextStateWithBackup,
           backup: {
             id: safetyBackup.id,

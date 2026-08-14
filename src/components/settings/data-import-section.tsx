@@ -68,12 +68,17 @@ export default function DataImportSection() {
       }
       backupRef.current = backupData
 
+      const backupPayload = bundle.sourceType === 'habytflow-backup' && strategy === 'replace'
+        ? JSON.parse(fileText)
+        : undefined
+
       const res = await fetch('/api/user-state/import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fileName,
           text: fileText,
+          backupPayload,
           strategy,
           clientSettings: {
             timeFormat,

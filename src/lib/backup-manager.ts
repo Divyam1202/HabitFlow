@@ -1,3 +1,5 @@
+// src/lib/backup-manager.ts
+
 import { ClientSettings } from '@/lib/data-import'
 
 export type BackupSource =
@@ -84,6 +86,16 @@ export type BackupState = Record<string, unknown> & {
   backups?: unknown[]
 }
 
+// ---- Growth-control config ----------------------------------------------
+// These two limits are what keep the parent UserState document from
+// growing unbounded toward MongoDB's 16MB document cap. Every path that
+// writes backups back into state (appendBackupToState, normalizeBackups,
+// replaceBackupBySource) funnels through trimAutomaticBackups below, so
+// changing these constants is enough to retune retention everywhere.
+const MAX_AUTOMATIC_BACKUPS = 5
+const MAX_MANUAL_BACKUPS = 5
+const MAX_BACKUPS_TOTAL_BYTES = 8 * 1024 * 1024 // 8MB budget for the whole backups array
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -94,6 +106,16 @@ function toArray<T = unknown>(value: unknown): T[] {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value))
+}
+
+function stripEmbeddedBackups(state: Record<string, unknown>) {
+  const nextState = clone(state)
+  delete (nextState as BackupState).backups
+  return nextState
+}
+
+function backupsByteSize(backups: StoredBackupRecord[]): number {
+  return Buffer.byteLength(JSON.stringify(backups), 'utf8')
 }
 
 export function summarizeState(state: Record<string, unknown> | null): UserStateSummary {
@@ -209,6 +231,8 @@ export function createExportPayload(params: {
   relatedData: HabytFlowExportPayload['relatedData']
   clientSettings?: ClientSettings
 }): HabytFlowExportPayload {
+  const stateData = stripEmbeddedBackups(params.userState.stateData)
+
   return {
     exportedAt: params.exportedAt || new Date().toISOString(),
     format: 'habytflow-user-export-v1',
@@ -219,9 +243,9 @@ export function createExportPayload(params: {
       timezone: params.userState.timezone || 'Asia/Kolkata',
       createdAt: params.userState.createdAt,
       updatedAt: params.userState.updatedAt,
-      stateData: clone(params.userState.stateData),
-      stateDataRaw: params.userState.stateDataRaw,
-      summary: summarizeState(params.userState.stateData),
+      stateData,
+      stateDataRaw: JSON.stringify(stateData),
+      summary: summarizeState(stateData),
     },
     relatedData: {
       legacyHabits: clone(params.relatedData.legacyHabits || []),
@@ -256,14 +280,39 @@ export function createStoredBackupRecord(
   }
 }
 
-export function trimAutomaticBackups(backups: StoredBackupRecord[], keep = 5) {
+/**
+ * Trims the backups array down to a safe size:
+ *  - at most MAX_AUTOMATIC_BACKUPS non-manual backups
+ *  - at most MAX_MANUAL_BACKUPS manual backups
+ *  - the combined array never exceeds MAX_BACKUPS_TOTAL_BYTES, dropping
+ *    the oldest backups first (always keeping at least the single newest
+ *    backup, even if it alone is over budget, so a fresh backup is never
+ *    silently discarded)
+ *
+ * This is the single choke point all backup-writing functions in this
+ * file go through, so it's the one place that needs to change to retune
+ * retention or fix runaway document growth.
+ */
+export function trimAutomaticBackups(backups: StoredBackupRecord[], keep = MAX_AUTOMATIC_BACKUPS) {
   const automaticBackups = backups
     .filter((backup) => isAutomaticBackupSource(backup.source))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, keep)
 
-  const keepIds = new Set(automaticBackups.slice(0, keep).map((backup) => backup.id))
+  const manualBackups = backups
+    .filter((backup) => !isAutomaticBackupSource(backup.source))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, MAX_MANUAL_BACKUPS)
 
-  return backups.filter((backup) => !isAutomaticBackupSource(backup.source) || keepIds.has(backup.id))
+  let combined = [...automaticBackups, ...manualBackups].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  )
+
+  while (combined.length > 1 && backupsByteSize(combined) > MAX_BACKUPS_TOTAL_BYTES) {
+    combined = combined.slice(0, -1)
+  }
+
+  return combined
 }
 
 export function normalizeBackups(backups: StoredBackupRecord[], nextBackup?: StoredBackupRecord) {

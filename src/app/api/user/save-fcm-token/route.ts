@@ -36,6 +36,10 @@ export async function POST(request: Request) {
           fcmToken: token,
           notificationStatus: 'active',
           lastTokenRefreshAt: new Date()
+        },
+        $setOnInsert: {
+          stateData: JSON.stringify({}),
+          timezone: 'Asia/Kolkata'
         }
       },
       { new: true, upsert: true }

@@ -25,10 +25,24 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
   }
 };
 
-export const requestAndStoreNotificationToken = async (userId: string, forceRefresh = false) => {
+export type NotificationTokenResult =
+  | { ok: true; token: string }
+  | { ok: false; reason: 'unsupported' | 'permission-denied' | 'missing-vapid-key' | 'missing-token' | 'save-failed' | 'error'; error?: unknown }
+
+export const requestAndStoreNotificationToken = async (userId: string, forceRefresh = false): Promise<NotificationTokenResult> => {
   try {
+    if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) {
+      return { ok: false, reason: 'unsupported' };
+    }
+
+    const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.warn("Missing NEXT_PUBLIC_FIREBASE_VAPID_KEY.");
+      return { ok: false, reason: 'missing-vapid-key' };
+    }
+
     const messaging = await getFirebaseMessaging();
-    if (!messaging) return;
+    if (!messaging) return { ok: false, reason: 'unsupported' };
 
     // Only request permission if not already granted — calling requestPermission()
     // on an already-granted PWA triggers Chrome's "Open in browser" banner on every launch
@@ -36,7 +50,7 @@ export const requestAndStoreNotificationToken = async (userId: string, forceRefr
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
         console.warn("Notification permission denied by user.");
-        return;
+        return { ok: false, reason: 'permission-denied' };
       }
     }
 
@@ -56,25 +70,31 @@ export const requestAndStoreNotificationToken = async (userId: string, forceRefr
     }
 
     const currentToken = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      vapidKey,
       serviceWorkerRegistration: registration,
     });
 
     if (currentToken) {
-      await fetch("/api/user/save-fcm-token", {
+      const response = await fetch("/api/user/save-fcm-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, token: currentToken }),
       });
+      if (!response.ok) {
+        return { ok: false, reason: 'save-failed' };
+      }
       console.log("[FCM Refresh] New token registered.");
       if (typeof window !== "undefined") {
         localStorage.setItem(`fcm_token_synced_${userId}`, "true");
       }
+      return { ok: true, token: currentToken };
     } else {
       console.warn("No registration token available. Check your VAPID key configurations.");
+      return { ok: false, reason: 'missing-token' };
     }
   } catch (error) {
     console.error("Error securing push token:", error);
+    return { ok: false, reason: 'error', error };
   }
 };
 
