@@ -13,7 +13,6 @@ import { Check, Rocket, Bell } from 'lucide-react'
 import { NutritionTracker } from '@/components/dashboard/nutrition-tracker'
 import { ActivityMetricsTracker } from '@/components/dashboard/activity-metrics-tracker'
 import { UnifiedHabitCalendar } from '@/components/dashboard/unified-habit-calendar'
-import { CanvasLoader } from '@/components/ui/canvas-loader'
 import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
@@ -52,10 +51,8 @@ export default function BrutalistDashboard() {
     initializeJourney,
   } = useHabitContext()
   const { isAuthenticated, isLoading: authLoading, user } = useAuth()
-  const { snapshot: analyticsSnapshot, loading: analyticsLoading, error: analyticsError } = useAnalyticsSnapshot()
+  const { snapshot: analyticsSnapshot } = useAnalyticsSnapshot()
   const router = useRouter()
-
-  const [loading, setLoading] = useState(true);
 
   const [clientReady, setClientReady] = useState(false);
 
@@ -76,7 +73,6 @@ export default function BrutalistDashboard() {
     [analyticsSnapshot]
   );
   const dailyRecords = analyticsSummary?.dailyRecords || [];
-  const analyticsReady = Boolean(analyticsSnapshot && analyticsSummary && !analyticsLoading)
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -141,40 +137,6 @@ export default function BrutalistDashboard() {
 
   // Do not show the notification prompt banner automatically when PWA opens
   // Users can still click 'Enable Notifications' manually when completing a habit.
-
-  useEffect(() => {
-    const checkStagnant = () => {
-      const STAGNANT_TIME = 5 * 60 * 1000; // 5 minutes
-      const now = Date.now();
-
-      const hasSeenLoader = sessionStorage.getItem('habitflow_has_seen_loader');
-      const lastActiveStr = localStorage.getItem('habitflow_last_active');
-
-      if (!hasSeenLoader) {
-        // First time loading in this session
-        setLoading(true);
-        sessionStorage.setItem('habitflow_has_seen_loader', 'true');
-      } else if (lastActiveStr) {
-        // Returning user, check if stagnant
-        const lastActive = parseInt(lastActiveStr, 10);
-        if (now - lastActive > STAGNANT_TIME) {
-          setLoading(true);
-        } else {
-          setLoading(false);
-        }
-      } else {
-        setLoading(false);
-      }
-    };
-
-    // Check initially
-    checkStagnant();
-
-    // Check again when user refocuses tab
-    const onFocus = () => checkStagnant();
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated && isMounted) {
@@ -389,22 +351,9 @@ export default function BrutalistDashboard() {
   // habit-context.tsx rollover logic) — NOT anchored to Jan 1st. Month
   // labels and column count must be derived from real dates, not assumed.
 
-  if (analyticsError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-6 text-center text-foreground">
-        <div className="max-w-lg space-y-3 border border-border bg-card p-6">
-          <div className="text-sm font-bold uppercase tracking-widest text-red-500">Analytics snapshot unavailable</div>
-          <p className="text-sm text-zinc-400">{analyticsError}</p>
-        </div>
-      </div>
-    )
-  }
-  
   return (
     <>
-      {(loading || analyticsLoading) && <CanvasLoader onComplete={() => setLoading(false)} />}
-
-      <div className={`max-w-250 mx-auto px-6 pt-8 pb-24 space-y-5 ${(loading || authLoading || !isMounted || !analyticsReady) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-700'} text-foreground`}>
+      <div className={`max-w-250 mx-auto px-6 pt-8 pb-24 space-y-5 ${(authLoading || !isMounted) ? 'opacity-0 h-screen overflow-hidden' : 'opacity-100 transition-opacity duration-300'} text-foreground`}>
 
         {/* Initialization Banner */}
         {!isInitialized && (
