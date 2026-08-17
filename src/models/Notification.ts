@@ -17,6 +17,7 @@ export interface INotification extends Document {
   title: string
   body: string
   scheduledFor: Date
+  localDateKey: string
   status: NotificationStatus
   retryCount: number // 0 = original, 1 = +15m, 2 = +45m
   snoozedUntil?: Date
@@ -36,6 +37,7 @@ const NotificationSchema: Schema = new Schema(
     title:       { type: String, required: true },
     body:        { type: String, required: true },
     scheduledFor:{ type: Date,   required: true },
+    localDateKey:{ type: String, required: true },
     status:      {
       type: String,
       enum: ['pending','delivered','opened','completed','skipped','snoozed','expired'],
@@ -54,6 +56,15 @@ const NotificationSchema: Schema = new Schema(
 NotificationSchema.index({ userId: 1, scheduledFor: -1 })
 NotificationSchema.index({ userId: 1, status: 1 })
 NotificationSchema.index({ userId: 1, createdAt: -1 })
+NotificationSchema.index(
+  { userId: 1, habitId: 1, retryCount: 1, localDateKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      localDateKey: { $type: 'string' },
+    },
+  }
+)
 
 export default mongoose.models.Notification ||
   mongoose.model<INotification>('Notification', NotificationSchema)

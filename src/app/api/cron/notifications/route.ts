@@ -6,6 +6,42 @@ import Notification from '@/models/Notification';
 import NotificationLog from '@/models/NotificationLog';
 import { adminMessaging } from '@/lib/firebase-admin';
 import { isCanaryUser } from '@/lib/canary';
+import type { Message } from 'firebase-admin/messaging';
+
+type NotificationType = 'initial' | 'retry1' | 'retry2' | 'snooze';
+
+type HabitLike = {
+  id: string | number
+  name: string
+  category: string
+  time: string
+  notification?: string | number | null
+  frequency?: number[]
+  notifPrefs?: {
+    push?: boolean
+    retry?: boolean
+  }
+}
+
+type SnoozedReminder = {
+  habitId: string | number
+  triggerTime: string
+}
+
+type ParsedUserState = {
+  gridData?: HabitLike[]
+  todayHabits?: Array<string | number>
+  snoozedReminders?: SnoozedReminder[]
+  categoryPrefs?: Record<string, { enabled: boolean }>
+}
+
+type FirebaseSendError = {
+  message?: string
+  code?: string
+  httpResponse?: {
+    status?: number
+  }
+}
 
 // Helper to get current time in a specific timezone (HH:mm)
 function getCurrentTimeInTimezone(timezone: string): string {
@@ -59,38 +95,8 @@ function mapCategoryToChannel(category: string): string {
   return 'growth';
 }
 
-// Helper to calculate the notification target time based on the offset
-function calculateTargetTime(timeHHMM: string, offsetMinutes: number): string {
-  if (!timeHHMM) return '';
-  const [hours, minutes] = timeHHMM.split(':').map(Number);
-  if (isNaN(hours) || isNaN(minutes)) return '';
-
-  const date = new Date();
-  date.setHours(hours);
-  date.setMinutes(minutes - offsetMinutes);
-
-  const targetHours = String(date.getHours()).padStart(2, '0');
-  const targetMinutes = String(date.getMinutes()).padStart(2, '0');
-  return `${targetHours}:${targetMinutes}`;
-}
-
-// Normalize time strings to compare numeric hours and minutes to avoid timezone format issues
-function parseHHMM(timeStr: string): { hours: number; minutes: number } | null {
-  if (!timeStr) return null;
-  const parts = timeStr.split(':').map(Number);
-  if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
-  return { hours: parts[0], minutes: parts[1] };
-}
-
-function timesMatch(timeA: string, timeB: string): boolean {
-  const parsedA = parseHHMM(timeA);
-  const parsedB = parseHHMM(timeB);
-  if (!parsedA || !parsedB) return false;
-  return parsedA.hours === parsedB.hours && parsedA.minutes === parsedB.minutes;
-}
-
 // Build personal, specific notification copy
-function buildNotificationCopy(habit: any, type: 'initial' | 'retry1' | 'retry2' | 'snooze'): { title: string; body: string } {
+function buildNotificationCopy(habit: HabitLike, type: NotificationType): { title: string; body: string } {
   const catChannel = mapCategoryToChannel(habit.category);
   const emoji = catChannel === 'health' ? '🏋️' : catChannel === 'career' ? '🚀' : catChannel === 'growth' ? '📖' : catChannel === 'spiritual' ? '🧘' : catChannel === 'home' ? '🏠' : '⭐';
 
@@ -103,6 +109,81 @@ function buildNotificationCopy(habit: any, type: 'initial' | 'retry1' | 'retry2'
       return { title: `${emoji} ${habit.name} — Last Call`, body: `Last reminder for ${habit.name} today. Don't break your streak!` };
     case 'snooze':
       return { title: `${emoji} ${habit.name} — Snoozed`, body: `Your snooze is up. Let's get ${habit.name.toLowerCase()} done!` };
+  }
+}
+
+function getLocalDateKey(date: Date, timezone: string): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(date);
+  } catch {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC' }).format(date);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+function asFirebaseSendError(error: unknown): FirebaseSendError {
+  if (!isRecord(error)) return {};
+  const httpResponse = isRecord(error.httpResponse) ? error.httpResponse : undefined;
+  return {
+    message: typeof error.message === 'string' ? error.message : undefined,
+    code: typeof error.code === 'string' ? error.code : undefined,
+    httpResponse: httpResponse
+      ? { status: typeof httpResponse.status === 'number' ? httpResponse.status : undefined }
+      : undefined,
+  };
+}
+
+function isStaleFcmTokenError(error: FirebaseSendError): boolean {
+  return error.code === 'messaging/registration-token-not-registered' ||
+    error.code === 'messaging/invalid-registration-token' ||
+    error.code === 'messaging/invalid-argument' ||
+    error.httpResponse?.status === 404 ||
+    error.httpResponse?.status === 400;
+}
+
+function isDuplicateKeyError(error: unknown) {
+  if (!isRecord(error)) return false;
+  return error.code === 11000 || error.name === 'MongoServerError' && error.code === 11000;
+}
+
+async function createNotificationRecordOnce(params: {
+  userId: string
+  habitId: string
+  habitName: string
+  category: string
+  title: string
+  body: string
+  scheduledFor: Date
+  timezone: string
+  retryCount: number
+}) {
+  try {
+    return await Notification.create({
+      userId: params.userId,
+      habitId: params.habitId,
+      habitName: params.habitName,
+      category: params.category,
+      title: params.title,
+      body: params.body,
+      scheduledFor: params.scheduledFor,
+      localDateKey: getLocalDateKey(params.scheduledFor, params.timezone),
+      status: 'delivered',
+      retryCount: params.retryCount,
+      deliveredAt: params.scheduledFor,
+    });
+  } catch (error: unknown) {
+    if (isDuplicateKeyError(error)) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -142,7 +223,7 @@ export async function GET(request: Request) {
 
       if (!user.stateData) continue;
 
-      let parsed: any = {};
+      let parsed: ParsedUserState = {};
       try {
         parsed = JSON.parse(user.stateData);
       } catch {
@@ -167,7 +248,7 @@ export async function GET(request: Request) {
 
         if (snooze.triggerTime === currentTimeHHMM) {
           snoozedUpdated = true;
-          const habit = habits.find((h: any) => h.id === snooze.habitId);
+          const habit = habits.find((h) => h.id === snooze.habitId);
           if (habit) {
             console.log(`[Habit Evaluated] Habit: "${habit.name}" (ID: ${habit.id}) (Snoozed)`);
             console.log(`[Match Found] Habit: "${habit.name}" (ID: ${habit.id}) matching snooze for user ${user.userId}`);
@@ -264,7 +345,7 @@ export async function GET(request: Request) {
 
             try {
               const copy = buildNotificationCopy(habit, 'snooze');
-              const notifRecord = await Notification.create({
+              const notifRecord = await createNotificationRecordOnce({
                 userId: user.userId,
                 habitId: String(habit.id),
                 habitName: habit.name,
@@ -272,10 +353,23 @@ export async function GET(request: Request) {
                 title: copy.title,
                 body: copy.body,
                 scheduledFor: now,
-                status: 'delivered',
-                retryCount: 0,
-                deliveredAt: now,
+                timezone: userTimezone,
+                retryCount: 4,
               });
+
+              if (!notifRecord) {
+                await NotificationLog.create({
+                  userId: user.userId,
+                  habitId: String(habit.id),
+                  habitName: habit.name,
+                  scheduledTime: snooze.triggerTime,
+                  triggerTime: currentTimeHHMM,
+                  timezone: userTimezone,
+                  status: 'skipped',
+                  errorMessage: 'Duplicate notification already sent for local day'
+                });
+                continue;
+              }
 
               // Log: sent
               await NotificationLog.create({
@@ -289,7 +383,7 @@ export async function GET(request: Request) {
                 status: 'sent'
               });
 
-              const message: any = {
+              const message: Message = {
                 notification: { title: copy.title, body: copy.body },
                 data: {
                   title: copy.title,
@@ -356,9 +450,11 @@ export async function GET(request: Request) {
               try {
                 await new TelemetryEvent({ eventType: 'notification_delivered', metadata: { habitName: habit.name, category: channel } }).save();
               } catch { /* non-critical */ }
-            } catch (pushErr: any) {
+            } catch (pushErr: unknown) {
+              const sendError = asFirebaseSendError(pushErr);
+              const sendErrorMessage = sendError.message || getErrorMessage(pushErr);
               console.error(`Failed to send snoozed FCM push:`, pushErr);
-              console.log(`[FCM Send Failed] Error: ${pushErr.message || pushErr}`);
+              console.log(`[FCM Send Failed] Error: ${sendErrorMessage}`);
               await NotificationLog.create({
                 userId: user.userId,
                 habitId: String(habit.id),
@@ -367,15 +463,10 @@ export async function GET(request: Request) {
                 triggerTime: currentTimeHHMM,
                 timezone: userTimezone,
                 status: 'failed',
-                errorMessage: `Firebase Send Failure: ${pushErr.message || pushErr}`
+                errorMessage: `Firebase Send Failure: ${sendErrorMessage}`
               });
 
-              if (
-                pushErr.code === 'messaging/registration-token-not-registered' ||
-                pushErr.code === 'messaging/invalid-registration-token' ||
-                pushErr.code === 'messaging/invalid-argument' ||
-                (pushErr.httpResponse && (pushErr.httpResponse.status === 404 || pushErr.httpResponse.status === 400))
-              ) {
+              if (isStaleFcmTokenError(sendError)) {
                 console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
                 await UserState.updateOne(
                   { userId: user.userId },
@@ -384,7 +475,7 @@ export async function GET(request: Request) {
                     $set: {
                       notificationStatus: "invalid_token",
                       lastNotificationFailure: new Date(),
-                      lastNotificationFailureReason: pushErr.code || "messaging/registration-token-not-registered"
+                      lastNotificationFailureReason: sendError.code || "messaging/registration-token-not-registered"
                     }
                   }
                 );
@@ -451,8 +542,8 @@ export async function GET(request: Request) {
         // Normalized to [0, 1439]
         const initialTarget = normalizeMinutes(initialTargetRaw);
         let exactTarget = exactTargetRaw !== -1 ? normalizeMinutes(exactTargetRaw) : -1;
-        let retry1Target = retry1TargetRaw !== -1 ? normalizeMinutes(retry1TargetRaw) : -1;
-        let retry2Target = retry2TargetRaw !== -1 ? normalizeMinutes(retry2TargetRaw) : -1;
+        const retry1Target = retry1TargetRaw !== -1 ? normalizeMinutes(retry1TargetRaw) : -1;
+        const retry2Target = retry2TargetRaw !== -1 ? normalizeMinutes(retry2TargetRaw) : -1;
 
         // Resolve overlaps
         if (exactTarget === retry1Target) {
@@ -610,7 +701,7 @@ export async function GET(request: Request) {
 
           try {
             const copy = buildNotificationCopy(habit, copyType);
-            const notifRecord = await Notification.create({
+            const notifRecord = await createNotificationRecordOnce({
               userId: user.userId,
               habitId: String(habit.id),
               habitName: habit.name,
@@ -618,10 +709,23 @@ export async function GET(request: Request) {
               title: copy.title,
               body: copy.body,
               scheduledFor: now,
-              status: 'delivered',
+              timezone: userTimezone,
               retryCount,
-              deliveredAt: now,
             });
+
+            if (!notifRecord) {
+              await NotificationLog.create({
+                userId: user.userId,
+                habitId: String(habit.id),
+                habitName: habit.name,
+                scheduledTime: habit.time,
+                triggerTime: currentTimeHHMM,
+                timezone: userTimezone,
+                status: 'skipped',
+                errorMessage: 'Duplicate notification already sent for local day'
+              });
+              continue;
+            }
 
             // Log: sent
             await NotificationLog.create({
@@ -635,7 +739,7 @@ export async function GET(request: Request) {
               status: 'sent'
             });
 
-            const message: any = {
+            const message: Message = {
               notification: { title: copy.title, body: copy.body },
               data: {
                 title: copy.title,
@@ -703,9 +807,11 @@ export async function GET(request: Request) {
             try {
               await new TelemetryEvent({ eventType: 'notification_delivered', metadata: { habitName: habit.name, category: channel } }).save();
             } catch { /* non-critical */ }
-          } catch (error: any) {
+          } catch (error: unknown) {
+            const sendError = asFirebaseSendError(error);
+            const sendErrorMessage = sendError.message || getErrorMessage(error);
             console.error(`Failed to send FCM to user ${user.userId}:`, error);
-            console.log(`[FCM Send Failed] Error: ${error.message || error}`);
+            console.log(`[FCM Send Failed] Error: ${sendErrorMessage}`);
             await NotificationLog.create({
               userId: user.userId,
               habitId: String(habit.id),
@@ -714,15 +820,10 @@ export async function GET(request: Request) {
               triggerTime: currentTimeHHMM,
               timezone: userTimezone,
               status: 'failed',
-              errorMessage: `Firebase Send Failure: ${error.message || error}`
+              errorMessage: `Firebase Send Failure: ${sendErrorMessage}`
             });
 
-            if (
-              error.code === 'messaging/registration-token-not-registered' ||
-              error.code === 'messaging/invalid-registration-token' ||
-              error.code === 'messaging/invalid-argument' ||
-              (error.httpResponse && (error.httpResponse.status === 404 || error.httpResponse.status === 400))
-            ) {
+            if (isStaleFcmTokenError(sendError)) {
               console.log(`[Cron] Stale FCM token detected for user ${user.userId}. Unsetting token in database.`);
               await UserState.updateOne(
                 { userId: user.userId },
@@ -731,7 +832,7 @@ export async function GET(request: Request) {
                   $set: {
                     notificationStatus: "invalid_token",
                     lastNotificationFailure: new Date(),
-                    lastNotificationFailureReason: error.code || "messaging/registration-token-not-registered"
+                    lastNotificationFailureReason: sendError.code || "messaging/registration-token-not-registered"
                   }
                 }
               );
@@ -743,8 +844,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, notificationsSent });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Cron job error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });
   }
 }
