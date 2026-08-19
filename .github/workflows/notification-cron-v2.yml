@@ -15,8 +15,8 @@ jobs:
     steps:
       - name: Hit v2 cron endpoint
         env:
-          CRON_SECRET: ${{ secrets[env.CRON_SECRET_KEY] }}
-          APP_URL: ${{ secrets[env.APP_URL_KEY] }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.APP_URL }}
         run: |
           STATUS=$(curl -sL -o /tmp/resp.json -w "%{http_code}" \
             -H "Authorization: Bearer $CRON_SECRET" \
