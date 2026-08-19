@@ -18,7 +18,7 @@ jobs:
           CRON_SECRET: ${{ secrets[env.CRON_SECRET_KEY] }}
           APP_URL: ${{ secrets[env.APP_URL_KEY] }}
         run: |
-          STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+          STATUS=$(curl -sL -o /tmp/resp.json -w "%{http_code}" \
             -H "Authorization: Bearer $CRON_SECRET" \
             "$APP_URL/api/cron/notifications")
           echo "HTTP $STATUS"
