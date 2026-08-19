@@ -22,6 +22,9 @@ import { onMessage } from 'firebase/messaging'
 import { toast } from 'sonner'
 import { calculateHistoricalAnalyticsView } from '@/utils/analytics'
 
+// TS DOM lib's NotificationOptions type is missing 'vibrate' even though it's
+// a valid runtime property in Chromium browsers. Extend instead of using `any`.
+type NotificationOptionsWithVibrate = NotificationOptions & { vibrate?: number[] }
 
 function getHabitTimeMinutes(time: string | undefined) {
   if (!time) return Number.POSITIVE_INFINITY
@@ -45,7 +48,6 @@ export default function BrutalistDashboard() {
     todayHabits, 
     toggleTodayHabit, 
     toggleGridHabit,
-    heatmapData,
     isMounted, 
     isInitialized, 
     initializeJourney,
@@ -72,7 +74,7 @@ export default function BrutalistDashboard() {
     () => (analyticsSnapshot ? calculateHistoricalAnalyticsView(analyticsSnapshot, new Date()) : null),
     [analyticsSnapshot]
   );
-  const dailyRecords = analyticsSummary?.dailyRecords || [];
+  const dailyRecords = useMemo(() => analyticsSummary?.dailyRecords || [], [analyticsSummary]);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -146,12 +148,19 @@ export default function BrutalistDashboard() {
         if (!messaging || !active) return;
         unsubscribe = onMessage(messaging, (payload) => {
           console.log("Foreground push notification received:", payload);
-          // Extract title and body supporting both data and notification payloads
           const title = payload.data?.title || payload.notification?.title || 'HabytFlow Reminder';
           const body = payload.data?.body || payload.notification?.body || '';
 
-          // Show in-app toast for foreground notifications instead of spamming native OS popups
-          toast.info(`${title}: ${body}`);
+          if (Notification.permission === 'granted') {
+            navigator.serviceWorker.ready.then(reg => {
+              reg.showNotification(title, {
+                body,
+                icon: '/favicon.ico',
+                badge: '/icon-192x192.png',
+                vibrate: [200, 100, 200, 100, 200],
+              } as NotificationOptionsWithVibrate);
+            });
+          }
         });
       });
       return () => {
