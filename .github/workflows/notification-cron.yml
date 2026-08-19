@@ -13,8 +13,8 @@ jobs:
       - name: Hit cron endpoint
         run: |
           STATUS=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            "${{ secrets.APP_URL }}/api/cron/notifications")
+            -H "Authorization: Bearer ${{secrets.CRON_SECRET}}" \
+            "${{secrets.APP_URL}}/api/cron/notifications")
           echo "HTTP $STATUS"
           cat /tmp/resp.json
           if [ "$STATUS" -ne 200 ]; then
