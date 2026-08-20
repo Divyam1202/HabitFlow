@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, Trash2, CheckCircle2, RotateCcw, AlertTriangle, X } from 'lucide-react'
+import { Download, Trash2, CheckCircle2, RotateCcw, AlertTriangle, X, Eye, EyeOff } from 'lucide-react'
 import { useSettings } from '@/hooks/useSettings'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
@@ -39,6 +39,8 @@ export default function SettingsPage() {
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
 
   // Notification auto-repair state — not displayed, runs silently
   const [health, setHealth] = useState<{ notificationStatus?: string } | null>(null)
@@ -344,26 +346,48 @@ export default function SettingsPage() {
               <form onSubmit={handlePasswordEdit} className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Current Password</label>
-                  <input 
-                    type="password" 
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
-                    placeholder="Enter current password"
-                    required
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showCurrentPassword ? 'text' : 'password'} 
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full bg-background border border-border text-foreground p-3 pr-11 text-xs focus:outline-none focus:border-foreground transition-colors"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(v => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                      aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">New Password</label>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <input 
-                      type="password" 
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="flex-1 bg-background border border-border text-foreground p-3 text-xs focus:outline-none focus:border-foreground transition-colors"
-                      placeholder="Enter new password (min. 8 chars)"
-                      required
-                    />
+                    <div className="relative flex-1">
+                      <input 
+                        type={showNewPassword ? 'text' : 'password'} 
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full bg-background border border-border text-foreground p-3 pr-11 text-xs focus:outline-none focus:border-foreground transition-colors"
+                        placeholder="Enter new password (min. 8 chars)"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(v => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                     <button type="submit" className="px-6 py-3 sm:py-0 bg-foreground text-background font-bold uppercase text-xs tracking-wider hover:bg-foreground/90 transition-colors">
                       Update
                     </button>

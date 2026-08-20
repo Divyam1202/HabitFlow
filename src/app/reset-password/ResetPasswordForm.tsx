@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authClient } from '@/lib/auth-client';
-import { CheckCircle, Lock } from 'lucide-react';
+import { CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPasswordForm() {
   const router = useRouter();
@@ -16,6 +16,8 @@ export default function ResetPasswordForm() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
 
@@ -132,15 +134,26 @@ export default function ResetPasswordForm() {
                     New Password
                     </label>
 
-                    <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
-                    placeholder="Minimum 8 characters"
-                    />
+                    <div className="relative">
+                      <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="new-password"
+                      className="w-full bg-background border border-border text-foreground p-3 pr-11 text-sm focus:outline-none focus:border-foreground transition-colors"
+                      placeholder="Minimum 8 characters"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
 
                     <div className="mt-2">
 
@@ -182,17 +195,28 @@ export default function ResetPasswordForm() {
                             Confirm Password
                         </label>
 
-                        <input
-                            type="password"
-                            required
-                            value={confirmPassword}
-                            onChange={(e) =>
-                                setConfirmPassword(e.target.value)
-                            }
-                            autoComplete="new-password"
-                            className="w-full bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
-                            placeholder="Re-enter password"
-                        />
+                        <div className="relative">
+                          <input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              required
+                              value={confirmPassword}
+                              onChange={(e) =>
+                                  setConfirmPassword(e.target.value)
+                              }
+                              autoComplete="new-password"
+                              className="w-full bg-background border border-border text-foreground p-3 pr-11 text-sm focus:outline-none focus:border-foreground transition-colors"
+                              placeholder="Re-enter password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword((v) => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
 
                         {confirmPassword.length > 0 && (
 
