@@ -39,6 +39,7 @@ export default function AdminAnnouncementsPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount, not a cascading render loop
     fetchAnnouncements()
   }, [])
 
@@ -165,7 +166,7 @@ export default function AdminAnnouncementsPage() {
           ) : (
             <div className="space-y-1">
               {announcements.map((a) => (
-                <div key={a.id} className="group px-3 py-3 transition-colors hover:bg-white/[0.03]">
+                <div key={a.id} className="group px-3 py-3 transition-colors hover:bg-white/3">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

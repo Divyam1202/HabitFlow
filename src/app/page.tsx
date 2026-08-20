@@ -471,7 +471,7 @@ export default function BrutalistDashboard() {
             let colorClass = BRUTALIST_COLORS[habit.id % BRUTALIST_COLORS.length];
 
             if (isCompleted) {
-              colorClass = "bg-muted text-zinc-555 border-border opacity-50 grayscale";
+              colorClass = "bg-muted text-zinc-555 border-border opacity-6S0 grayscale";
             }
 
             return (
