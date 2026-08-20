@@ -27,7 +27,6 @@ export default function SettingsPage() {
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
-  const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -39,6 +38,7 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmationText, setDeleteConfirmationText] = useState('')
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   // Notification auto-repair state — not displayed, runs silently
   const [health, setHealth] = useState<{ notificationStatus?: string } | null>(null)
@@ -315,17 +315,6 @@ export default function SettingsPage() {
           <section className="space-y-4">
             <h2 className="text-xs font-bold tracking-widest uppercase text-zinc-500">Account</h2>
             <div className="border border-border bg-card p-6 space-y-6 text-card-foreground">
-              
-              <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Username</label>
-                <input 
-                  type="text" 
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
-                />
-              </div>
-
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Email Address</label>
                 <input 
