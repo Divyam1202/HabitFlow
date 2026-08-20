@@ -27,6 +27,7 @@ export default function SettingsPage() {
 
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [syncPhase, setSyncPhase] = useState<'idle' | 'loading' | 'success'>('idle')
@@ -94,6 +95,26 @@ export default function SettingsPage() {
         </div>
       </div>
     )
+  }
+
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingProfile(true)
+    try {
+      const { error } = await authClient.updateUser({
+        name: username,
+      })
+      if (error) {
+        toast.error(error.message || 'Failed to update profile')
+      } else {
+        toast.success('Profile updated')
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile')
+    } finally {
+      setIsSavingProfile(false)
+    }
   }
 
   const handlePasswordEdit = async (e: React.FormEvent) => {
@@ -316,6 +337,20 @@ export default function SettingsPage() {
                   className="bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
                 />
               </div>
+              <form onSubmit={handleProfileUpdate} className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Username</label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input 
+                    type="text" 
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="flex-1 bg-background border border-border text-foreground p-3 text-sm focus:outline-none focus:border-foreground transition-colors"
+                  />
+                  <button type="submit" disabled={isSavingProfile} className="px-6 py-3 sm:py-0 bg-foreground text-background font-bold uppercase text-xs tracking-wider hover:bg-foreground/90 transition-colors disabled:opacity-50">
+                    {isSavingProfile ? 'Saving...' : 'Update'}
+                  </button>
+                </div>
+              </form>
 
               <form onSubmit={handlePasswordEdit} className="space-y-4">
                 <div className="flex flex-col gap-2">
