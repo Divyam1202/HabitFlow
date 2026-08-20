@@ -350,7 +350,7 @@ export default function AboutPage() {
                 THE GAP IS IN THE EXECUTION.
               </p>
               <p>
-                Meaningful progress is rarely the result of a single breakthrough. It&aposs built through the small actions we repeat every day—the choices that seem insignificant in the moment but compound into something remarkable over time.
+                Meaningful progress is rarely the result of a single breakthrough. It&apos;s built through the small actions we repeat every day—the choices that seem insignificant in the moment but compound into something remarkable over time.
               </p>
               <p>
                 Most people already know what they need to do.
@@ -359,7 +359,7 @@ export default function AboutPage() {
                 <strong className="text-white font-semibold">HabytFlow was born from that realization.</strong>
               </p>
               <p>
-                I wasn&apost looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
+                I wasn&apos;t looking for another productivity platform. I was looking for a system that made consistency visible. Something simple enough to use every day, yet powerful enough to reveal the truth about my habits, routines, and progress.
               </p>
               <p className="py-2 text-center">
                 <span className="text-sm md:text-base font-extrabold bg-linear-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent inline-block font-sans uppercase tracking-wider">
@@ -373,15 +373,15 @@ export default function AboutPage() {
                 Built alongside my work as an AI & Machine Learning Engineer, HabytFlow was developed through late-night iterations, constant refinement, and a relentless focus on simplicity. Every feature exists because it solves a real problem. Every decision was made with one goal in mind: helping people stay consistent with the things that matter.
               </p>
               <p>
-                Just a clear view of the promises you make to yourself—and whether you&aposre keeping them.
+                Just a clear view of the promises you make to yourself—and whether you&apos;re keeping them.
               </p>
               <p>
                 Today, HabytFlow is more than a habit tracker.
               </p>
               <div className="pl-4 border-l border-zinc-800 space-y-2 py-1 italic">
-                <p>It&aposs a system for accountability.</p>
+                <p>It&apos;s a system for accountability.</p>
                 <p>A record of consistency.</p>
-                <p>A reminder that progress isn&apost created by what we intend to do, but by what we repeatedly choose to do.</p>
+                <p>A reminder that progress isn&apos;t created by what we intend to do, but by what we repeatedly choose to do.</p>
               </div>
               
               <div className="pt-4 text-center">
@@ -427,7 +427,7 @@ export default function AboutPage() {
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
                 className="text-xs xs:text-lg sm:text-2xl md:text-3xl lg:text-4xl text-white font-panchang tracking-wider uppercase text-center sm:whitespace-nowrap"
               >
-                WE&aposRE JUST GETTING STARTED.
+                WE&apos;RE JUST GETTING STARTED.
               </h2>
 
               <div className="w-full flex flex-col items-center gap-4 mt-2">
@@ -496,7 +496,7 @@ export default function AboutPage() {
                         HabytFlow was built with a simple goal: to create a space where progress feels honest. A place where consistency matters more than perfection and where small actions are given the recognition they deserve.
                       </p>
                       <p>
-                        Like many people, I&aposve started routines I couldn&apost maintain, set goals I didn&apost achieve, and underestimated the power of simply showing up. HabytFlow is the result of those lessons.
+                        Like many people, I&apos;ve started routines I couldn&apos;t maintain, set goals I didn&apos;t achieve, and underestimated the power of simply showing up. HabytFlow is the result of those lessons.
                       </p>
                       <p>
                         If this platform helps you stay consistent for one more day, finish one more workout, read one more chapter, or keep one more promise to yourself, then it has already served its purpose.
