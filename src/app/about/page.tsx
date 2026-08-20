@@ -123,10 +123,6 @@ const DeveloperCard = () => {
 }
 
 const UniverseBackground = () => {
-  const [mounted, setMounted] = useState(false)
-  React.useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const stars = useMemo(() => {
     return Array.from({ length: 150 }).map((_, i) => {
@@ -146,10 +142,6 @@ const UniverseBackground = () => {
       }
     })
   }, [])
-
-  if (!mounted) {
-    return <div className="fixed inset-0 z-0 bg-[#050505]" />
-  }
 
   return (
     <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050505]">
@@ -471,7 +463,7 @@ export default function AboutPage() {
                     </svg>
                   </button>
 
-                  <div className="flex-1 flex flex-col overflow-hidden mt-4 text-left">
+                  <div className="flex-1 min-h-0 flex flex-col overflow-hidden mt-4 text-left">
                     <div className="space-y-1 pb-4 border-b border-zinc-900">
                       <h2 
                         style={{ fontVariationSettings: '"wdth" 140, "wght" 900' }}
@@ -485,7 +477,7 @@ export default function AboutPage() {
                     </div>
 
                     {/* Scrollable container for the letter text */}
-                    <div className="flex-1 overflow-y-auto py-6 pr-2 space-y-4 text-zinc-400 font-sans text-sm md:text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-6 pr-4 space-y-4 text-zinc-400 font-sans text-sm md:text-base leading-relaxed scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-900/30 hover:scrollbar-thumb-zinc-400">
                       <p>
                         Every habit completed, every streak maintained, and every commitment honored represents something larger than a number on a screen.
                       </p>
@@ -528,9 +520,7 @@ export default function AboutPage() {
               {/* Copyright with scroll-like lines on both sides */}
               <div className="flex items-center gap-4 w-full justify-center">
                 <div className="h-px bg-zinc-800 grow max-w-80px" />
-                <span className="text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">
-                  © 2026 HabytFlow. All Rights Reserved.
-                </span>
+                <div className="flex items-center justify-center w-full"><span className="text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">© 2026 HabytFlow. All Rights Reserved.</span></div>
                 <div className="h-px bg-zinc-800 fgrow max-w-80px" />
               </div>
 

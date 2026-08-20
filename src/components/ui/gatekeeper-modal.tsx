@@ -29,13 +29,11 @@ export function GatekeeperModal() {
   const [isAuthenticatedScreen, setIsAuthenticatedScreen] = useState(false)
 
   useEffect(() => {
-    if (mode !== "signup" || username.length < 6) {
-      setIsUsernameAvailable(null);
-      return;
-  }
+    if (mode !== "signup" || username.length < 6) return
 
-    setCheckingUsername(true)
     const timeoutId = setTimeout(async () => {
+      setCheckingUsername(true)
+
       try {
         const available = await checkUsernameAvailability(username)
         setIsUsernameAvailable(available)
@@ -256,13 +254,13 @@ export function GatekeeperModal() {
               <div className="flex border-b border-border">
                 <button
                   className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${mode === "login" ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  onClick={() => { setMode("login"); setError(''); }}
+                  onClick={() => { setMode("login"); setError(''); setIsUsernameAvailable(null); }}
                 >
                   Log In
                 </button>
                 <button
                   className={`flex-1 py-3 text-xs font-bold uppercase tracking-widest transition-colors ${mode === "signup" ? 'border-b-2 border-foreground text-foreground' : 'text-zinc-500 hover:text-zinc-700'}`}
-                  onClick={() => { setMode("signup"); setError(''); }}
+                  onClick={() => { setMode("signup"); setError(''); setIsUsernameAvailable(null); }}
                 >
                   Sign Up
                 </button>
