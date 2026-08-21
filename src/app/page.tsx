@@ -20,7 +20,7 @@ import { getFirebaseMessaging, requestAndStoreNotificationToken } from '@/lib/fi
 import { useAnalyticsSnapshot } from '@/hooks/useAnalyticsSnapshot'
 import { onMessage } from 'firebase/messaging'
 import { toast } from 'sonner'
-import { calculateHistoricalAnalyticsView } from '@/utils/analytics'
+import { calculateDailyRecordsForYear, getDayDiff, getGridDayStats, toDateKey, type DailyHabitRecord } from '@/utils/analytics'
 
 // TS DOM lib's NotificationOptions type is missing 'vibrate' even though it's
 // a valid runtime property in Chromium browsers. Extend instead of using `any`.
@@ -48,6 +48,7 @@ export default function BrutalistDashboard() {
     todayHabits, 
     toggleTodayHabit, 
     toggleGridHabit,
+    heatmapData,
     isMounted, 
     isInitialized, 
     initializeJourney,
@@ -70,11 +71,76 @@ export default function BrutalistDashboard() {
 
   const [selectedMatrixYear, setSelectedMatrixYear] = useState<number>(new Date().getFullYear());
 
-  const analyticsSummary = useMemo(
-    () => (analyticsSnapshot ? calculateHistoricalAnalyticsView(analyticsSnapshot, new Date()) : null),
-    [analyticsSnapshot]
+  const snapshotYearlyDailyRecords = useMemo(
+    () => (analyticsSnapshot ? calculateDailyRecordsForYear(analyticsSnapshot, selectedMatrixYear) : []),
+    [analyticsSnapshot, selectedMatrixYear]
   );
-  const dailyRecords = useMemo(() => analyticsSummary?.dailyRecords || [], [analyticsSummary]);
+
+  const rollingYearlyDailyRecords = useMemo(() => {
+    const today = new Date();
+    const yearStart = new Date(selectedMatrixYear, 0, 1);
+    const yearEnd = new Date(selectedMatrixYear, 11, 31);
+    const records: Array<DailyHabitRecord & { source: 'grid' | 'heatmap' }> = [];
+    const oldestHeatmapDiff = -Math.max(0, heatmapData.length - 1);
+
+    for (let cursor = new Date(yearStart); cursor.getTime() <= yearEnd.getTime(); cursor.setDate(cursor.getDate() + 1)) {
+      const date = new Date(cursor);
+      const diffDays = getDayDiff(date, today);
+
+      if (diffDays > 0) continue;
+
+      if (diffDays >= -29) {
+        records.push({
+          ...getGridDayStats(gridData, date, today),
+          source: 'grid',
+        });
+        continue;
+      }
+
+      if (diffDays >= oldestHeatmapDiff) {
+        const heatmapIndex = heatmapData.length - 1 + diffDays;
+        const completedCount = heatmapData[heatmapIndex]?.count || 0;
+
+        if (completedCount <= 0) continue;
+
+        records.push({
+          date,
+          key: toDateKey(date),
+          completedCount,
+          scheduledCount: gridData.length,
+          ratio: gridData.length > 0 ? completedCount / gridData.length : null,
+          source: 'heatmap',
+        });
+      }
+    }
+
+    return records;
+  }, [gridData, heatmapData, selectedMatrixYear]);
+
+  const yearlyDailyRecords = useMemo(() => {
+    const map = new Map<string, DailyHabitRecord>();
+
+    snapshotYearlyDailyRecords.forEach((day) => {
+      map.set(day.key, day);
+    });
+
+    rollingYearlyDailyRecords.forEach(({ source, ...day }) => {
+      const existing = map.get(day.key);
+      if (source === 'grid' || !existing || existing.completedCount === 0) {
+        map.set(day.key, day);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [snapshotYearlyDailyRecords, rollingYearlyDailyRecords]);
+
+  const dailyRecordByDate = useMemo(() => {
+    const map = new Map<string, typeof yearlyDailyRecords[number]>();
+    yearlyDailyRecords.forEach((day) => {
+      map.set(day.key, day);
+    });
+    return map;
+  }, [yearlyDailyRecords]);
 
   useEffect(() => {
     const id = window.requestAnimationFrame(() => {
@@ -200,8 +266,9 @@ export default function BrutalistDashboard() {
 
   const completionRateData = Array.from({ length: daysInMonth }).map((_, i) => {
     const actualCalendarDay = i + 1;
-    const stats = dailyRecords.find((record) => record.date.getDate() === actualCalendarDay);
-
+    const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(actualCalendarDay).padStart(2, '0')}`;
+    const stats = dailyRecordByDate.get(dateKey);
+    
     return {
       day: actualCalendarDay,
       rate: stats?.ratio === null || typeof stats?.ratio === 'undefined' ? null : Math.round((stats.ratio || 0) * 100)
@@ -294,15 +361,6 @@ export default function BrutalistDashboard() {
   // Selected date string, e.g. "Jun 23"
   const selectedDateStr = dateForSelectedDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-
-  const dailyRecordByDate = useMemo(() => {
-    const map = new Map<string, typeof dailyRecords[number]>();
-    dailyRecords.forEach((day) => {
-      map.set(day.key, day);
-    });
-    return map;
-  }, [dailyRecords]);
-
   const currentYearForMatrix = selectedMatrixYear;
 
   const yearlyCells = useMemo(() => {
@@ -312,7 +370,7 @@ export default function BrutalistDashboard() {
     today.setHours(0, 0, 0, 0);
     const firstDayOfWeek = jan1.getDay();
 
-    const cells: ({ date: Date; count: number; id: string | number } | null)[] =
+    const cells: ({ date: Date; count: number; ratio: number | null; id: string | number } | null)[] =
       Array.from({ length: firstDayOfWeek }, () => null);
 
     for (let d = new Date(jan1); d <= dec31; d.setDate(d.getDate() + 1)) {
@@ -321,6 +379,7 @@ export default function BrutalistDashboard() {
       cells.push({
         date: new Date(d),
         count: existing ? existing.completedCount : 0,
+        ratio: existing?.ratio ?? null,
         id: key,
       });
     }
@@ -348,11 +407,13 @@ export default function BrutalistDashboard() {
     return columns;
   }, [yearlyCells]);
 
-  const getHeatmapColor = (count: number) => {
-    if (count === 0) return "bg-zinc-900";
-    if (count === 1) return "bg-zinc-700";
-    if (count === 2) return "bg-green-500";
-    if (count >= 3) return "bg-green-700";
+  const getHeatmapColor = (ratio: number | null) => {
+    if (ratio === null) return "bg-zinc-900";
+    if (ratio === 0) return "bg-zinc-900";
+    if (ratio <= 0.25) return "bg-green-950";
+    if (ratio <= 0.5) return "bg-green-800";
+    if (ratio <= 0.75) return "bg-green-600";
+    if (ratio > 0.75) return "bg-green-500";
     return "bg-zinc-900";
   };
 
@@ -639,10 +700,10 @@ export default function BrutalistDashboard() {
                   return (
                     <div
                       key={day.id}
-                      title={`${day.count} completions`}
+                      title={`${day.count} completions${day.ratio === null ? '' : ` (${Math.round(day.ratio * 100)}%)`}`}
                       className={[
                         "w-3.5 h-3.5 rounded-[1px] transition-all duration-150 hover:scale-110",
-                        getHeatmapColor(day.count),
+                        getHeatmapColor(day.ratio),
                       ].join(" ")}
                     />
                   );
@@ -652,10 +713,11 @@ export default function BrutalistDashboard() {
             
             <div className="flex items-center justify-end gap-2 mt-3 text-[8px] font-bold uppercase tracking-widest text-zinc-500">
               <span>Less</span>
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-900 rounded-[1px]" />
-              <div className="w-3.5 h-3.5 bg-zinc-400 dark:bg-zinc-700 rounded-[1px]" />
-              <div className="w-3.5 h-3.5 bg-green-400 dark:bg-green-600 rounded-[1px]" />
-              <div className="w-3.5 h-3.5 bg-green-600 dark:bg-green-800 rounded-[1px]" />
+              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-900 rounded-[1px]" title="Level 0: 0 completions" />
+              <div className="w-3.5 h-3.5 bg-green-950 rounded-[1px]" title="Level 1: minimal activity" />
+              <div className="w-3.5 h-3.5 bg-green-800 rounded-[1px]" title="Level 2: moderate activity" />
+              <div className="w-3.5 h-3.5 bg-green-600 rounded-[1px]" title="Level 3: high activity" />
+              <div className="w-3.5 h-3.5 bg-green-500 rounded-[1px]" title="Level 4: maximum activity" />
               <span>More</span>
             </div>
           </div>

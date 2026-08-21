@@ -1165,6 +1165,17 @@ export function buildAnalyticsMonthOptions(snapshot: AnalyticsHistorySnapshot, c
   }).filter((month) => month.hasData)
 }
 
+export function calculateDailyRecordsForYear(
+  snapshot: AnalyticsHistorySnapshot,
+  year: number
+): DailyHabitRecord[] {
+  const { trackingStart } = buildHistoricalCompletionIndex(snapshot)
+  const yearStart = new Date(year, 0, 1)
+  const yearEnd = new Date(year, 11, 31)
+
+  return calculateDailyRecordsForMonth(snapshot, yearStart, yearEnd, trackingStart)
+}
+
 export function calculateHistoricalAnalyticsView(
   snapshot: AnalyticsHistorySnapshot,
   selectedMonth: Date,
