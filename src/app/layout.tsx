@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Montserrat } from 'next/font/google'
 import localFont from 'next/font/local'
 import './globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -9,6 +9,11 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { AppShell } from '@/components/app-shell'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: '900',
+  variable: '--font-montserrat',
+})
 
 const panchang = localFont({
   src: '../fonts/Panchang-Variable.ttf',
@@ -44,7 +49,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${panchang.variable} font-sans bg-background text-foreground antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${montserrat.variable} ${panchang.variable} font-sans bg-background text-foreground antialiased`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Sun, Moon, LayoutDashboard, CheckSquare, Calendar, BarChart2, Settings, Menu, X, ShieldAlert, MessageSquare, Info } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuth } from '@/contexts/auth-context'
 import { PwaInstallButton } from '@/components/pwa-install-button'
+import { HabytFlowWordmark } from '@/components/brand/habyt-flow-wordmark'
 
 export function TopNav() {
   const pathname = usePathname()
@@ -56,16 +56,8 @@ export function TopNav() {
         <div className="max-w-[1400px] w-full mx-auto px-6 flex items-center justify-between">
 
           {/* Logo (All viewports) */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter z-50 relative font-panchang">
-            <Image
-              src="/hyf-logo-v2.svg"
-              alt="HabytFlow logo"
-              width={24}
-              height={24}
-              className="h-6 w-6 shrink-0"
-              priority
-            />
-            HabytFlow
+          <Link href="/" className="z-50 relative text-[1.7rem] md:text-[2rem] leading-none">
+            <HabytFlowWordmark className="max-w-[9.75rem] md:max-w-[11.5rem]" />
           </Link>
 
           {/* Laptop/Desktop Navigation (min-width: 768px) */}

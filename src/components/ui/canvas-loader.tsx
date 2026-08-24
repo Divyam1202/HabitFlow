@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 
+import { HabytFlowWordmark } from '@/components/brand/habyt-flow-wordmark'
+
 interface CanvasLoaderProps {
   onComplete: () => void
 }
@@ -103,7 +105,6 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
     const PHASE_2_DURATION = 500;
     const PHASE_3_DURATION = 500;
     const T_PHASE1_END = PHASE_1_DURATION;
-    const T_PHASE2_END = PHASE_1_DURATION + PHASE_2_DURATION;
     const T_PHASE3_END = PHASE_1_DURATION + PHASE_2_DURATION + PHASE_3_DURATION;
 
     const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -118,47 +119,6 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
       const cy = height / 2
       const radiusScale = Math.min(width, height) * 0.3
 
-      // Draw Center Text
-      if (elapsed < T_PHASE2_END) {
-        const opacity = Math.max(0, 1 - (elapsed - T_PHASE1_END)/1000);
-        const fontFamily = typeof window !== 'undefined' ? getComputedStyle(document.body).getPropertyValue('--font-panchang') || 'sans-serif' : 'sans-serif';
-        const fontSize = Math.min(width, height) < 768 ? 24 : 32;
-        
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        const pulse = 1 + Math.sin(time * 0.005) * 0.05
-        ctx.save()
-        ctx.translate(cx, cy)
-        ctx.scale(pulse, pulse)
-        
-        // Main title
-        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
-        ctx.font = `700 ${fontSize}px ${fontFamily}`
-        ctx.letterSpacing = '2px'
-        ctx.fillText('HabytFlow', 0, 0)
-        
-        ctx.restore()
-      }
-
-      // Draw Void Space Text "Consistency in motion" in Phase 2 & 3 (between Grid and Wave)
-      if (elapsed > T_PHASE1_END) {
-        const fadeInOpacity = Math.min((elapsed - T_PHASE1_END) / 500, 1);
-        const fontSize = Math.min(width, height) < 768 ? 24 : 32;
-        ctx.save()
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        
-        // Neon white glow effect
-        ctx.shadowColor = `rgba(255, 255, 255, ${fadeInOpacity * 0.8})`
-        ctx.shadowBlur = 8
-        
-        ctx.fillStyle = `rgba(255, 255, 255, ${fadeInOpacity})` // Neon white color
-        ctx.font = `700 ${fontSize * 0.55}px sans-serif`
-        ctx.letterSpacing = '5px'
-        ctx.fillText('CONSISTENCY IN MOTION', cx, height * 0.65)
-        ctx.restore()
-      }
-      
       // Rotate sphere (Freeze rotation when explosion/morph begins)
       const activeRotTime = Math.min(time, (startTime || 0) + T_PHASE1_END);
       const rotY = activeRotTime * 0.0005
@@ -231,7 +191,26 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
 
   return (
     <div className={`fixed inset-0 z-100 bg-black transition-opacity duration-500 pointer-events-none ${fading ? 'opacity-0' : 'opacity-100'}`}>
-      <canvas ref={canvasRef} className="w-full h-full block" />
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full block" />
+      <div className="absolute inset-0 flex items-center justify-center px-6">
+        <HabytFlowWordmark
+          width="10px"
+          className="h-auto w-540 max-w-[min(180px,58vmin)] animate-[habytflow-loader-pulse_1.8s_ease-in-out_infinite] [filter-[drop-shadow(0_0_18px_rgba(244,244,240,0.18))]"
+        />
+      </div>
+      <style jsx>{`
+        @keyframes habytflow-loader-pulse {
+          0%,
+          100% {
+            opacity: 0.68;
+            transform: scale(0.985);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </div>
   )
 }
