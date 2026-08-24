@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { BarChart3, LayoutDashboard, LogOut, Megaphone, MessageSquare, Settings, Shield, ShieldAlert, Users } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { HabytFlowWordmark } from '@/components/brand/habyt-flow-wordmark'
 
 type AdminShellProps = {
   children: React.ReactNode
@@ -67,11 +68,9 @@ export function AdminShell({ children, role }: AdminShellProps) {
       <aside className="flex flex-col border-b border-white/5 bg-zinc-950/90 md:border-b-0 md:border-r md:border-white/5">
         <div className="px-6 pb-8 pt-6">
           <div className="min-w-0">
-            <div className="text-[15px] font-semibold uppercase tracking-[0.26em] text-white">
-              HABYTFLOW
-            </div>
+            <HabytFlowWordmark width="210" height="36" className="h-auto max-w-full" />
             <div className="mt-1 text-[9px] uppercase tracking-[0.34em] text-zinc-500">
-              Administration
+              Admin Console
             </div>
             <div className="mt-4 text-[10px] font-semibold uppercase tracking-[0.28em] text-amber-500/70">
               SUPER ADMIN
@@ -89,18 +88,9 @@ export function AdminShell({ children, role }: AdminShellProps) {
             ))}
           </nav>
 
-          {role === 'SUPER_ADMIN' ? (
-            <div className="mt-8">
-              <div className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-zinc-600">
-                Super Admin
-              </div>
-              <nav className="space-y-1">
-                {superAdminNav.map((item) => (
-                  <AdminNavLink key={item.href} {...item} pathname={pathname} />
-                ))}
-              </nav>
-            </div>
-          ) : null}
+          {role === 'SUPER_ADMIN' ? superAdminNav.map((item) => (
+            <AdminNavLink key={item.href} {...item} pathname={pathname} />
+          )) : null}
         </div>
 
         <div className="mt-auto border-t border-white/5 px-4 py-4">
@@ -121,8 +111,11 @@ export function AdminShell({ children, role }: AdminShellProps) {
         </div>
       </aside>
 
-      <main className="min-w-0 bg-background">
+      <main className="flex min-h-screen min-w-0 flex-col bg-background">
         {children}
+        <footer className="mt-auto w-full border-t border-white/5 px-6 py-6 text-center text-[10px] font-medium uppercase tracking-[0.24em] text-zinc-500/50 md:px-10">
+          © 2026 HabytFlow. All Rights Reserved.
+        </footer>
       </main>
     </div>
   )

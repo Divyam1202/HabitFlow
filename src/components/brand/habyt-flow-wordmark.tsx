@@ -3,6 +3,7 @@ import type { CSSProperties, SVGProps } from 'react'
 type HabytFlowWordmarkProps = Omit<SVGProps<SVGSVGElement>, 'viewBox' | 'width' | 'height'> & {
   width?: number | string
   height?: number | string
+  skew?: number
 }
 
 const colors = {
@@ -53,6 +54,7 @@ export function HabytFlowWordmark({
   className = '',
   width = 'auto',
   height = '1em',
+  skew = -15,
   style,
   role = 'img',
   'aria-label': ariaLabel = 'HabytFlow',
@@ -72,7 +74,7 @@ export function HabytFlowWordmark({
       aria-label={ariaLabel}
       {...props}
     >
-      <g transform="skewX(-15) translate(80, 25)">
+      <g transform={`skewX(${skew}) translate(80, 25)`}>
         <g>
           <path style={shapeStyle} d="M 0 0 h 40 v 76 h -40 z" />
           <TrackerGrid />

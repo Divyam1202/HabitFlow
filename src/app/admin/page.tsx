@@ -14,6 +14,7 @@ import Feedback from '@/models/Feedback'
 import AuditLog from '@/models/AuditLog'
 import { Users, CheckSquare, Trophy, ShieldAlert, FileText, ArrowUpRight, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { HabytFlowWordmark } from '@/components/brand/habyt-flow-wordmark'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,7 +42,7 @@ export default async function AdminDashboardPage() {
   const activeSessionsToday = await db.collection('session').countDocuments({
     expiresAt: { $gt: new Date() }
   })
-  const activeUsersCount = Math.max(activeSessionsToday, newUsersToday) || 1
+  const activeUsersCount = Math.min(totalUsers, Math.max(activeSessionsToday, newUsersToday))
 
   const totalHabits = await HabitSchedule.countDocuments({ active: true })
 
@@ -71,8 +72,10 @@ export default async function AdminDashboardPage() {
     }
   })
 
-  const averageStreak = totalHabits > 0 ? (totalStreakSum / totalHabits).toFixed(1) : '0'
-  const retentionRate = totalUsers > 0 ? ((activeUsersCount / totalUsers) * 100).toFixed(0) : '0'
+  const averageStreak = allHabits.length > 0 ? (totalStreakSum / allHabits.length).toFixed(1) : '0.0'
+  const retentionRate = totalUsers > 0
+    ? Math.min(100, Math.round((activeUsersCount / totalUsers) * 100))
+    : 0
 
   // --- LISTS COMPUTATION ---
   const recentSignups = await db.collection('user')
@@ -116,7 +119,7 @@ export default async function AdminDashboardPage() {
     {
       label: 'Retention',
       value: `${retentionRate}%`,
-      delta: `Avg streak ${averageStreak} days`,
+      delta: `Avg streak ${averageStreak}d`,
       icon: Trophy,
       tone: 'blue',
     },
@@ -124,13 +127,11 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
-      <header className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.32em] text-zinc-500">
-          System Overview
+      <header className="max-w-4xl space-y-2">
+        <HabytFlowWordmark width="420" height="72" skew={-7} className="-ml-[28px] block h-auto max-w-full" />
+        <div className="pt-2 text-sm font-semibold tracking-wide text-amber-400">
+          {session.user.name || session.user.email}
         </div>
-        <h1 className="font-panchang text-2xl font-black uppercase tracking-tight text-foreground md:text-[2rem]">
-          HabytFlow Operations Console
-        </h1>
         <p className="max-w-2xl text-sm text-zinc-500">
           Operational visibility for growth, activity, and moderation across the platform.
         </p>
@@ -218,7 +219,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+        <div className="relative overflow-hidden bg-card/65 p-5 ring-1 ring-white/5">
           <div className="absolute inset-x-0 top-0 h-px bg-sky-400/40" />
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
@@ -242,7 +243,7 @@ export default async function AdminDashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-white">
+                      <p className="line-clamp-2 text-sm font-medium leading-5 text-white">
                         {f.message}
                       </p>
                       <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
@@ -257,7 +258,7 @@ export default async function AdminDashboardPage() {
                       }`}>
                         {f.type.replace('_', ' ')}
                       </span>
-                      <span className={`border px-2 py-0.5 ${
+                      <Link href="/admin/feedback" aria-label={`Open ${f.status.toLowerCase()} feedback`} className={`border px-2 py-0.5 transition-colors hover:bg-white/10 ${
                         f.status === 'RESOLVED' || f.status === 'CLOSED'
                           ? 'border-emerald-500/20 text-emerald-400'
                           : f.status === 'PLANNED'
@@ -265,7 +266,7 @@ export default async function AdminDashboardPage() {
                             : 'border-white/10 text-zinc-400'
                       }`}>
                         {f.status.replace('_', ' ')}
-                      </span>
+                      </Link>
                     </div>
                     <p className="mt-2 truncate text-xs text-zinc-500">{f.email}</p>
                   </div>
@@ -275,7 +276,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden bg-card/65 p-4 ring-1 ring-white/5">
+        <div className="relative overflow-hidden bg-card/65 p-5 ring-1 ring-white/5">
           <div className="absolute inset-x-0 top-0 h-px bg-amber-400/40" />
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
@@ -299,14 +300,14 @@ export default async function AdminDashboardPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
-                      <p className="truncate text-sm font-medium text-white">
+                      <p className="line-clamp-2 text-sm font-medium leading-5 text-white">
                         {log.action.replaceAll('_', ' ')}
                       </p>
                       <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                         {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="mt-1 truncate text-xs text-zinc-500">{log.details}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-500">{log.details}</p>
                     <p className="mt-2 truncate text-xs uppercase tracking-[0.18em] text-zinc-600">
                       {log.adminEmail}
                     </p>
