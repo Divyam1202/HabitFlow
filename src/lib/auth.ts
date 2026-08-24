@@ -5,7 +5,7 @@ import { nextCookies } from "better-auth/next-js"
 import { emailOTP, username } from "better-auth/plugins"
 import { dash } from "@better-auth/infra"
 import nodemailer from "nodemailer"
-import { passwordResetEmailHtml, verificationOtpEmailHtml } from '@/lib/email-templates'
+import { passwordResetEmailHtml, verificationOtpEmailHtml, welcomeEmailHtml } from '@/lib/email-templates'
 
 const MONGODB_URI = process.env.MONGODB_URI
 
@@ -52,6 +52,31 @@ export const auth = betterAuth({
     protocol: process.env.NODE_ENV === "development" ? "http" : "https"
   },
   database: mongodbAdapter(db),
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+            console.warn('[Better Auth] Welcome email skipped: email credentials are not configured.')
+            return
+          }
+
+          try {
+            await transporter.sendMail({
+              from: `"HabytFlow" <${process.env.EMAIL_USER}>`,
+              to: user.email,
+              subject: 'Welcome to HabytFlow',
+              text: `Welcome to HabytFlow, ${user.name ?? 'there'}! Start building your first habit: https://habyt-flow.vercel.app/habits`,
+              html: welcomeEmailHtml(user.name ?? 'there'),
+            })
+            console.log(`[Better Auth] Welcome email sent to ${user.email}`)
+          } catch (error) {
+            console.error(`[Better Auth] Failed to send welcome email to ${user.email}:`, error)
+          }
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       role: {
