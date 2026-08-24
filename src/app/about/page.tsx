@@ -47,7 +47,7 @@ const DeveloperMarquee = () => {
               <span
                 key={idx}
                 style={{ fontVariationSettings: '"wdth" 150, "wght" 900' }}
-                className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl text-zinc-800/20 font-panchang tracking-[0.2em] uppercase leading-none"
+                className="text-8xl sm:text-6xl md:text-7xl lg:text-8xl text-neutral-800/40 font-panchang tracking-[0.2em] uppercase leading-none"
               >
                 DEVELOPER
               </span>
