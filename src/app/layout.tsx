@@ -32,7 +32,10 @@ export const metadata: Metadata = {
   title: 'HabytFlow | Modern Habit Tracker',
   description: 'Track your daily habits on a monthly calendar view',
   icons: {
-    icon: '/hyf-logo-v2-192.png',
+    icon: [
+      { url: '/hyf-logo-v2-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/hyf-logo-v2-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/hyf-logo-v2-192.png',
   },
   appleWebApp: {

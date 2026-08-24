@@ -37,8 +37,10 @@ firebase.initializeApp({
 
 // @ts-ignore
 const messaging = firebase.messaging();
+// Web Notifications use `icon` for the expanded notification artwork and
+// `badge` for the compact status-bar indicator.
 const NOTIFICATION_ICON = '/hyf-logo-v2-512.png';
-const NOTIFICATION_BADGE = '/hyf-logo-v2-192.png';
+const NOTIFICATION_BADGE = '/hyf-notification-icon.png';
 
 messaging.onBackgroundMessage((payload: any) => {
   console.log('[sw.ts] Received background message ', payload);
