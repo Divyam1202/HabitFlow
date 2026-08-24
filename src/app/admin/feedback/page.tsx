@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Loader2, Check, MessageSquare, AlertCircle, Sparkles } from 'lucide-react'
+import React, { useState, useEffect, useCallback, startTransition } from 'react'
+import { Loader2, MessageSquare, AlertCircle, Sparkles } from 'lucide-react'
 
 interface FeedbackItem {
   id: string
@@ -19,24 +19,27 @@ export default function AdminFeedbackPage() {
   const [filterStatus, setFilterStatus] = useState<string>('ALL')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const fetchFeedback = async () => {
+  const fetchFeedback = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await fetch('/api/admin/feedback')
       const data = await res.json()
       if (data.feedback) {
-        setFeedback(data.feedback)
+        startTransition(() => {
+          setFeedback(data.feedback)
+        })
       }
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
+      startTransition(() => {
+        setLoading(false)
+      })
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchFeedback()
-  }, [])
+  }, [fetchFeedback])
 
   const updateStatus = async (feedbackId: string, status: string) => {
     try {
@@ -48,7 +51,7 @@ export default function AdminFeedbackPage() {
       })
       const data = await res.json()
       if (data.success) {
-        setFeedback(prev => prev.map(f => f.id === feedbackId ? { ...f, status: status as any } : f))
+        setFeedback(prev => prev.map(f => f.id === feedbackId ? { ...f, status: status as FeedbackItem['status'] } : f))
       } else {
         alert(data.error || 'Update failed')
       }
@@ -120,7 +123,7 @@ export default function AdminFeedbackPage() {
           ) : (
             <div className="divide-y divide-white/5">
               {filteredFeedback.map((item) => (
-                <div key={item.id} className="group px-4 py-4 transition-colors hover:bg-white/[0.03]">
+                <div key={item.id} className="group px-4 py-4 transition-colors hover:bg-white/3">
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

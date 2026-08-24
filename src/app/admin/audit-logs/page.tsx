@@ -1,12 +1,22 @@
 import { connectToDatabase } from '@/lib/db'
 import AuditLog from '@/models/AuditLog'
-import { ShieldCheck, Calendar, Clock, AlertTriangle } from 'lucide-react'
+import { Clock } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
+// Define a strict TypeScript interface for the audit log document
+interface IAuditLogItem {
+  _id: { toString: () => string }
+  action: string
+  createdAt: string | Date
+  details: string
+  adminEmail: string
+  adminId: string
+}
+
 export default async function AdminAuditLogsPage() {
   await connectToDatabase()
-  const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100).lean()
+  const logs = (await AuditLog.find().sort({ createdAt: -1 }).limit(100).lean()) as unknown as IAuditLogItem[]
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
@@ -29,7 +39,7 @@ export default async function AdminAuditLogsPage() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {logs.map((log: any) => {
+            {logs.map((log: IAuditLogItem) => {
               const tone =
                 String(log.action || '').includes('DELETE') ? 'red' :
                 String(log.action || '').includes('RESTORE') ? 'amber' :
@@ -37,7 +47,7 @@ export default async function AdminAuditLogsPage() {
                 'neutral'
 
               return (
-                <div key={log._id.toString()} className="group px-4 py-4 transition-colors hover:bg-white/[0.03]">
+                <div key={log._id.toString()} className="group px-4 py-4 transition-colors hover:bg-white/3">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

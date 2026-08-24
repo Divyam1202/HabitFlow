@@ -48,7 +48,7 @@ function AdminNavLink({ href, label, icon, pathname }: NavItem & { pathname: str
         'group flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-all duration-150',
         active
           ? 'bg-white/6 text-white ring-1 ring-white/8'
-          : 'text-zinc-400 hover:bg-white/[0.03] hover:text-white'
+          : 'text-zinc-400 hover:bg-white/3 hover:text-white'
       )}
     >
       <span className={cn('transition-colors', active ? 'text-white' : 'text-zinc-500 group-hover:text-white')}>
@@ -101,7 +101,7 @@ export function AdminShell({ children, role }: AdminShellProps) {
                 authClient.signOut().then(() => window.location.reload())
               })
             }}
-            className="group flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium text-zinc-400 transition-all duration-150 hover:bg-white/[0.03] hover:text-white"
+            className="group flex w-full items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium text-zinc-400 transition-all duration-150 hover:bg-white/3 hover:text-white"
           >
             <span className="text-zinc-500 transition-colors group-hover:text-white">
               <LogOut size={15} />

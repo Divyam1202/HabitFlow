@@ -128,7 +128,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="mx-auto max-w-7xl space-y-8 px-6 py-8 md:px-10">
       <header className="max-w-4xl space-y-2">
-        <HabytFlowWordmark width="420" height="72" skew={-7} className="-ml-[28px] block h-auto max-w-full" />
+        <HabytFlowWordmark width="420" height="72" skew={-7} className="-ml-7 block h-auto max-w-full" />
         <div className="pt-2 text-sm font-semibold tracking-wide text-amber-400">
           {session.user.name || session.user.email}
         </div>
