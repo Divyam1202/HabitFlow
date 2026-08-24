@@ -16,11 +16,54 @@ function escapeAttribute(value: unknown): string {
 
 const wordmark = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 220" width="250" height="auto" shape-rendering="geometricPrecision" style="display:block;max-width:100%;">
-  <g transform="skewX(-15) translate(80,25)">
-    <g><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M0 0h40v76H0z"/><g fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><rect x="0" y="80" width="18" height="18"/><rect x="22" y="80" width="18" height="18"/><rect x="0" y="102" width="18" height="18"/><rect x="22" y="102" width="18" height="18"/><rect x="0" y="124" width="18" height="18"/><rect x="22" y="124" width="18" height="18"/><rect x="0" y="146" width="18" height="18"/><rect x="22" y="146" width="18" height="18"/></g><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M40 70h45v26H40z"/><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M85 0h40v164H85z"/><g stroke="#000" stroke-width="3" stroke-linejoin="round"><rect x="85" y="60" width="20" height="20" fill="#86EFAC"/><rect x="85" y="80" width="20" height="20" fill="#22C55E"/><rect x="85" y="100" width="20" height="20" fill="#064E3B"/><path fill="#9CA3AF" d="M105 60h5a10 10 0 0 1 0 20h-5z"/></g></g>
-    <text x="142" y="164" font-size="175" fill="#F4F4F0" font-family="Arial,sans-serif" font-weight="900" letter-spacing="-3" >abyt</text>
-    <g transform="translate(560,0)"><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M0 0h40v76H0z"/><g fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"><rect x="0" y="80" width="18" height="18"/><rect x="22" y="80" width="18" height="18"/><rect x="0" y="102" width="18" height="18"/><rect x="22" y="102" width="18" height="18"/><rect x="0" y="124" width="18" height="18"/><rect x="22" y="124" width="18" height="18"/><rect x="0" y="146" width="18" height="18"/><rect x="22" y="146" width="18" height="18"/></g><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M40 0h90c30 0 50 5 70-15-25 50-60 55-90 55H40z"/><path stroke="#000" stroke-width="4" d="M80 0v40M120 0v40"/><path fill="#F4F4F0" stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" d="M40 70h50c25 0 45 5 55 10-20 30-50 35-75 35H40z"/><path stroke="#000" stroke-width="4" d="M80 70v45"/></g>
-    <text x="755" y="164" font-size="175" fill="#F4F4F0" font-family="Arial,sans-serif" font-weight="900" letter-spacing="-3">low</text>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&amp;display=swap');
+      .hf-text { font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: -3px; }
+      .hf-shape { fill: #F4F4F0; stroke: #000000; stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+    </style>
+  </defs>
+  <g transform="skewX(-15) translate(80, 25)">
+    <g>
+      <path class="hf-shape" d="M 0 0 h 40 v 76 h -40 z" />
+      <g class="hf-shape">
+        <rect x="0" y="80" width="18" height="18" />
+        <rect x="22" y="80" width="18" height="18" />
+        <rect x="0" y="102" width="18" height="18" />
+        <rect x="22" y="102" width="18" height="18" />
+        <rect x="0" y="124" width="18" height="18" />
+        <rect x="22" y="124" width="18" height="18" />
+        <rect x="0" y="146" width="18" height="18" />
+        <rect x="22" y="146" width="18" height="18" />
+      </g>
+      <path class="hf-shape" d="M 40 70 h 45 v 26 h -45 z" />
+      <path class="hf-shape" d="M 85 0 h 40 v 164 h -40 z" />
+      <g stroke="#000000" stroke-width="3" stroke-linejoin="round">
+        <rect x="85" y="60" width="20" height="20" fill="#86EFAC" />
+        <rect x="85" y="80" width="20" height="20" fill="#22C55E" />
+        <rect x="85" y="100" width="20" height="20" fill="#064E3B" />
+        <path fill="#9CA3AF" d="M 105 60 h 5 a 10 10 0 0 1 0 20 h -5 z" />
+      </g>
+    </g>
+    <text x="142" y="164" font-size="175" fill="#F4F4F0" class="hf-text">abyt</text>
+    <g transform="translate(560, 0)">
+      <path class="hf-shape" d="M 0 0 h 40 v 76 h -40 z" />
+      <g class="hf-shape">
+        <rect x="0" y="80" width="18" height="18" />
+        <rect x="22" y="80" width="18" height="18" />
+        <rect x="0" y="102" width="18" height="18" />
+        <rect x="22" y="102" width="18" height="18" />
+        <rect x="0" y="124" width="18" height="18" />
+        <rect x="22" y="124" width="18" height="18" />
+        <rect x="0" y="146" width="18" height="18" />
+        <rect x="22" y="146" width="18" height="18" />
+      </g>
+      <path class="hf-shape" d="M 40 0 L 130 0 C 160 0, 180 5, 200 -15 C 175 35, 140 40, 110 40 L 40 40 Z" />
+      <path stroke="#000000" stroke-width="4" d="M 80 0 v 40 M 120 0 v 40" />
+      <path class="hf-shape" d="M 40 70 L 90 70 C 115 70, 135 75, 145 80 C 125 110, 95 115, 70 115 L 40 115 Z" />
+      <path stroke="#000000" stroke-width="4" d="M 80 70 v 45" />
+    </g>
+    <text x="755" y="164" font-size="175" fill="#F4F4F0" class="hf-text">low</text>
   </g>
 </svg>`
 

@@ -181,13 +181,13 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           ...parsed,
           trackingStartedAt: nextTrackingStartedAt,
         }
-        setIsInitialized(hasInitialized || !!isAuthenticated)
+        setIsInitialized(hasInitialized)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
         setTrackingStartedAt(nextTrackingStartedAt)
         setTodayHabits(parsed.todayHabits || [])
         setTodayNutrition(parsed.todayNutrition || INITIAL_NUTRITION)
         setTodayActivity(parsed.todayActivity || INITIAL_ACTIVITY)
-        if (!hasInitialized && !isAuthenticated) {
+        if (!hasInitialized) {
           setGridData(SEED_GRID_DATA)
           setHeatmapData(SEED_HEATMAP)
         } else {
@@ -207,7 +207,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           setGridData([])
           setHeatmapData(emptyHeatmap())
           setHasHydratedState(false)
-        } else if (hasInitialized || isAuthenticated) {
+        } else if (hasInitialized) {
           const nextState = {
             currentSystemDate: getLocalYYYYMMDD(),
             trackingStartedAt: new Date().toISOString(),
