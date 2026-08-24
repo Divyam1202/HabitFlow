@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/db'
 import SupportRequest from '@/models/SupportRequest'
 import { auth } from '@/lib/auth'
+import { supportAlertEmailHtml } from '@/lib/email-templates'
 
 export async function POST(req: NextRequest) {
   try {
     const { email, message, type } = await req.json()
+    const supportType: 'issue' | 'feature_request' = type === 'feature_request' ? 'feature_request' : 'issue'
 
     if (!email || !message) {
       return NextResponse.json({ error: 'Email and message are required' }, { status: 400 })
@@ -15,7 +17,7 @@ export async function POST(req: NextRequest) {
     
     const newRequest = new SupportRequest({
       email,
-      type: type || 'issue',
+      type: supportType,
       message
     })
     
@@ -36,8 +38,9 @@ export async function POST(req: NextRequest) {
         await transporter.sendMail({
           from: process.env.EMAIL_USER,
           to: 'habytflow@gmail.com',
-          subject: `New ${type === 'feature_request' ? 'Feature Request' : 'Bug Report'} from ${email}`,
+          subject: `New ${supportType === 'feature_request' ? 'Feature Request' : 'Bug Report'} from ${email}`,
           text: `You have received a new support request.\n\nFrom: ${email}\nType: ${type}\n\nMessage:\n${message}`,
+          html: supportAlertEmailHtml(supportType, email, message),
         })
       } catch (emailError) {
         console.error('Failed to send email notification:', emailError)
