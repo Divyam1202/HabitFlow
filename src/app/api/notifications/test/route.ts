@@ -111,10 +111,6 @@ export async function POST(req: NextRequest) {
       })
 
       const message: any = {
-        notification: {
-          title: '🔔 Test Habit Notification',
-          body: 'Your test push succeeded! System observability matches perfectly.'
-        },
         data: {
           title: '🔔 Test Habit Notification',
           body: 'Your test push succeeded! System observability matches perfectly.',
@@ -138,23 +134,6 @@ export async function POST(req: NextRequest) {
         apns: { payload: { aps: { sound: 'default', category: 'HABIT_ACTIONS' } } },
         webpush: {
           headers: { Urgency: 'high' },
-          notification: {
-            requireInteraction: true,
-            vibrate: [200, 100, 200],
-            actions: [
-              { action: 'complete', title: 'Complete ✓' },
-              { action: 'snooze', title: 'Snooze 15m ⏳' },
-              { action: 'skip', title: 'Skip ✗' }
-            ],
-            data: {
-              habitId: 'test-habit-id',
-              habitName: 'Test Habit Notification',
-              category: 'growth',
-              scheduledTime: timeHHMM,
-              notificationId: String(notifRecord._id),
-              actionUrl: '/'
-            }
-          }
         }
       }
 

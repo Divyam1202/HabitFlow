@@ -25,6 +25,8 @@ import { calculateDailyRecordsForYear, getDayDiff, getGridDayStats, toDateKey, t
 // TS DOM lib's NotificationOptions type is missing 'vibrate' even though it's
 // a valid runtime property in Chromium browsers. Extend instead of using `any`.
 type NotificationOptionsWithVibrate = NotificationOptions & { vibrate?: number[] }
+const NOTIFICATION_ICON = '/hyf-logo-v2-512.png'
+const NOTIFICATION_BADGE = '/hyf-logo-v2-192.png'
 
 function getHabitTimeMinutes(time: string | undefined) {
   if (!time) return Number.POSITIVE_INFINITY
@@ -221,8 +223,8 @@ export default function BrutalistDashboard() {
             navigator.serviceWorker.ready.then(reg => {
               reg.showNotification(title, {
                 body,
-                icon: '/favicon.ico',
-                badge: '/icon-192x192.png',
+                icon: NOTIFICATION_ICON,
+                badge: NOTIFICATION_BADGE,
                 vibrate: [200, 100, 200, 100, 200],
               } as NotificationOptionsWithVibrate);
             });

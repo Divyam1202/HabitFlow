@@ -384,7 +384,6 @@ export async function GET(request: Request) {
               });
 
               const message: Message = {
-                notification: { title: copy.title, body: copy.body },
                 data: {
                   title: copy.title,
                   body: copy.body,
@@ -410,23 +409,6 @@ export async function GET(request: Request) {
                 apns: { payload: { aps: { sound: 'default', category: 'HABIT_ACTIONS' } } },
                 webpush: {
                   headers: { Urgency: 'high' },
-                  notification: {
-                    requireInteraction: true,
-                    vibrate: [200, 100, 200, 100, 200],
-                    actions: [
-                      { action: 'complete', title: 'Complete ✓' },
-                      { action: 'snooze', title: 'Snooze 15m ⏳' },
-                      { action: 'skip', title: 'Skip ✗' }
-                    ],
-                    data: {
-                      habitId: String(habit.id),
-                      habitName: habit.name,
-                      category: channel,
-                      scheduledTime: snooze.triggerTime,
-                      notificationId: String(notifRecord._id),
-                      actionUrl: '/'
-                    }
-                  }
                 }
               };
 
@@ -740,7 +722,6 @@ export async function GET(request: Request) {
             });
 
             const message: Message = {
-              notification: { title: copy.title, body: copy.body },
               data: {
                 title: copy.title,
                 body: copy.body,
@@ -766,23 +747,6 @@ export async function GET(request: Request) {
               apns: { payload: { aps: { sound: 'default', category: 'HABIT_ACTIONS' } } },
               webpush: {
                 headers: { Urgency: 'high' },
-                notification: {
-                  requireInteraction: true,
-                  vibrate: [200, 100, 200, 100, 200],
-                  actions: [
-                    { action: 'complete', title: 'Complete ✓' },
-                    { action: 'snooze', title: 'Snooze 15m ⏳' },
-                    { action: 'skip', title: 'Skip ✗' }
-                  ],
-                  data: {
-                    habitId: String(habit.id),
-                    habitName: habit.name,
-                    category: channel,
-                    scheduledTime: habit.time,
-                    notificationId: String(notifRecord._id),
-                    actionUrl: '/'
-                  }
-                }
               }
             };
 

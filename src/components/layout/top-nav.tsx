@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Sun, Moon, LayoutDashboard, CheckSquare, Calendar, BarChart2, Settings, Menu, X, ShieldAlert, MessageSquare, Info } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -56,10 +57,15 @@ export function TopNav() {
 
           {/* Logo (All viewports) */}
           <Link href="/" className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter z-50 relative font-panchang">
-            <div className="w-4 h-4 bg-white rounded-[1px] flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-black rounded-[1px]" />
-            </div>
-            HabytFLow
+            <Image
+              src="/hyf-logo-v2.svg"
+              alt="HabytFlow logo"
+              width={24}
+              height={24}
+              className="h-6 w-6 shrink-0"
+              priority
+            />
+            HabytFlow
           </Link>
 
           {/* Laptop/Desktop Navigation (min-width: 768px) */}

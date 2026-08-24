@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, CheckSquare, CalendarDays, LineChart, Settings, Sun, Moon, MessageSquare } from 'lucide-react'
 import { useTheme } from 'next-themes'
@@ -31,8 +32,14 @@ export function Sidebar() {
   return (
     <div className="flex h-screen w-64 flex-col border-r bg-background px-4 py-6">
       <div className="flex items-center gap-2 px-2 mb-8 text-emerald-600 dark:text-emerald-400">
-        <CheckSquare className="h-6 w-6" />
-        <span className="text-2xl font-bold tracking-tighter text-foreground font-panchang">HabytFLow</span>
+        <Image
+          src="/hyf-logo-v2.svg"
+          alt="HabytFlow logo"
+          width={32}
+          height={32}
+          className="h-8 w-8 shrink-0"
+        />
+        <span className="text-2xl font-bold tracking-tighter text-foreground font-panchang">HabytFlow</span>
       </div>
 
       <nav className="flex-1 space-y-2">

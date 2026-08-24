@@ -37,6 +37,8 @@ firebase.initializeApp({
 
 // @ts-ignore
 const messaging = firebase.messaging();
+const NOTIFICATION_ICON = '/hyf-logo-v2-512.png';
+const NOTIFICATION_BADGE = '/hyf-logo-v2-192.png';
 
 messaging.onBackgroundMessage((payload: any) => {
   console.log('[sw.ts] Received background message ', payload);
@@ -67,8 +69,8 @@ messaging.onBackgroundMessage((payload: any) => {
 
   const notificationOptions = {
     body: payload.data?.body || payload.notification?.body || '',
-    icon: '/favicon.ico',
-    badge: '/icon-192x192.png',
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
     vibrate: [200, 100, 200, 100, 200],
     actions: actions,
     data: customData
@@ -100,8 +102,8 @@ self.addEventListener('notificationclick', (event: any) => {
           return res.json().then(data => {
             return self.registration.showNotification('Habit Completed!', {
               body: `Great job! "${data.habitName || habitName || 'Habit'}" has been marked as completed.`,
-              icon: '/favicon.ico',
-              badge: '/icon-192x192.png',
+              icon: NOTIFICATION_ICON,
+              badge: NOTIFICATION_BADGE,
               tag: 'action-confirm',
               vibrate: [100, 50, 100]
             } as any);
@@ -121,8 +123,8 @@ self.addEventListener('notificationclick', (event: any) => {
         if (res.ok) {
           return self.registration.showNotification('Habit Snoozed', {
             body: `"${habitName || 'Habit'}" has been snoozed. We will remind you again.`,
-            icon: '/favicon.ico',
-            badge: '/icon-192x192.png',
+            icon: NOTIFICATION_ICON,
+            badge: NOTIFICATION_BADGE,
             tag: 'action-confirm',
             vibrate: [100]
           } as any);

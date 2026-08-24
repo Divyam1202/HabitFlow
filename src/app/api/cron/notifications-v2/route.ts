@@ -86,7 +86,6 @@ export async function GET(request: Request) {
         const copy = buildNotificationCopy(schedule.name, schedule.category);
         const channel = mapCategoryToChannel(schedule.category);
         await adminMessaging.send({
-          notification: { title: copy.title, body: copy.body },
           data: {
             title: copy.title,
             body: copy.body,
@@ -99,6 +98,9 @@ export async function GET(request: Request) {
           android: {
             priority: 'high',
             notification: { sound: 'default', channelId: channel },
+          },
+          webpush: {
+            headers: { Urgency: 'high' },
           },
           apns: { payload: { aps: { sound: 'default' } } },
         });

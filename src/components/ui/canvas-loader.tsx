@@ -135,7 +135,7 @@ export function CanvasLoader({ onComplete }: CanvasLoaderProps) {
         ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`
         ctx.font = `700 ${fontSize}px ${fontFamily}`
         ctx.letterSpacing = '2px'
-        ctx.fillText('HabytFLow', 0, 0)
+        ctx.fillText('HabytFlow', 0, 0)
         
         ctx.restore()
       }

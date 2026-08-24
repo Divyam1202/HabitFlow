@@ -24,12 +24,16 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'HabytFLow | Modern Habit Tracker',
+  title: 'HabytFlow | Modern Habit Tracker',
   description: 'Track your daily habits on a monthly calendar view',
+  icons: {
+    icon: '/hyf-logo-v2-192.png',
+    apple: '/hyf-logo-v2-192.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'HabytFLow',
+    title: 'HabytFlow',
   },
 }
 
