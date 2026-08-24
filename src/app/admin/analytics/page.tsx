@@ -135,7 +135,7 @@ export default async function AdminAnalyticsPage() {
               { label: 'WAU', value: `${wauCount}`, sub: 'Active past 7 days' },
               { label: 'MAU', value: `${mauCount}`, sub: 'Active past 30 days' },
             ].map((item) => (
-              <div key={item.label} className="flex items-start justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/[0.03]">
+              <div key={item.label} className="flex items-start justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/3">
                 <div>
                   <div className="text-sm text-white">{item.label}</div>
                   <div className="mt-1 text-xs text-zinc-500">{item.sub}</div>
@@ -158,7 +158,7 @@ export default async function AdminAnalyticsPage() {
           ) : (
             <div className="space-y-1">
               {popularHabitsAgg.map((habit, i) => (
-                <div key={i} className="flex items-center justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/[0.03]">
+                <div key={i} className="flex items-center justify-between gap-4 rounded-sm px-3 py-3 transition-colors hover:bg-white/3">
                   <div className="min-w-0">
                     <div className="truncate text-sm text-white">
                       {i + 1}. {habit._id || 'Unnamed Habit'}

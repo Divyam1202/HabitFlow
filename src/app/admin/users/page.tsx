@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, BarChart3, CalendarDays, ChevronDown, Dumbbell, Flame, Key, Loader2, Search, ShieldCheck, Trash2, Users, WalletCards, XCircle } from 'lucide-react'
+import { BarChart3, CalendarDays, Flame, Key, Loader2, Search, Trash2, Users, XCircle } from 'lucide-react'
 
 type User = {
   id: string
@@ -131,8 +131,8 @@ function deriveSnapshot(stateData: Record<string, unknown> | null): DrawerSnapsh
   const backups = asArray<Record<string, unknown>>(stateData.backups)
 
   const habitSummaries = habits.map((habit) => {
-    const days = asArray<any>(habit.days || habit.history)
-    const executions = days.reduce((sum, day) => sum + getDayCompletionCount(day), 0)
+    const days = asArray<unknown>(habit.days || habit.history)
+    const executions = days.reduce<number>((sum, day) => sum + getDayCompletionCount(day), 0)
     const completionRate = days.length > 0 ? Math.round((executions / days.length) * 100) : 0
     return {
       name: String(habit.name || habit.title || 'Unnamed Habit'),
@@ -146,9 +146,9 @@ function deriveSnapshot(stateData: Record<string, unknown> | null): DrawerSnapsh
   const topHabit = sortedByCompletion[0] || null
   const weakestHabit = [...habitSummaries].sort((a, b) => a.completionRate - b.completionRate)[0] || null
   const longestLapse = habitSummaries.reduce((max, habit) => Math.max(max, habit.lapse), 0)
-  const totalCompletions = habitSummaries.reduce((sum, habit) => sum + habit.executions, 0)
+  const totalCompletions = habitSummaries.reduce<number>((sum, habit) => sum + habit.executions, 0)
   const totalPossible = habitSummaries.reduce((sum, habit) => {
-    const habitDays = asArray<any>((gridData.find((item) => String(item.name || item.title || '') === habit.name) || {}).days)
+    const habitDays = asArray<unknown>((gridData.find((item) => String(item.name || item.title || '') === habit.name) || {}).days)
     return sum + habitDays.length
   }, 0)
   const completionRate = totalPossible > 0 ? Math.round((totalCompletions / totalPossible) * 100) : toNumber(stateData.completionRate)
@@ -270,7 +270,7 @@ function DrawerSection({
   open?: boolean
 }) {
   return (
-    <details className="group rounded-sm bg-white/[0.02] ring-1 ring-white/5" open={open}>
+    <details className="group rounded-sm bg-white/2 ring-1 ring-white/5" open={open}>
       <summary className="cursor-pointer list-none px-4 py-3 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400 transition-colors group-hover:text-white">
         {title}
       </summary>
@@ -307,6 +307,7 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
     fetchUsers()
   }, [])
 
@@ -433,11 +434,11 @@ export default function AdminUsersPage() {
                     <tr
                       key={user.id}
                       onClick={() => openDrawer(user)}
-                      className="group cursor-pointer border-b border-white/5 transition-colors hover:bg-white/[0.03]"
+                      className="group cursor-pointer border-b border-white/5 transition-colors hover:bg-white/3"
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center border border-white/5 bg-white/[0.03] text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                          <div className="flex h-9 w-9 items-center justify-center border border-white/5 bg-white/3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70">
                             {(user.name || user.email || 'U')
                               .split(' ')
                               .map((part) => part[0])
@@ -545,7 +546,7 @@ export default function AdminUsersPage() {
               <button
                 type="button"
                 onClick={closeDrawer}
-                className="border border-white/10 bg-white/[0.03] p-2 text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
+                className="border border-white/10 bg-white/3 p-2 text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
                 aria-label="Close profile panel"
               >
                 <XCircle size={16} />
@@ -562,7 +563,7 @@ export default function AdminUsersPage() {
                 ].map((metric) => {
                   const Icon = metric.icon
                   return (
-                    <div key={metric.label} className="relative bg-white/[0.02] p-4 ring-1 ring-white/5">
+                    <div key={metric.label} className="relative bg-white/2 p-4 ring-1 ring-white/5">
                       <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-zinc-500">
@@ -637,7 +638,7 @@ export default function AdminUsersPage() {
                     </div>
                   ) : (
                     drawerSnapshot.backups.slice(0, 4).map((backup) => (
-                      <div key={backup.id} className="flex items-start justify-between gap-3 rounded-sm px-3 py-2 transition-colors hover:bg-white/[0.03]">
+                      <div key={backup.id} className="flex items-start justify-between gap-3 rounded-sm px-3 py-2 transition-colors hover:bg-white/3">
                         <div className="min-w-0">
                           <div className="truncate text-sm text-white">{backup.name}</div>
                           <div className="mt-1 text-xs text-zinc-500">{formatDate(backup.createdAt)} · {backup.source}</div>
@@ -659,7 +660,7 @@ export default function AdminUsersPage() {
                     </div>
                   ) : (
                     drawerSnapshot.activityTimeline.map((event) => (
-                      <div key={event.id} className="flex items-start gap-3 rounded-sm px-3 py-2 transition-colors hover:bg-white/[0.03]">
+                      <div key={event.id} className="flex items-start gap-3 rounded-sm px-3 py-2 transition-colors hover:bg-white/3">
                         <div className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${
                           event.tone === 'green' ? 'bg-emerald-400' :
                           event.tone === 'amber' ? 'bg-amber-400' :
@@ -686,7 +687,7 @@ export default function AdminUsersPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => handleAction(selectedUser.id, 'RESET_PASSWORD')}
-                  className="inline-flex items-center gap-2 border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white transition-colors hover:border-white/20 hover:bg-white/[0.05]"
+                  className="inline-flex items-center gap-2 border border-white/10 bg-white/3 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white transition-colors hover:border-white/20 hover:bg-white/5"
                 >
                   <Key size={14} />
                   Password Reset
@@ -719,7 +720,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white/[0.02] p-3 ring-1 ring-white/5">
+    <div className="bg-white/2 p-3 ring-1 ring-white/5">
       <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">{label}</div>
       <div className="mt-2 text-lg font-black text-white">{value}</div>
     </div>
@@ -736,7 +737,7 @@ function MiniProgress({
   unit: string
 }) {
   return (
-    <div className="bg-white/[0.02] p-3 ring-1 ring-white/5">
+    <div className="bg-white/2 p-3 ring-1 ring-white/5">
       <div className="flex items-start justify-between gap-2">
         <div className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">{label}</div>
         <div className="text-[10px] uppercase tracking-[0.22em] text-white/70">{value.percent}%</div>

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { connectToDatabase } from '@/lib/db'
-import SupportRequest from '@/models/SupportRequest'
+import Feedback from '@/models/Feedback'
 import { auth } from '@/lib/auth'
 import { supportAlertEmailHtml } from '@/lib/email-templates'
+import nodemailer from 'nodemailer'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,18 +16,17 @@ export async function POST(req: NextRequest) {
 
     await connectToDatabase()
     
-    const newRequest = new SupportRequest({
+    const feedback = new Feedback({
       email,
-      type: supportType,
+      type: supportType === 'feature_request' ? 'FEATURE_REQUEST' : 'BUG_REPORT',
       message
     })
     
-    await newRequest.save()
+    await feedback.save()
 
     // Send email notification to admin
     if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
       try {
-        const nodemailer = require('nodemailer')
         const transporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
 
     await connectToDatabase()
     
-    const requests = await SupportRequest.find().sort({ createdAt: -1 })
+    const requests = await Feedback.find().sort({ createdAt: -1 })
     
     return NextResponse.json({ requests })
   } catch (error) {
