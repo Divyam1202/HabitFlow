@@ -14,7 +14,9 @@ function escapeAttribute(value: unknown): string {
   return escapeHtml(value).replace(/`/g, '&#96;')
 }
 
-const wordmark = `
+const wordmark = '<img src="https://habyt-flow.vercel.app/habytflow-wordmark.svg" width="250" alt="HabytFlow" style="display:block;width:250px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;" />'
+
+const legacyInlineWordmark = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 220" width="250" height="auto" shape-rendering="geometricPrecision" style="display:block;max-width:100%;">
   <defs>
     <style>
@@ -66,6 +68,8 @@ const wordmark = `
     <text x="755" y="164" font-size="175" fill="#F4F4F0" class="hf-text">low</text>
   </g>
 </svg>`
+
+void legacyInlineWordmark
 
 function shell(title: string, content: string, maxWidth = 520, padding = '36px 32px'): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0;background-color:#0A0A0A;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F4F4F0"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#0A0A0A;padding:40px 15px"><tr><td align="center"><table role="presentation" width="100%" style="max-width:${maxWidth}px;background-color:#141414;border:1px solid #262626;border-radius:16px;padding:${padding};box-shadow:0 8px 32px rgba(0,0,0,0.5)"><tr><td align="center" style="padding-bottom:24px">${wordmark}</td></tr>${content}</table></td></tr></table></body></html>`

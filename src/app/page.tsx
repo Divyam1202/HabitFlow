@@ -207,7 +207,7 @@ export default function BrutalistDashboard() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const handleControllerChange = () => {
-        toast.info("A new version of HabytFlow is available!", {
+        toast.info("A new version of                                 is available!", {
           description: "Tap 'Reload' to update and use the latest features.",
           duration: Infinity,
           action: {
