@@ -16,18 +16,13 @@ import { UnifiedHabitCalendar } from '@/components/dashboard/unified-habit-calen
 import { useSettings, formatTime } from '@/hooks/useSettings'
 import { useHabitContext } from '@/contexts/habit-context'
 import { useAuth } from '@/contexts/auth-context'
-import { getFirebaseMessaging, requestAndStoreNotificationToken } from '@/lib/firebase'
+import { requestAndStoreNotificationToken } from '@/lib/firebase'
 import { useAnalyticsSnapshot } from '@/hooks/useAnalyticsSnapshot'
-import { onMessage } from 'firebase/messaging'
 import { toast } from 'sonner'
 import { calculateDailyRecordsForYear, getDayDiff, getGridDayStats, toDateKey, type DailyHabitRecord } from '@/utils/analytics'
 
 // TS DOM lib's NotificationOptions type is missing 'vibrate' even though it's
 // a valid runtime property in Chromium browsers. Extend instead of using `any`.
-type NotificationOptionsWithVibrate = NotificationOptions & { vibrate?: number[] }
-const NOTIFICATION_ICON = '/hyf-logo-v2-512.png'
-const NOTIFICATION_BADGE = '/hyf-logo-v2-192.png'
-
 function getHabitTimeMinutes(time: string | undefined) {
   if (!time) return Number.POSITIVE_INFINITY
   const match = time.match(/^(\d{1,2}):(\d{2})$/)
@@ -207,36 +202,6 @@ export default function BrutalistDashboard() {
 
   // Do not show the notification prompt banner automatically when PWA opens
   // Users can still click 'Enable Notifications' manually when completing a habit.
-
-  useEffect(() => {
-    if (isAuthenticated && isMounted) {
-      let active = true;
-      let unsubscribe: (() => void) | undefined;
-      getFirebaseMessaging().then(messaging => {
-        if (!messaging || !active) return;
-        unsubscribe = onMessage(messaging, (payload) => {
-          console.log("Foreground push notification received:", payload);
-          const title = payload.data?.title || payload.notification?.title || 'HabytFlow Reminder';
-          const body = payload.data?.body || payload.notification?.body || '';
-
-          if (Notification.permission === 'granted') {
-            navigator.serviceWorker.ready.then(reg => {
-              reg.showNotification(title, {
-                body,
-                icon: NOTIFICATION_ICON,
-                badge: NOTIFICATION_BADGE,
-                vibrate: [200, 100, 200, 100, 200],
-              } as NotificationOptionsWithVibrate);
-            });
-          }
-        });
-      });
-      return () => {
-        active = false;
-        if (unsubscribe) unsubscribe();
-      }
-    }
-  }, [isAuthenticated, isMounted]);
 
   // Listen for Service Worker updates to prompt users to reload and use the latest PWA version
   useEffect(() => {

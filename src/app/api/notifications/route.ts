@@ -5,7 +5,7 @@ import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-const CATEGORY_FILTERS = ['health', 'career', 'growth', 'spiritual', 'home']
+const CATEGORY_FILTERS = ['health', 'career', 'growth', 'spiritual', 'home', 'announcement']
 
 export async function GET(req: NextRequest) {
   try {

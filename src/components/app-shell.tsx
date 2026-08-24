@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { onMessage } from 'firebase/messaging'
+import { toast } from 'sonner'
 
 import { TopNav } from '@/components/layout/top-nav'
 import { Footer } from '@/components/layout/footer'
@@ -11,6 +13,7 @@ import { GatekeeperModal } from '@/components/ui/gatekeeper-modal'
 import { Toaster } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { isAdminUser, ADMIN_REDIRECT_PATH } from '@/lib/admin'
+import { getFirebaseMessaging } from '@/lib/firebase'
 
 const INITIAL_LOADER_SESSION_KEY = 'habitflow_has_seen_initial_loader'
 const initialLoaderListeners = new Set<() => void>()
@@ -69,6 +72,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isAdminRoute = pathname?.startsWith('/admin')
   const isAdmin = isAdminUser(user)
+
+  useEffect(() => {
+    if (!user?.id) return
+
+    let active = true
+    let unsubscribe: (() => void) | undefined
+
+    getFirebaseMessaging().then((messaging) => {
+      if (!messaging || !active) return
+
+      unsubscribe = onMessage(messaging, (payload) => {
+        const title = payload.data?.title || payload.notification?.title || 'HabytFlow Reminder'
+        const body = payload.data?.body || payload.notification?.body || ''
+        const isAnnouncement = payload.data?.notificationType === 'announcement'
+
+        if (isAnnouncement) {
+          toast.info(title, { description: body })
+        }
+
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, {
+              body,
+              icon: '/hyf-logo-v2-512.png',
+              badge: '/hyf-logo-v2-192.png',
+              data: { url: payload.data?.actionUrl || '/' }
+            })
+          })
+        }
+      })
+    })
+
+    return () => {
+      active = false
+      unsubscribe?.()
+    }
+  }, [user?.id])
 
   useEffect(() => {
     if (!isLoading && isAdmin && !isAdminRoute) {

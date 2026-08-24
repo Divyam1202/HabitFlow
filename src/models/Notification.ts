@@ -14,6 +14,8 @@ export interface INotification extends Document {
   habitId: string
   habitName: string
   category: string
+  notificationType?: 'habit' | 'announcement'
+  announcementId?: string
   title: string
   body: string
   scheduledFor: Date
@@ -34,6 +36,8 @@ const NotificationSchema: Schema = new Schema(
     habitId:     { type: String, required: true },
     habitName:   { type: String, required: true },
     category:    { type: String, required: true },
+    notificationType: { type: String, enum: ['habit', 'announcement'], default: 'habit' },
+    announcementId: { type: String, index: true },
     title:       { type: String, required: true },
     body:        { type: String, required: true },
     scheduledFor:{ type: Date,   required: true },
