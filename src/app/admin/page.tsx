@@ -225,9 +225,9 @@ export default async function AdminDashboardPage() {
               <h2 className="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Recent Feedback</h2>
               <p className="mt-1 text-sm text-zinc-500">Latest product signals from users.</p>
             </div>
-            <Link href="/admin/feedback" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:text-white">
+            <a href="/admin/feedback" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400 transition-colors hover:text-white">
               View Desk <ArrowUpRight size={13} />
-            </Link>
+            </a>
           </div>
           <div className="space-y-1">
             {recentFeedback.length === 0 ? (
