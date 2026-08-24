@@ -54,14 +54,22 @@ export const auth = betterAuth({
   database: mongodbAdapter(db),
   databaseHooks: {
     user: {
-      create: {
+      update: {
         after: async (user) => {
+          if (!user.emailVerified) return
           if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
             console.warn('[Better Auth] Welcome email skipped: email credentials are not configured.')
             return
           }
 
           try {
+            const userCollection = db.collection('user')
+            const alreadySent = await userCollection.findOne({
+              id: user.id,
+              welcomeEmailSent: true,
+            })
+            if (alreadySent) return
+
             await transporter.sendMail({
               from: `"HabytFlow" <${process.env.EMAIL_USER}>`,
               to: user.email,
@@ -69,6 +77,10 @@ export const auth = betterAuth({
               text: `Welcome to HabytFlow, ${user.name ?? 'there'}! Start building your first habit: https://habyt-flow.vercel.app/habits`,
               html: welcomeEmailHtml(user.name ?? 'there'),
             })
+            await userCollection.updateOne(
+              { id: user.id },
+              { $set: { welcomeEmailSent: true } },
+            )
             console.log(`[Better Auth] Welcome email sent to ${user.email}`)
           } catch (error) {
             console.error(`[Better Auth] Failed to send welcome email to ${user.email}:`, error)
