@@ -572,7 +572,7 @@ export default function AnalyticsPage() {
               <h3 className="text-[clamp(0.62rem,0.85vw,0.72rem)] font-bold uppercase tracking-widest text-zinc-400/85">6-Month Progress</h3>
             </div>
             <div className="h-44 w-full overflow-hidden">
-              <DynamicResponsiveContainer width="100%" height="100%">
+              <DynamicResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <LineChart data={summary.monthlyTrend} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
                   <YAxis
                     axisLine={false}
@@ -610,7 +610,7 @@ export default function AnalyticsPage() {
               <h3 className="text-[clamp(0.62rem,0.85vw,0.72rem)] font-bold uppercase tracking-widest text-zinc-400/85">Monthly Volume</h3>
             </div>
             <div className="h-44 w-full overflow-hidden">
-              <DynamicResponsiveContainer width="100%" height="100%">
+              <DynamicResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={summary.monthlyTrend} margin={{ top: 5, right: 8, bottom: 0, left: 0 }}>
                   <YAxis axisLine={false} tickLine={false} width={32} tick={{ fontSize: 10, fill: '#71717a' }} />
                   <XAxis

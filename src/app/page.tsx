@@ -186,19 +186,19 @@ export default function BrutalistDashboard() {
   }, [clientReady, isAuthenticated, refreshNotificationHealth]);
 
   // Self-repair to clear the glitchy completions on June 10 caused by the previous index mismatch
-  useEffect(() => {
-    if (isMounted && gridData.length > 0) {
-      const repairedKey = 'habitflow_glitch_repaired_jun10';
-      if (!localStorage.getItem(repairedKey)) {
-        gridData.forEach(h => {
-          if (h.days && h.days[16]?.completed) {
-            toggleGridHabit(h.id, h.days[16].day);
-          }
-        });
-        localStorage.setItem(repairedKey, 'true');
-      }
-    }
-  }, [isMounted, gridData, toggleGridHabit])
+  // useEffect(() => {
+  //   if (isMounted && gridData.length > 0) {
+  //     const repairedKey = 'habitflow_glitch_repaired_jun10';
+  //     if (!localStorage.getItem(repairedKey)) {
+  //       gridData.forEach(h => {
+  //         if (h.days && h.days[16]?.completed) {
+  //           toggleGridHabit(h.id, h.days[16].day);
+  //         }
+  //       });
+  //       localStorage.setItem(repairedKey, 'true');
+  //     }
+  //   }
+  // }, [isMounted, gridData, toggleGridHabit])
 
   // Do not show the notification prompt banner automatically when PWA opens
   // Users can still click 'Enable Notifications' manually when completing a habit.
