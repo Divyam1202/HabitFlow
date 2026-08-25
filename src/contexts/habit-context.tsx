@@ -103,6 +103,60 @@ const getLocalYYYYMMDD = () => {
 }
 
 const emptyHeatmap = () => Array.from({ length: 364 }).map((_, i) => ({ id: i, count: 0 }))
+const NEW_USER_PREVIEW_WINDOW_DAYS = 14
+
+const isOlderThanDays = (value: string | null | undefined, days: number) => {
+  if (!value) return false
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return false
+
+  return Date.now() - date.getTime() > days * 24 * 60 * 60 * 1000
+}
+
+const isSeedPreviewGrid = (gridData: unknown) => {
+  if (!Array.isArray(gridData) || gridData.length !== MOCK_HABITS.length) return false
+
+  return MOCK_HABITS.every((habit, index) => {
+    const item = gridData[index]
+    return (
+      typeof item === 'object' &&
+      item !== null &&
+      !Array.isArray(item) &&
+      (item as Partial<GridHabit>).name === habit.name
+    )
+  })
+}
+
+const isSeedPreviewState = (state: unknown) => {
+  if (typeof state !== 'object' || state === null || Array.isArray(state)) return false
+
+  return isSeedPreviewGrid((state as Record<string, unknown>).gridData)
+}
+
+const resolveInitializedState = ({
+  parsed,
+  localHasInitialized,
+  remoteCreatedAt,
+  remoteHadState,
+}: {
+  parsed: Record<string, unknown>
+  localHasInitialized: boolean
+  remoteCreatedAt: string | null
+  remoteHadState: boolean
+}) => {
+  if (localHasInitialized || parsed.isInitialized === true) return true
+
+  const trackingStartedAt = typeof parsed.trackingStartedAt === 'string' ? parsed.trackingStartedAt : null
+  if (
+    isOlderThanDays(remoteCreatedAt, NEW_USER_PREVIEW_WINDOW_DAYS) ||
+    isOlderThanDays(trackingStartedAt, NEW_USER_PREVIEW_WINDOW_DAYS)
+  ) {
+    return true
+  }
+
+  return remoteHadState && !isSeedPreviewState(parsed)
+}
 
 export function HabitProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
@@ -171,15 +225,25 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (parsed) {
-        const hasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
+        const localHasInitialized = localStorage.getItem('habitflow_has_initialized') === 'true'
         const nextTrackingStartedAt = typeof parsed.trackingStartedAt === 'string'
           ? parsed.trackingStartedAt
           : typeof parsed.createdAt === 'string'
             ? parsed.createdAt
             : getLocalYYYYMMDD()
+        const hasInitialized = resolveInitializedState({
+          parsed,
+          localHasInitialized,
+          remoteCreatedAt,
+          remoteHadState,
+        })
         loadedStateRef.current = {
           ...parsed,
+          isInitialized: hasInitialized,
           trackingStartedAt: nextTrackingStartedAt,
+        }
+        if (hasInitialized) {
+          localStorage.setItem('habitflow_has_initialized', 'true')
         }
         setIsInitialized(hasInitialized)
         setCurrentSystemDate(parsed.currentSystemDate || getLocalYYYYMMDD())
@@ -209,6 +273,8 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           setHasHydratedState(false)
         } else if (hasInitialized) {
           const nextState = {
+            isInitialized: true,
+            initializedAt: new Date().toISOString(),
             currentSystemDate: getLocalYYYYMMDD(),
             trackingStartedAt: new Date().toISOString(),
             todayHabits: [],
@@ -229,6 +295,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
           setHasHydratedState(!isAuthenticated || !remoteHadState)
         } else {
           const nextState = {
+            isInitialized: false,
             currentSystemDate: getLocalYYYYMMDD(),
             trackingStartedAt: new Date().toISOString(),
             todayHabits: [1, 3],
@@ -290,6 +357,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
     const stateToSave = {
       ...(loadedStateRef.current || {}),
+      isInitialized,
       currentSystemDate, trackingStartedAt, todayHabits, todayNutrition, todayActivity, gridData, heatmapData
     }
     const stateString = JSON.stringify(stateToSave);
@@ -325,12 +393,15 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
 
       return () => clearTimeout(timer);
     }
-  }, [currentSystemDate, trackingStartedAt, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, mounted, isAuthenticated, isLoading, hasHydratedState, storageKey]);
+  }, [currentSystemDate, trackingStartedAt, todayHabits, todayNutrition, todayActivity, gridData, heatmapData, isInitialized, mounted, isAuthenticated, isLoading, hasHydratedState, storageKey]);
 
   const initializeJourney = () => {
+    const now = new Date().toISOString()
     const nextState = {
+      isInitialized: true,
+      initializedAt: now,
       currentSystemDate: getLocalYYYYMMDD(),
-      trackingStartedAt: new Date().toISOString(),
+      trackingStartedAt: now,
       todayHabits: [],
       todayNutrition: INITIAL_NUTRITION,
       todayActivity: INITIAL_ACTIVITY,
@@ -477,6 +548,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // 2. Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
         ...(loadedStateRef.current || {}),
+        isInitialized,
         currentSystemDate, todayHabits, todayNutrition, todayActivity,
         gridData: [...gridData, newHabit],
         heatmapData
@@ -520,6 +592,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
         ...(loadedStateRef.current || {}),
+        isInitialized,
         currentSystemDate, todayHabits, todayNutrition, todayActivity,
         gridData: updatedGridData,
         heatmapData
@@ -557,6 +630,7 @@ export function HabitProvider({ children }: { children: React.ReactNode }) {
       // Immediate Remote Sync (Bypass debounce) for visual confidence
       const stateToSave = {
         ...(loadedStateRef.current || {}),
+        isInitialized,
         currentSystemDate, todayHabits: updatedTodayHabits, todayNutrition, todayActivity,
         gridData: updatedGridData,
         heatmapData

@@ -3,6 +3,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 
@@ -134,9 +135,9 @@ const UniverseBackground = () => {
 
       return {
         id: i,
-        x: randomX,
-        y: randomY,
-        size: randomSize,
+        x: `${randomX.toFixed(4)}%`,
+        y: `${randomY.toFixed(4)}%`,
+        size: `${randomSize.toFixed(5)}px`,
         duration: randomDuration,
         delay: randomDelay
       }
@@ -150,11 +151,11 @@ const UniverseBackground = () => {
           key={star.id}
           className="absolute bg-white rounded-full"
           style={{
-            left: `${star.x}%`,
-            top: `${star.y}%`,
-            width: `${star.size}px`,
-            height: `${star.size}px`,
-            opacity: 0.1
+            left: star.x,
+            top: star.y,
+            width: star.size,
+            height: star.size,
+            opacity: "0.1"
           }}
           animate={{
             opacity: [0.1, 0.8, 0.1],
@@ -244,22 +245,37 @@ export default function AboutPage() {
       {/* Hero Section - Full Screen & Absolute Center */}
       <div className="relative z-10 flex flex-col items-center justify-center h-screen w-full px-6 text-center snap-center">
         <div className="flex flex-col items-center gap-4">
-          <h1
-            style={{ fontVariationSettings: '"wdth" 150, "wght" 900', perspective: "1000px" }}
-            className="text-[1.75rem] xs:text-[2.5rem] sm:text-5xl md:text-7xl lg:text-8xl text-white font-panchang leading-none tracking-tighter flex justify-center overflow-visible w-full"
+          <motion.div
+            initial={{ opacity: 0, y: 50, rotateX: -90 }}
+            animate={{ opacity: 1, y: 0, rotateX: 0 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            style={{ transformOrigin: "bottom", perspective: "1000px" }}
+            className="flex justify-center overflow-visible w-full"
           >
-            {"HabytFlow".split("").map((char, i) => (
-              <motion.span
-                key={i}
-                initial={{ opacity: 0, y: 50, rotateX: -90 }}
-                animate={{ opacity: 1, y: 0, rotateX: 0 }}
-                transition={{ duration: 0.8, delay: i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-                style={{ transformOrigin: "bottom" }}
-              >
-                {char}
-              </motion.span>
-            ))}
-          </h1>
+            <motion.div
+              initial={{ clipPath: "inset(0 100% 0 0)" }}
+              animate={{ clipPath: "inset(0 0% 0 0)" }}
+              transition={{ duration: 1.25, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              className="relative overflow-hidden"
+            >
+              <Image
+                src="/habytflow-wordmark.svg"
+                alt="HabytFlow"
+                width={1300}
+                height={220}
+                preload
+                unoptimized
+                className="h-auto w-[min(82vw,560px)] md:w-[min(74vw,760px)] lg:w-[min(68vw,900px)]"
+              />
+              <motion.div
+                aria-hidden="true"
+                initial={{ x: "-120%", opacity: 0 }}
+                animate={{ x: "120%", opacity: [0, 0.65, 0] }}
+                transition={{ duration: 1.1, delay: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                className="absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-linear-to-r from-transparent via-white/35 to-transparent"
+              />
+            </motion.div>
+          </motion.div>
 
           <div className="text-[8px] xs:text-[10px] sm:text-xs font-panchang tracking-[0.2em] xs:tracking-[0.3em] sm:tracking-[0.4em] uppercase flex justify-center flex-wrap mt-2 w-full">
             {"CONSISTENCY IN MOTION".split("").map((char, i) => (
@@ -521,7 +537,7 @@ export default function AboutPage() {
               <div className="flex items-center gap-4 w-full justify-center">
                 <div className="h-px bg-zinc-800 grow max-w-80px" />
                 <div className="flex items-center justify-center w-full"><span className="text-zinc-400 text-xs md:text-sm uppercase tracking-widest font-black whitespace-nowrap">© 2026 HabytFlow. All Rights Reserved.</span></div>
-                <div className="h-px bg-zinc-800 fgrow max-w-80px" />
+                <div className="h-px bg-zinc-800 grow max-w-80px" />
               </div>
 
               {/* Links with scroll-like lines on both sides */}
