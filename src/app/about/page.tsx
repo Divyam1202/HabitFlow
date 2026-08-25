@@ -333,7 +333,7 @@ export default function AboutPage() {
                 Core Features
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
                 {[
                   { title: "Intelligent Auth", desc: "Secure account registration and passwordless session states powered by Better Auth." },
                   { title: "Habit Engine", desc: "Create, schedule, and log routines with adaptive calendar configurations." },
@@ -342,9 +342,9 @@ export default function AboutPage() {
                   { title: "Reminders & Alerts", desc: "Stay accountable with push notifications and automated transaction emails." },
                   { title: "Data Ownership", desc: "Export details or permanently delete your account directly from the settings." },
                 ].map((feature, i) => (
-                  <div key={i} className="bg-zinc-950/40 border border-zinc-900/50 rounded-lg p-6 hover:border-zinc-800 transition-colors duration-200">
-                    <h4 className="text-white font-sans font-bold text-base mb-2">{feature.title}</h4>
-                    <p className="text-zinc-500 text-sm font-sans leading-relaxed">{feature.desc}</p>
+                  <div key={i} className="bg-zinc-950/40 border border-zinc-900/50 rounded-lg p-3 sm:p-5 lg:p-6 hover:border-zinc-800 transition-colors duration-200">
+                    <h4 className="text-white font-sans font-bold text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 leading-snug">{feature.title}</h4>
+                    <p className="text-zinc-500 text-[10px] sm:text-xs lg:text-sm font-sans leading-relaxed">{feature.desc}</p>
                   </div>
                 ))}
               </div>
