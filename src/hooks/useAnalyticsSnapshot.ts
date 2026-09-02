@@ -45,6 +45,7 @@ export function useAnalyticsSnapshot() {
 
   useEffect(() => {
     if (isLoading) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loadSnapshot is async; setState calls happen after await, not synchronously in the effect body
     void loadSnapshot()
   }, [isLoading, loadSnapshot])
 

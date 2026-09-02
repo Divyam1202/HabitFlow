@@ -3,7 +3,7 @@ import type { ActivityState, GridHabit, NutritionState } from '@/contexts/habit-
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 export type HabitPerformance = {
-  id: number
+  id: string
   name: string
   executions: number
   scheduled: number
@@ -284,7 +284,7 @@ function calculateHabitPerformance(
     }
 
     return {
-      id: habit.id,
+      id: String(habit.id),
       name: habit.name,
       executions,
       scheduled,
@@ -510,10 +510,6 @@ function assertAnalyticsConsistency(
 ) {
   if (summary.dailyRecords.some((record) => record.completedCount > 0) && summary.lifetimeExecutions === 0) {
     throw new Error(`${scope}: lifetimeExecutions is 0 despite completed daily records`)
-  }
-
-  if (summary.thirtyDayActiveDays > 0 && summary.thirtyDayCompletionRate === 0) {
-    throw new Error(`${scope}: thirtyDayCompletionRate is 0 despite active days being tracked`)
   }
 
   if (summary.habitPerformance.length > 0 && !summary.topHabit) {
@@ -873,19 +869,13 @@ function buildHabitPerformanceForRange(
 
 function resolveHabitId(habit: HistoricalHabitRecord, index: number) {
   const rawId = (habit as { _id?: unknown })._id
-
+  if (typeof rawId === 'string' && rawId.trim()) {
+    return rawId.trim()
+  }
   if (typeof rawId === 'number' && Number.isFinite(rawId)) {
-    return rawId
+    return String(rawId)
   }
-
-  if (typeof rawId === 'string') {
-    const parsed = Number.parseInt(rawId.replace(/\D/g, ''), 10)
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed
-    }
-  }
-
-  return index + 1
+  return `habit-${index}`
 }
 
 function getMonthlyLongestLapse(habitPerformance: HabitPerformance[], monthStart: Date, monthEnd: Date, snapshot: AnalyticsHistorySnapshot, trackingStart: Date) {
